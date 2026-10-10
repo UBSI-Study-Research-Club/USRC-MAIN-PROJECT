@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-/* ─── Types ──────────────────────────────────────── */
 interface Meeting {
   id: string;
   title: string;
@@ -37,7 +36,6 @@ interface Stats {
   projects: number;
 }
 
-/* ─── Helpers ────────────────────────────────────── */
 function formatDateWIB(iso: string) {
   const d = new Date(iso);
   return d.toLocaleDateString("id-ID", {
@@ -58,13 +56,11 @@ function formatTimeWIB(iso: string) {
   });
 }
 
-/* ─── Shared class strings ───────────────────────── */
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
 const GLASS =
   "border border-white/40 bg-white/70 backdrop-blur-md outline outline-[1.5px] outline-dark";
 
-/* ─── 4 Core Values ──────────────────────────────── */
 const CORES = [
   {
     icon: BookOpen,
@@ -83,7 +79,7 @@ const CORES = [
   {
     icon: Hammer,
     title: "Build Project",
-    desc: "Bangun project nyata — web, mobile, IoT — dari ide sampai deploy.",
+    desc: "Bangun project nyata - web, mobile, IoT - dari ide sampai deploy.",
     rotate: "-rotate-1",
     tint: "bg-[#D1E7DD]",
   },
@@ -96,7 +92,6 @@ const CORES = [
   },
 ] as const;
 
-/* ─── Section heading ────────────────────────────── */
 function SectionHead({ tag, children }: { tag: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
@@ -114,12 +109,10 @@ function SectionHead({ tag, children }: { tag: string; children: React.ReactNode
   );
 }
 
-/* ─── Skeleton ───────────────────────────────────── */
 function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
-/* ─── Stat Card ──────────────────────────────────── */
 function StatCard({
   icon: Icon,
   label,
@@ -156,7 +149,6 @@ function StatCard({
   );
 }
 
-/* ─── Meeting Ticket Card ────────────────────────── */
 function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
   const tilt = index % 2 === 0 ? "-rotate-[1.5deg]" : "rotate-[1.5deg]";
 
@@ -212,9 +204,6 @@ function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════
-   LANDING PAGE
-   ═══════════════════════════════════════════════════ */
 export default function LandingPage() {
   const prefersReduced = useReducedMotion();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -289,7 +278,6 @@ export default function LandingPage() {
 
   return (
     <div className="relative isolate overflow-hidden">
-      {/* ── BACKGROUND ACCENTS ─────────────────── */}
       <div
         aria-hidden="true"
         className="absolute right-0 top-0 -z-10 h-[800px] w-[800px] -translate-y-1/3 translate-x-1/3 rounded-full bg-[#ECAEBA] opacity-30 blur-3xl"
@@ -299,7 +287,6 @@ export default function LandingPage() {
         className="absolute -left-32 top-64 -z-10 h-[600px] w-[600px] rounded-full bg-[#D9C8C9] opacity-40 blur-3xl"
       />
 
-      {/* ── HERO ─────────────────────────────────── */}
       <section
         ref={heroRef}
         id="tentang"
@@ -328,7 +315,10 @@ export default function LandingPage() {
               <span className="text-maroon">BERKARYA</span>
               <span>YANG</span>
               <span>
-                NGGAK<span className="text-maroon">...</span>
+                NGGAK<span className="text-maroon"> BIASA</span>
+              </span>
+              <span>
+                AJA
               </span>
             </h1>
 
