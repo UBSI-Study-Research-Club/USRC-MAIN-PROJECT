@@ -60,7 +60,7 @@ DoD Fase 1 lengkap: lihat `PRD-USRCWEB.md` §9.
 
 ## 5. Workflow kerja
 
-- Repo: GitHub org **MuaraAI**, nama `usrc-web`. Branch `main` = production (auto-deploy). Kerja di branch fitur (`feat/login`, `feat/absen`) → PR → merge.
+- Repo: GitHub org **UBSI-Study-Research-Club**, nama `USRC-MAIN-PROJECT`. Branch `main` = production (auto-deploy). Kerja di branch fitur (`feat/login`, `feat/absen`) → PR → merge.
 - Setiap rilis di-tag / minimal dicatat di commit message: `R4: absen + dashboard sekre`.
 - Komit kecil-kecil, pesan jelas. Dilarang push langsung ke `main` (kecuali Raken untuk hotfix).
 - Perubahan skema DB: Raken tulis sebagai file SQL migration di `supabase/migrations/` — TIDAK klik-klik manual di dashboard, supaya tercatat & bisa diulang.
