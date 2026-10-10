@@ -113,6 +113,30 @@ function Skeleton({ className = "" }: { className?: string }) {
   return <div className={`skeleton ${className}`} />;
 }
 
+/* Scroll-reveal: fade + rise, sekali jalan, hormat reduced-motion */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduced ? false : { opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease: "easeOut", delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 function StatCard({
   icon: Icon,
   label,
@@ -436,29 +460,32 @@ export default function LandingPage() {
       {/* ── 4 CORE VALUES ────────────────────────── */}
       <section className="px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <SectionHead tag="// Fondasi kami">
-            4 Pilar <span className="text-maroon">USRC</span>
-          </SectionHead>
+          <Reveal>
+            <SectionHead tag="// Fondasi kami">
+              4 Pilar <span className="text-maroon">USRC</span>
+            </SectionHead>
+          </Reveal>
           <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4">
-            {CORES.map((core) => (
-              <div
-                key={core.title}
-                className={`flex flex-col gap-3 border-2 border-dark bg-white p-6 shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:rotate-0 hover:shadow-[8px_8px_0px_var(--color-maroon)] ${core.rotate}`}
-              >
-                <span
-                  className={`inline-flex h-12 w-12 items-center justify-center border-2 border-dark ${core.tint}`}
+            {CORES.map((core, i) => (
+              <Reveal key={core.title} delay={i * 0.08}>
+                <div
+                  className={`flex flex-col gap-3 border-2 border-dark bg-white p-6 shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:rotate-0 hover:shadow-[8px_8px_0px_var(--color-maroon)] ${core.rotate}`}
                 >
-                  <core.icon className="h-6 w-6 text-dark" strokeWidth={2} />
-                </span>
-                <h3
-                  className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-wide text-dark`}
-                >
-                  {core.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-dark/70">
-                  {core.desc}
-                </p>
-              </div>
+                  <span
+                    className={`inline-flex h-12 w-12 items-center justify-center border-2 border-dark ${core.tint}`}
+                  >
+                    <core.icon className="h-6 w-6 text-dark" strokeWidth={2} />
+                  </span>
+                  <h3
+                    className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-wide text-dark`}
+                  >
+                    {core.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-dark/70">
+                    {core.desc}
+                  </p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -467,9 +494,11 @@ export default function LandingPage() {
       {/* ── KEGIATAN TERAKHIR ────────────────────── */}
       <section id="kegiatan" className="px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <SectionHead tag="// Sesi yang sudah berlalu">
-            Kegiatan <span className="text-maroon">Terakhir</span>
-          </SectionHead>
+          <Reveal>
+            <SectionHead tag="// Sesi yang sudah berlalu">
+              Kegiatan <span className="text-maroon">Terakhir</span>
+            </SectionHead>
+          </Reveal>
 
           {loading ? (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -497,7 +526,9 @@ export default function LandingPage() {
           ) : (
             <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
               {meetings.map((m, i) => (
-                <TicketCard key={m.id} meeting={m} index={i} />
+                <Reveal key={m.id} delay={i * 0.08}>
+                  <TicketCard meeting={m} index={i} />
+                </Reveal>
               ))}
             </div>
           )}
@@ -511,47 +542,56 @@ export default function LandingPage() {
       {/* ── LIVE STATS (dark band) ───────────────── */}
       <section className="border-y-2 border-dark bg-dark px-4 py-20 text-paper">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <div className="flex flex-col gap-2">
-            <p
-              className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-[#E38595]`}
-            >
-              // Data langsung dari database
-            </p>
-            <h2
-              className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide md:text-5xl`}
-            >
-              USRC dalam Angka
-            </h2>
-          </div>
+          <Reveal>
+            <div className="flex flex-col gap-2">
+              <p
+                className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-[#E38595]`}
+              >
+                // Data langsung dari database
+              </p>
+              <h2
+                className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide md:text-5xl`}
+              >
+                USRC dalam Angka
+              </h2>
+            </div>
+          </Reveal>
           <div className="grid grid-cols-3 gap-4 text-dark md:gap-8">
-            <StatCard
-              icon={UserCheck}
-              label="Anggota"
-              value={stats.members}
-              loading={loading}
-              rotate="-rotate-2"
-            />
-            <StatCard
-              icon={Calendar}
-              label="Sesi"
-              value={stats.sessions}
-              loading={loading}
-              rotate="rotate-1"
-            />
-            <StatCard
-              icon={FolderKanban}
-              label="Karya"
-              value={stats.projects}
-              loading={loading}
-              rotate="rotate-2"
-            />
+            <Reveal delay={0}>
+              <StatCard
+                icon={UserCheck}
+                label="Anggota"
+                value={stats.members}
+                loading={loading}
+                rotate="-rotate-2"
+              />
+            </Reveal>
+            <Reveal delay={0.08}>
+              <StatCard
+                icon={Calendar}
+                label="Sesi"
+                value={stats.sessions}
+                loading={loading}
+                rotate="rotate-1"
+              />
+            </Reveal>
+            <Reveal delay={0.16}>
+              <StatCard
+                icon={FolderKanban}
+                label="Karya"
+                value={stats.projects}
+                loading={loading}
+                rotate="rotate-2"
+              />
+            </Reveal>
           </div>
         </div>
       </section>
 
       {/* ── CTA ──────────────────────────────────── */}
       <section className="px-4 py-24">
-        <div className="mx-auto flex max-w-3xl rotate-1 flex-col items-start gap-5 border-2 border-dark bg-white p-8 shadow-[8px_8px_0px_var(--color-maroon)] md:p-12">
+        <Reveal>
+          <div className="mx-auto flex max-w-3xl rotate-1 flex-col items-start gap-5 border-2 border-dark bg-white p-8 shadow-[8px_8px_0px_var(--color-maroon)] md:p-12">
           <span
             className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-[#FFF3C4] px-3 py-1 text-xs font-semibold`}
           >
@@ -573,7 +613,8 @@ export default function LandingPage() {
             Daftar Sekarang
             <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
           </Link>
-        </div>
+          </div>
+        </Reveal>
       </section>
     </div>
   );

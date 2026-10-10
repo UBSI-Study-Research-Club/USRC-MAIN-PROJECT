@@ -118,7 +118,7 @@ export default function ProfilPage() {
       {/* Card */}
       <form
         onSubmit={handleSave}
-        className="border-2 border-dark bg-white p-6 shadow-[6px_6px_0_var(--color-maroon)] md:p-8"
+        className="fade-up border-2 border-dark bg-white p-6 shadow-[6px_6px_0_var(--color-maroon)] md:p-8"
       >
         {/* Read-only identity */}
         <div className="mb-6 grid grid-cols-2 gap-4 border-b-2 border-dashed border-dark/30 pb-6">

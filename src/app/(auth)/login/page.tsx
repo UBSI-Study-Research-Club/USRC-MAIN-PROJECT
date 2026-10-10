@@ -109,7 +109,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-paper">
-      <div className="relative w-full max-w-sm">
+      <div className="fade-up relative w-full max-w-sm">
         {/* Glassmorphism Floating Badge */}
         <div className="absolute -top-6 -right-4 z-10 rotate-[4deg] backdrop-blur-md bg-white/70 border border-white/40 shadow-sm px-4 py-2 rounded-full flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-maroon" />
