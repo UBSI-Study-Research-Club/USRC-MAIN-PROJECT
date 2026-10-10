@@ -193,10 +193,9 @@ function SekretarisDashboardContent() {
   const handleApproveRegistration = async (regId: string) => {
     startTransition(async () => {
       try {
-        const { error } = await supabase
-          .from('registrations')
-          .update({ status: 'approved' })
-          .eq('id', regId)
+        const { error } = await supabase.rpc('approve_registration', {
+          reg_id: regId,
+        })
 
         if (error) throw error
 

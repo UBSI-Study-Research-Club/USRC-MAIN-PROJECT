@@ -33,12 +33,13 @@ export default function LoginPage() {
 
     setLoading(true);
     
-    // Simulate checking if email is registered (if shouldCreateUser: false is used, 
-    // supabase returns an error if the user doesn't exist)
+    // shouldCreateUser: true — auth user dibuat saat minta OTP, karena form
+    // daftar tidak bisa bikin akun (anon tidak punya hak tulis auth.users).
+    // Gerbang membership = profiles row (dibuat saat approve), bukan login.
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        shouldCreateUser: false,
+        shouldCreateUser: true,
       },
     });
 

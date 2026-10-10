@@ -169,3 +169,60 @@ create policy "Owner or Admin update/delete project"
 
 -- 5. REALTIME PUBLICATION
 alter publication supabase_realtime add table attendances;
+alter publication supabase_realtime add table registrations;
+
+-- 6. RPC & TRIGGERS FOR MEMBER REGISTRATION & PROFILE CREATION
+
+-- Trigger to auto-create profile when an approved registrant signs in via OTP for the first time
+create or replace function public.handle_new_user_profile()
+returns trigger as $$
+declare
+  reg record;
+begin
+  select * into reg from public.registrations
+  where lower(email) = lower(new.email) and status = 'approved'
+  limit 1;
+
+  if found then
+    insert into public.profiles (id, full_name, nim, prodi, role)
+    values (new.id, reg.full_name, reg.nim, reg.prodi, 'anggota')
+    on conflict (id) do nothing;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer;
+
+create or replace trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user_profile();
+
+-- RPC for Sekre/Admin to approve registration and sync profile
+create or replace function public.approve_registration(reg_id uuid)
+returns void as $$
+declare
+  reg record;
+  u_id uuid;
+begin
+  if public.get_my_role() not in ('sekre', 'admin') then
+    raise exception 'Unauthorized';
+  end if;
+
+  update public.registrations
+  set status = 'approved'
+  where id = reg_id
+  returning * into reg;
+
+  if found then
+    select id into u_id from auth.users where lower(email) = lower(reg.email) limit 1;
+    if u_id is not null then
+      insert into public.profiles (id, full_name, nim, prodi, role)
+      values (u_id, reg.full_name, reg.nim, reg.prodi, 'anggota')
+      on conflict (id) do update set
+        full_name = EXCLUDED.full_name,
+        nim = EXCLUDED.nim,
+        prodi = EXCLUDED.prodi;
+    end if;
+  end if;
+end;
+$$ language plpgsql security definer;
+
