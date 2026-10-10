@@ -72,11 +72,25 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'email',
-    });
+    // Coba magiclink dulu (user lama); fallback signup (user baru pertama kali)
+    let verifyError: { message: string } | null = null;
+    {
+      const res = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'magiclink',
+      });
+      verifyError = res.error;
+      if (verifyError) {
+        const retry = await supabase.auth.verifyOtp({
+          email,
+          token: otp,
+          type: 'signup',
+        });
+        if (!retry.error) verifyError = null;
+        else verifyError = retry.error;
+      }
+    }
 
     setLoading(false);
 
