@@ -42,6 +42,14 @@ export default async function DashboardLayout({
 
           <nav className="flex items-center gap-3 md:gap-6">
             <Link 
+              href="/" 
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
+
+            <Link 
               href="/absen" 
               className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
             >
