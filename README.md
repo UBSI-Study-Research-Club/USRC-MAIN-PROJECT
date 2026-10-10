@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# USRC Web (USRC-MAIN-PROJECT)
 
-## Getting Started
+Web Resmi **UBSI Study & Research Club (USRC)** — UBSI Pontianak.
 
-First, run the development server:
+Aplikasi web untuk manajemen anggota, presensi/absen sesi kumpul, serta pendaftaran & etalase karya nyata komunitas.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 🛠 Stack Teknis
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, TypeScript)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Motion**: [framer-motion](https://www.framer.com/motion/)
+- **Backend & Auth**: [Supabase](https://supabase.com/) (Postgres DB, RLS, Auth OTP, Realtime)
+- **Deployment**: [Vercel](https://vercel.com/)
+
+---
+
+## 👥 Pembagian Tim & Folder Code Base
+
+Struktur folder App Router Next.js dibagi berdasarkan kepemilikan area kerja:
+
+```text
+usrc-web/
+├── app/
+│   ├── (public)/          <-- Chello (Landing Page, /daftar, feed kegiatan)
+│   ├── (auth)/            <-- Riski Bagus Wardana (/login, OTP UI)
+│   └── (dashboard)/       <-- Iwan / Riduwan (Absen anggota, Dashboard Sekre & Admin)
+├── components/
+│   ├── ui/                <-- Shared UI Components (Neobrutalist + Glassmorphic accent)
+│   └── icons/             <-- Brand SVG assets
+├── lib/
+│   └── supabase/          <-- Raken (Client, Server & RLS helpers)
+└── supabase/
+    └── migrations/        <-- Raken (File SQL skema DB & RLS)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📖 Berkas Dokumentasi
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **`PRD-USRCWEB.md`** — Product Requirements Document & DoD per fitur.
+- **`PLAN.md`** — Rencana eksekusi, timeline rilis (R0 - R5), & alur kerja tim.
+- **`design.md`** — Aturan gaya visual (Editorial Neobrutalist + Glassmorphic accent), token warna, & font.
+- **`SPEC.md`** — Spesifikasi teknis backend, skema tabel Supabase, & aturan RLS.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🚀 Memulai (Local Development)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Clone repositori:
+   ```bash
+   git clone https://github.com/UBSI-Study-Research-Club/USRC-MAIN-PROJECT.git
+   cd USRC-MAIN-PROJECT
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+2. Install dependensi:
+   ```bash
+   npm install
+   ```
 
-## Deploy on Vercel
+3. Environment Variables:
+   Buat file `.env.local` di root folder:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJKV1QiLC...
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. Jalankan server lokal:
+   ```bash
+   npm run dev
+   ```
+   Buka `http://localhost:3000` di browser.
