@@ -14,8 +14,8 @@ export default function PublicLayout({
           
           {/* Logo (Custom graphic matching mockup) */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-10 w-10 rotate-[-3deg] items-center justify-center border-[3px] border-dark bg-maroon">
-              <span className="font-[family-name:var(--font-outfit)] text-2xl font-black text-white">U</span>
+            <div className="flex h-10 w-10 rotate-[-3deg] items-center justify-center border-[3px] border-dark bg-white overflow-hidden p-0.5">
+              <Image src="/logo-usrc-main.jpeg" alt="USRC Logo" width={40} height={40} className="h-full w-full object-contain" />
             </div>
             <span className="font-[family-name:var(--font-outfit)] text-2xl font-black uppercase tracking-tight text-dark">
               USRC
@@ -52,8 +52,8 @@ export default function PublicLayout({
       <footer className="border-t-[3px] border-dark bg-dark text-white">
         <div className="mx-auto max-w-7xl px-6 py-12 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
-             <div className="flex h-8 w-8 rotate-[-3deg] items-center justify-center border-2 border-white bg-maroon">
-              <span className="font-[family-name:var(--font-outfit)] text-lg font-black text-white">U</span>
+             <div className="flex h-8 w-8 rotate-[-3deg] items-center justify-center border-2 border-white bg-white overflow-hidden p-0.5">
+              <Image src="/logo-usrc-main.jpeg" alt="USRC Logo" width={32} height={32} className="h-full w-full object-contain" />
             </div>
             <span className="font-[family-name:var(--font-outfit)] text-xl font-black uppercase text-white">USRC</span>
           </div>

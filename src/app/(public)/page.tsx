@@ -287,14 +287,12 @@ export default function LandingPage() {
                  </span>
               </div>
               
-              {/* Inner Maroon Container */}
-              <div className="relative flex h-full w-full items-center justify-center border-[3px] border-dark bg-maroon overflow-hidden">
-                 {/* Pink Pin */}
-                 <div className="absolute right-4 top-4 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] neo-shadow-sm" />
+              {/* Inner Container with Real Logo */}
+              <div className="relative flex h-full w-full items-center justify-center border-[3px] border-dark bg-white overflow-hidden p-4">
+                 {/* Pink Pin (z-10 so it sits above the logo) */}
+                 <div className="absolute right-4 top-4 z-10 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] neo-shadow-sm" />
                  
-                 <span className="font-[family-name:var(--font-outfit)] text-8xl font-black text-white mix-blend-overlay md:text-[9rem]">
-                   U
-                 </span>
+                 <Image src="/logo-usrc-main.jpeg" alt="USRC Logo" fill className="object-contain p-6" />
               </div>
             </div>
             
