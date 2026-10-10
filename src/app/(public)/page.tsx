@@ -228,72 +228,80 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* ── HERO ─────────────────────────────────── */}
+      
+      {/* ── BACKGROUND ACCENTS ─────────────────── */}
+      <div className="absolute right-0 top-0 -z-10 h-[800px] w-[800px] -translate-y-1/3 translate-x-1/3 rounded-full bg-[#ECAEBA] blur-3xl opacity-30" />
+      <div className="absolute -left-32 top-64 -z-10 h-[600px] w-[600px] rounded-full bg-[#D9C8C9] blur-3xl opacity-40" />
+
+      {/* ── HERO (Neo-Brutalist) ─────────────────── */}
       <section
         ref={heroRef}
-        className="relative overflow-hidden border-b-2 border-dark/10 px-4 pb-16 pt-12 md:pb-24 md:pt-20"
+        id="tentang"
+        className="relative overflow-hidden px-6 pb-20 pt-16 md:pb-32 md:pt-24"
       >
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 md:flex-row md:items-start md:gap-12">
-          {/* Left — text */}
-          <div className="flex-1 text-center md:text-left">
-            <p className="font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase tracking-[0.2em] text-maroon">
-              // UBSI Pontianak
-            </p>
-            <h1 className="mt-3 font-[family-name:var(--font-outfit)] text-4xl font-black uppercase leading-[1.1] tracking-tight text-dark md:text-5xl lg:text-6xl">
-              Study.
-              <br />
-              Research.
-              <br />
-              <span className="text-maroon">Build.</span>
-            </h1>
-            <p className="mt-4 max-w-md text-base leading-relaxed text-dark/70 md:text-lg">
-              Komunitas lintas prodi yang belajar bareng, riset bareng, dan
-              bangun project nyata — bukan cuma teori.
-            </p>
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center md:justify-start">
-              <Link
-                href="/daftar"
-                className="inline-flex items-center justify-center border-2 border-dark bg-maroon px-6 py-3 font-[family-name:var(--font-outfit)] text-sm font-bold uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-              >
-                Gabung Sekarang
-              </Link>
-              <a
-                href="#kegiatan"
-                className="inline-flex items-center justify-center border-2 border-dark bg-white px-6 py-3 font-[family-name:var(--font-outfit)] text-sm font-bold uppercase tracking-wider text-dark neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-              >
-                Lihat Kegiatan
-              </a>
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-start lg:justify-between">
+          
+          {/* Left — Text & Badges */}
+          <div className="flex w-full flex-col items-start lg:w-[60%]">
+            
+            {/* Badges container */}
+            <div className="relative mb-12 flex h-16 w-full max-w-sm flex-col">
+              <div className="absolute left-0 top-0 z-10 rotate-[-2deg] border-[2px] border-dark bg-white px-3 py-1 neo-shadow-sm">
+                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold tracking-wider text-dark">
+                  [EST. 2026]
+                </span>
+              </div>
+              <div className="absolute left-6 top-6 z-20 rotate-[3deg] border-[3px] border-dark bg-[#F2E8B8] px-4 py-1.5 neo-shadow-sm">
+                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold uppercase tracking-wider text-dark">
+                  // PENDAFTARAN DIBUKA
+                </span>
+              </div>
             </div>
+
+            {/* Main Headline - Massive, Tight line height */}
+            <h1 className="flex flex-col font-[family-name:var(--font-outfit)] text-[4.5rem] font-black uppercase leading-[0.85] tracking-tighter text-dark md:text-[7rem] lg:text-[8rem]">
+              <span>RUANG</span>
+              <span className="text-maroon">BERKARYA</span>
+              <span>YANG</span>
+              <span>NGGAK<span className="text-maroon">...</span></span>
+            </h1>
+            
+            <p className="mt-8 max-w-lg font-[family-name:var(--font-ibm-plex-mono)] text-base leading-relaxed text-dark/80 md:text-lg">
+              Komunitas lintas prodi di UBSI Pontianak. Belajar teori, eksekusi riset, dan rilis project nyata.
+            </p>
           </div>
 
-          {/* Right — 3D logo sticker */}
-          <motion.div
-            style={
-              prefersReduced
-                ? {}
-                : { y: stickerY, rotate: stickerRotate }
-            }
-            className="relative flex-shrink-0"
-          >
-            <div className="sticker-tilt-r border-2 border-dark bg-white p-3 neo-shadow-lg md:p-4">
-              <Image
-                src="/logo-usrc-3d.png"
-                alt="USRC 3D Logo"
-                width={240}
-                height={240}
-                className="h-48 w-48 object-contain md:h-60 md:w-60"
-                priority
-              />
+          {/* Right — Graphic Cards */}
+          <div className="relative mt-12 flex w-full justify-center lg:mt-0 lg:w-[40%] lg:justify-end">
+            
+            {/* Back Card (Maroon Shadow) */}
+            <div className="absolute top-0 h-[400px] w-[320px] rotate-[6deg] border-[3px] border-dark bg-maroon md:h-[500px] md:w-[400px]" />
+            
+            {/* Front Card (White) */}
+            <div className="relative z-10 flex h-[400px] w-[320px] rotate-[3deg] flex-col items-center justify-center border-[3px] border-dark bg-white p-6 md:h-[500px] md:w-[400px]">
+              
+              {/* Protruding NEW Badge */}
+              <div className="absolute -left-16 top-24 z-20 rotate-[-3deg] border-[2px] border-dark bg-white px-4 py-2 neo-shadow-sm">
+                 <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold text-dark">
+                   NEW // 2026
+                 </span>
+              </div>
+              
+              {/* Inner Maroon Container */}
+              <div className="relative flex h-full w-full items-center justify-center border-[3px] border-dark bg-maroon overflow-hidden">
+                 {/* Pink Pin */}
+                 <div className="absolute right-4 top-4 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] neo-shadow-sm" />
+                 
+                 <span className="font-[family-name:var(--font-outfit)] text-8xl font-black text-white mix-blend-overlay md:text-[9rem]">
+                   U
+                 </span>
+              </div>
             </div>
-            {/* Badge */}
-            <div className="absolute -bottom-3 -right-3 sticker-tilt border-2 border-dark bg-maroon px-3 py-1 neo-shadow-sm">
-              <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-semibold uppercase tracking-wider text-white">
-                [EST. 2026]
-              </span>
-            </div>
-          </motion.div>
+            
+          </div>
         </div>
       </section>
+
 
       {/* ── 4 CORE VALUES ────────────────────────── */}
       <section className="border-b-2 border-dark/10 px-4 py-16">
