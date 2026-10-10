@@ -337,9 +337,15 @@ export default function LandingPage() {
                 Gabung sekarang
                 <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
               </Link>
+              <Link
+                href="/login"
+                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+              >
+                Login
+              </Link>
               <a
                 href="#kegiatan"
-                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-paper px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
               >
                 Lihat kegiatan
               </a>

@@ -1,30 +1,26 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
-
-  const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
 
-  const validateEmail = (e: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleRequestVerification = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setMessage(null);
+    setMessage('');
 
     if (!validateEmail(email)) {
       setError('Format email salah. Gunakan email yang valid.');
@@ -32,65 +28,31 @@ export default function LoginPage() {
     }
 
     setLoading(true);
+
+    const supabase = createClient();
     
-    // shouldCreateUser: true — auth user dibuat saat minta OTP, karena form
-    // daftar tidak bisa bikin akun (anon tidak punya hak tulis auth.users).
-    // Gerbang membership = profiles row (dibuat saat approve), bukan login.
+    // Send OTP untuk verifikasi email
     const { error: signInError } = await supabase.auth.signInWithOtp({
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/absen` : undefined,
+        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined,
       },
     });
 
     setLoading(false);
 
     if (signInError) {
-      if (signInError.message.toLowerCase().includes('signups not allowed') || signInError.status === 400) {
-         setError('Email belum terdaftar. Hubungi admin USRC.');
-      } else if (signInError.message.includes('rate limit')) {
-         setError('Terlalu banyak percobaan. Tunggu beberapa saat.');
+      if (signInError.message.toLowerCase().includes('rate limit')) {
+        setError('Terlalu banyak percobaan. Tunggu beberapa saat.');
       } else {
-         setError('Gagal mengirim link/OTP. Coba lagi nanti.');
+        setError('Gagal mengirim link verifikasi. Coba lagi nanti.');
       }
       return;
     }
 
-    setStep('otp');
-    setMessage('Link verifikasi telah dikirim ke email kamu. Klik link di Gmail untuk langsung masuk (atau masukkan kode jika ada).');
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (otp.length !== 6) {
-      setError('Kode OTP harus 6 angka.');
-      return;
-    }
-
-    setLoading(true);
-
-    const { error: verifyError } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'email',
-    });
-
-    setLoading(false);
-
-    if (verifyError) {
-      if (verifyError.message.toLowerCase().includes('expired')) {
-        setError('Kode OTP kadaluarsa. Silakan minta kode baru.');
-      } else {
-        setError('Kode OTP salah.');
-      }
-      return;
-    }
-
-    // Success, redirect to member attendance page
-    router.push('/absen');
+    setMessage('Link verifikasi telah dikirim ke email kamu. Cek Gmail dan klik link untuk memverifikasi email.');
+    setEmail('');
   };
 
   return (
@@ -109,91 +71,54 @@ export default function LoginPage() {
             <h1 className="font-display text-3xl font-extrabold text-dark uppercase tracking-tight mb-2">
               USRC <span className="text-maroon">Portal</span>
             </h1>
-            <p className="font-body text-sm text-dark/70">
-              {step === 'email' 
-                ? 'Masuk menggunakan email yang terdaftar.' 
-                : 'Masukkan kode 6 angka yang dikirim ke emailmu.'}
-            </p>
+            <p className="font-mono text-xs text-dark/60 uppercase tracking-wider">// ANGGOTA MASUK</p>
           </div>
 
+          {message && (
+            <div className="mb-6 p-4 border-2 border-green-600 bg-green-50 rounded-none">
+              <p className="text-sm text-green-800 font-mono">{message}</p>
+            </div>
+          )}
+
           {error && (
-            <div className="mb-6 p-3 bg-red-50 border-l-4 border-maroon text-maroon font-mono text-xs">
-              {'//'} ERROR: {error}
+            <div className="mb-6 p-4 border-2 border-red-600 bg-red-50 rounded-none">
+              <p className="text-sm text-red-800 font-mono">{error}</p>
             </div>
           )}
 
-          {message && !error && (
-            <div className="mb-6 p-3 bg-green-50 border-l-4 border-green-600 text-green-800 font-mono text-xs">
-              {'//'} INFO: {message}
+          <form onSubmit={handleRequestVerification} className="space-y-4">
+            <div>
+              <label className="block font-display text-sm font-bold uppercase text-dark mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="nama@email.com"
+                className="w-full border-2 border-dark px-4 py-3 text-sm font-mono placeholder-dark/40 focus:outline-none focus:ring-2 focus:ring-maroon"
+                required
+              />
             </div>
-          )}
 
-          {step === 'email' ? (
-            <form onSubmit={handleSendOtp} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="email" className="block font-mono text-xs font-semibold text-dark uppercase">
-                  Alamat Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@mhs.bsi.ac.id"
-                  className="w-full bg-paper border-2 border-dark p-3 font-body text-sm outline-none focus:ring-2 focus:ring-pink focus:border-maroon transition-all"
-                  disabled={loading}
-                />
-              </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full font-display font-extrabold uppercase text-sm py-3 px-4 bg-maroon text-white border-2 border-dark shadow-[4px_4px_0px_#1A1A1A] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Mengirim...' : 'Kirim Link Verifikasi'}
+            </button>
+          </form>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full group relative flex items-center justify-center gap-2 bg-maroon text-white border-2 border-dark py-3 px-4 font-display font-bold uppercase tracking-wider hover:bg-hot hover:-translate-y-1 hover:shadow-[3px_3px_0px_#1A1A1A] transition-all disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Kirim Kode'}
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-6">
-              <div className="space-y-2">
-                <label htmlFor="otp" className="block font-mono text-xs font-semibold text-dark uppercase">
-                  Kode OTP (6 Angka)
-                </label>
-                <input
-                  id="otp"
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                  placeholder="••••••"
-                  className="w-full bg-paper border-2 border-dark p-3 font-mono text-center tracking-[0.5em] text-lg outline-none focus:ring-2 focus:ring-pink focus:border-maroon transition-all"
-                  disabled={loading}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full group relative flex items-center justify-center gap-2 bg-maroon text-white border-2 border-dark py-3 px-4 font-display font-bold uppercase tracking-wider hover:bg-hot hover:-translate-y-1 hover:shadow-[3px_3px_0px_#1A1A1A] transition-all disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-none"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Verifikasi Masuk'}
-                {!loading && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => { setStep('email'); setOtp(''); setError(null); setMessage(null); }}
-                className="w-full text-center font-mono text-xs text-dark/60 hover:text-maroon underline decoration-dotted mt-4"
-                disabled={loading}
-              >
-                Ganti alamat email
-              </button>
-            </form>
-          )}
-
+          <div className="mt-6 pt-6 border-t-2 border-dark">
+            <p className="text-xs text-dark/60 font-mono">
+              Belum punya akun? <a href="/daftar" className="underline font-bold text-maroon hover:text-hot">Daftar di sini</a>
+            </p>
+          </div>
         </div>
+
+        {/* Decorative corner */}
+        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-maroon border-2 border-dark rotate-45" />
       </div>
     </div>
   );
