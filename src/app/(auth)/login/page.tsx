@@ -88,8 +88,8 @@ export default function LoginPage() {
       return;
     }
 
-    // Success, redirect to dashboard
-    router.push('/dashboard');
+    // Success, redirect to member attendance page
+    router.push('/absen');
   };
 
   return (
