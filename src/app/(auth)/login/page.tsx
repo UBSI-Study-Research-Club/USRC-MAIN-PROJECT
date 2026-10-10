@@ -40,6 +40,7 @@ export default function LoginPage() {
       email,
       options: {
         shouldCreateUser: true,
+        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/absen` : undefined,
       },
     });
 
@@ -51,13 +52,13 @@ export default function LoginPage() {
       } else if (signInError.message.includes('rate limit')) {
          setError('Terlalu banyak percobaan. Tunggu beberapa saat.');
       } else {
-         setError('Gagal mengirim OTP. Coba lagi nanti.');
+         setError('Gagal mengirim link/OTP. Coba lagi nanti.');
       }
       return;
     }
 
     setStep('otp');
-    setMessage('Kode 6 angka telah dikirim ke email kamu.');
+    setMessage('Link verifikasi telah dikirim ke email kamu. Klik link di Gmail untuk langsung masuk (atau masukkan kode jika ada).');
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
