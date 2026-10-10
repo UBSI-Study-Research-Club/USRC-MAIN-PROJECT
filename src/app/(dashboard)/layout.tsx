@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Users, ClipboardList, LogOut, Home } from 'lucide-react'
+import { Calendar, Users, ClipboardList, LogOut, Home, User } from 'lucide-react'
 
 export default async function DashboardLayout({
   children,
@@ -47,6 +47,14 @@ export default async function DashboardLayout({
             >
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Absen Anggota</span>
+            </Link>
+
+            <Link 
+              href="/profil" 
+              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Profil</span>
             </Link>
 
             {isSekreOrAdmin && (

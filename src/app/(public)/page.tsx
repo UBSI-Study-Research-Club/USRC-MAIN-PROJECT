@@ -218,9 +218,17 @@ export default function LandingPage() {
   const [stats, setStats] = useState<Stats>({ members: 0, sessions: 0, projects: 0 });
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => setIsLoggedIn(!!session)
+    );
 
     async function fetchData() {
       try {
@@ -274,6 +282,8 @@ export default function LandingPage() {
     }
 
     fetchData();
+
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -330,19 +340,39 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <Link
-                href="/daftar"
-                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
-              >
-                Gabung sekarang
-                <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
-              </Link>
-              <Link
-                href="/login"
-                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
-              >
-                Login
-              </Link>
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    href="/absen"
+                    className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+                  >
+                    Masuk Absen
+                    <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+                  </Link>
+                  <Link
+                    href="/profil"
+                    className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+                  >
+                    Profil Saya
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/daftar"
+                    className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+                  >
+                    Gabung sekarang
+                    <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+                  </Link>
+                  <Link
+                    href="/login"
+                    className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+                  >
+                    Login
+                  </Link>
+                </>
+              )}
               <a
                 href="#kegiatan"
                 className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-paper px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
