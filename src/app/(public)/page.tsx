@@ -10,6 +10,7 @@ import {
   useReducedMotion,
 } from "framer-motion";
 import {
+  ArrowRight,
   BookOpen,
   FlaskConical,
   Hammer,
@@ -57,33 +58,61 @@ function formatTimeWIB(iso: string) {
   });
 }
 
+/* ─── Shared class strings ───────────────────────── */
+const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
+const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
+const GLASS =
+  "border border-white/40 bg-white/70 backdrop-blur-md outline outline-[1.5px] outline-dark";
+
 /* ─── 4 Core Values ──────────────────────────────── */
 const CORES = [
   {
     icon: BookOpen,
     title: "Study",
     desc: "Belajar bareng materi kuliah & teknologi terkini lewat sesi rutin.",
-    rotate: "-2deg",
+    rotate: "-rotate-2",
+    tint: "bg-[#E38595]",
   },
   {
     icon: FlaskConical,
     title: "Research",
     desc: "Eksplorasi riset kampus, tulis paper, dan presentasi temuan.",
-    rotate: "1deg",
+    rotate: "rotate-1",
+    tint: "bg-[#FFF3C4]",
   },
   {
     icon: Hammer,
     title: "Build Project",
     desc: "Bangun project nyata — web, mobile, IoT — dari ide sampai deploy.",
-    rotate: "-1deg",
+    rotate: "-rotate-1",
+    tint: "bg-[#D1E7DD]",
   },
   {
     icon: Users,
     title: "Collaboration",
     desc: "Kolaborasi lintas prodi: Informatika, SI, SI Akuntansi.",
-    rotate: "2deg",
+    rotate: "rotate-2",
+    tint: "bg-[#E38595]",
   },
 ] as const;
+
+/* ─── Section heading ────────────────────────────── */
+function SectionHead({ tag, children }: { tag: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p
+        className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-maroon`}
+      >
+        {tag}
+      </p>
+      <h2
+        className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide text-dark md:text-5xl`}
+      >
+        {children}
+      </h2>
+    </div>
+  );
+}
 
 /* ─── Skeleton ───────────────────────────────────── */
 function Skeleton({ className = "" }: { className?: string }) {
@@ -96,23 +125,31 @@ function StatCard({
   label,
   value,
   loading,
+  rotate,
 }: {
   icon: React.ElementType;
   label: string;
   value: number;
   loading: boolean;
+  rotate: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1 border-2 border-dark bg-white p-4 neo-shadow-sm">
-      <Icon className="h-5 w-5 text-maroon" strokeWidth={2.5} />
+    <div
+      className={`flex flex-col items-center gap-1 border-2 border-dark bg-white p-4 shadow-[4px_4px_0px_var(--color-maroon)] transition-transform hover:rotate-0 md:p-6 ${rotate}`}
+    >
+      <Icon className="h-5 w-5 text-maroon md:h-6 md:w-6" strokeWidth={2.5} />
       {loading ? (
         <Skeleton className="h-8 w-14" />
       ) : (
-        <span className="font-[family-name:var(--font-outfit)] text-3xl font-black text-maroon">
+        <span
+          className={`${FONT_DISPLAY} text-3xl font-black text-maroon md:text-5xl`}
+        >
           {value}
         </span>
       )}
-      <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[11px] uppercase tracking-wider text-dark/60">
+      <span
+        className={`${FONT_MONO} text-[11px] uppercase tracking-wider text-dark/60`}
+      >
         {label}
       </span>
     </div>
@@ -120,33 +157,57 @@ function StatCard({
 }
 
 /* ─── Meeting Ticket Card ────────────────────────── */
-function TicketCard({ meeting }: { meeting: Meeting }) {
-  return (
-    <div className="group relative border-2 border-dark bg-white p-4 neo-shadow transition-transform hover:-translate-y-1">
-      {/* Notch decorations */}
-      <div className="absolute -left-[5px] top-6 h-2.5 w-2.5 rounded-full border-2 border-dark bg-paper" />
-      <div className="absolute -right-[5px] top-6 h-2.5 w-2.5 rounded-full border-2 border-dark bg-paper" />
+function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
+  const tilt = index % 2 === 0 ? "-rotate-[1.5deg]" : "rotate-[1.5deg]";
 
-      <p className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] uppercase tracking-widest text-maroon">
-        // SESI PASCA
-      </p>
-      <h3 className="mt-1 font-[family-name:var(--font-outfit)] text-base font-bold leading-tight text-dark">
-        {meeting.title}
-      </h3>
-      {meeting.description && (
-        <p className="mt-1 line-clamp-2 text-sm text-dark/70">
-          {meeting.description}
-        </p>
-      )}
-      <div className="mt-3 flex items-center justify-between border-t border-dashed border-dark/20 pt-2">
-        <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[11px] text-dark/50">
-          {formatDateWIB(meeting.starts_at)} · {formatTimeWIB(meeting.starts_at)}
+  return (
+    <div
+      className={`group relative flex border-2 border-dark bg-white shadow-[6px_6px_0px_var(--color-maroon)] transition-transform hover:-translate-y-1 hover:rotate-0 ${tilt}`}
+    >
+      {/* Main */}
+      <div className="flex min-w-0 flex-1 flex-col gap-2 p-5">
+        <span
+          className={`${FONT_MONO} w-fit border-[1.5px] border-dark bg-[#FFF3C4] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-dark`}
+        >
+          // SESI PASCA
         </span>
-        <span className="flex items-center gap-1 font-[family-name:var(--font-ibm-plex-mono)] text-[11px] font-medium text-maroon">
-          <UserCheck className="h-3 w-3" />
-          {meeting.attendee_count} hadir
+        <h3
+          className={`${FONT_DISPLAY} text-xl font-black uppercase leading-tight tracking-wide text-dark`}
+        >
+          {meeting.title}
+        </h3>
+        {meeting.description && (
+          <p className="line-clamp-2 text-sm text-dark/70">
+            {meeting.description}
+          </p>
+        )}
+        <p className={`${FONT_MONO} mt-1 text-[11px] text-dark/60`}>
+          {formatDateWIB(meeting.starts_at)} · {formatTimeWIB(meeting.starts_at)}
+        </p>
+      </div>
+
+      {/* Stub */}
+      <div className="flex w-24 shrink-0 flex-col items-center justify-center gap-1 border-l-2 border-dashed border-dark bg-paper">
+        <UserCheck className="h-4 w-4 text-maroon" strokeWidth={2.5} />
+        <span
+          className={`${FONT_DISPLAY} text-4xl font-black leading-none text-maroon`}
+        >
+          {meeting.attendee_count}
+        </span>
+        <span className={`${FONT_MONO} text-[11px] font-semibold uppercase`}>
+          hadir
         </span>
       </div>
+
+      {/* Notches (half circles on the perforation) */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-[2px] right-[83px] h-[13px] w-[26px] rounded-b-[13px] border-2 border-t-0 border-dark bg-paper"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-[2px] right-[83px] h-[13px] w-[26px] rounded-t-[13px] border-2 border-b-0 border-dark bg-paper"
+      />
     </div>
   );
 }
@@ -227,101 +288,148 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <>
-      
+    <div className="relative isolate overflow-hidden">
       {/* ── BACKGROUND ACCENTS ─────────────────── */}
-      <div className="absolute right-0 top-0 -z-10 h-[800px] w-[800px] -translate-y-1/3 translate-x-1/3 rounded-full bg-[#ECAEBA] blur-3xl opacity-30" />
-      <div className="absolute -left-32 top-64 -z-10 h-[600px] w-[600px] rounded-full bg-[#D9C8C9] blur-3xl opacity-40" />
+      <div
+        aria-hidden="true"
+        className="absolute right-0 top-0 -z-10 h-[800px] w-[800px] -translate-y-1/3 translate-x-1/3 rounded-full bg-[#ECAEBA] opacity-30 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -left-32 top-64 -z-10 h-[600px] w-[600px] rounded-full bg-[#D9C8C9] opacity-40 blur-3xl"
+      />
 
-      {/* ── HERO (Neo-Brutalist) ─────────────────── */}
+      {/* ── HERO ─────────────────────────────────── */}
       <section
         ref={heroRef}
         id="tentang"
-        className="relative overflow-hidden px-6 pb-20 pt-16 md:pb-32 md:pt-24"
+        className="relative px-6 pb-20 pt-12 md:pb-32 md:pt-20"
       >
-        <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-start lg:justify-between">
-          
+        <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — Text & Badges */}
-          <div className="flex w-full flex-col items-start lg:w-[60%]">
-            
-            {/* Badges container */}
-            <div className="relative mb-12 flex h-16 w-full max-w-sm flex-col">
-              <div className="absolute left-0 top-0 z-10 rotate-[-2deg] border-[2px] border-dark bg-white px-3 py-1 neo-shadow-sm">
-                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold tracking-wider text-dark">
-                  [EST. 2026]
-                </span>
-              </div>
-              <div className="absolute left-6 top-6 z-20 rotate-[3deg] border-[3px] border-dark bg-[#F2E8B8] px-4 py-1.5 neo-shadow-sm">
-                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold uppercase tracking-wider text-dark">
-                  // PENDAFTARAN DIBUKA
-                </span>
-              </div>
+          <div className="flex w-full flex-col items-start gap-8 lg:w-[58%]">
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-white px-3 py-1 text-sm font-bold tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}
+              >
+                [EST. 2026]
+              </span>
+              <span
+                className={`${FONT_MONO} rotate-2 border-[3px] border-dark bg-[#FFF3C4] px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}
+              >
+                // PENDAFTARAN DIBUKA
+              </span>
             </div>
 
-            {/* Main Headline - Massive, Tight line height */}
-            <h1 className="flex flex-col font-[family-name:var(--font-outfit)] text-[4.5rem] font-black uppercase leading-[0.85] tracking-tighter text-dark md:text-[7rem] lg:text-[8rem]">
+            <h1
+              className={`${FONT_DISPLAY} flex flex-col text-[2.75rem] font-black uppercase leading-[0.88] tracking-tighter text-dark sm:text-[4.5rem] md:text-[7rem] lg:text-[8rem]`}
+            >
               <span>RUANG</span>
               <span className="text-maroon">BERKARYA</span>
               <span>YANG</span>
-              <span>NGGAK<span className="text-maroon">...</span></span>
+              <span>
+                NGGAK<span className="text-maroon">...</span>
+              </span>
             </h1>
-            
-            <p className="mt-8 max-w-lg font-[family-name:var(--font-ibm-plex-mono)] text-base leading-relaxed text-dark/80 md:text-lg">
-              Komunitas lintas prodi di UBSI Pontianak. Belajar teori, eksekusi riset, dan rilis project nyata.
+
+            <p
+              className={`${FONT_MONO} max-w-lg text-base leading-relaxed text-dark/80 md:text-lg`}
+            >
+              Komunitas lintas prodi di UBSI Pontianak. Belajar teori, eksekusi
+              riset, dan rilis project nyata.
             </p>
+
+            <div className="flex flex-wrap gap-4">
+              <Link
+                href="/daftar"
+                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+              >
+                Gabung sekarang
+                <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
+              </Link>
+              <a
+                href="#kegiatan"
+                className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
+              >
+                Lihat kegiatan
+              </a>
+            </div>
           </div>
 
-          {/* Right — Graphic Cards */}
-          <div className="relative mt-12 flex w-full justify-center lg:mt-0 lg:w-[40%] lg:justify-end">
-            
-            {/* Back Card (Maroon Shadow) */}
-            <div className="absolute top-0 h-[400px] w-[320px] rotate-[6deg] border-[3px] border-dark bg-maroon md:h-[500px] md:w-[400px]" />
-            
-            {/* Front Card (White) */}
-            <div className="relative z-10 flex h-[400px] w-[320px] rotate-[3deg] flex-col items-center justify-center border-[3px] border-dark bg-white p-6 md:h-[500px] md:w-[400px]">
-              
-              {/* Protruding NEW Badge */}
-              <div className="absolute -left-16 top-24 z-20 rotate-[-3deg] border-[2px] border-dark bg-white px-4 py-2 neo-shadow-sm">
-                 <span className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold text-dark">
-                   NEW // 2026
-                 </span>
+          {/* Right — Sticker card (parallax) */}
+          <div className="relative flex w-full justify-center py-4 lg:w-[38%] lg:justify-end">
+            <motion.div
+              style={
+                prefersReduced
+                  ? { rotate: 3 }
+                  : { y: stickerY, rotate: stickerRotate }
+              }
+              className="relative"
+            >
+              {/* Back card (maroon) */}
+              <div className="absolute inset-0 translate-x-3 translate-y-3 rotate-3 border-[3px] border-dark bg-maroon" />
+
+              {/* Front card (white) */}
+              <div className="relative flex h-[360px] w-[280px] flex-col items-center justify-center border-[3px] border-dark bg-white p-5 md:h-[500px] md:w-[400px] md:p-6">
+                {/* Glass badge */}
+                <div
+                  className={`${GLASS} absolute -left-3 top-16 z-20 -rotate-3 px-4 py-2 md:-left-14 md:top-24`}
+                >
+                  <span
+                    className={`${FONT_MONO} text-sm font-bold text-dark`}
+                  >
+                    NEW // 2026
+                  </span>
+                </div>
+
+                {/* Inner frame with logo */}
+                <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-[3px] border-dark bg-white p-4">
+                  <div className="absolute right-4 top-4 z-10 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] shadow-[2px_2px_0px_var(--color-dark)]" />
+                  <Image
+                    src="/logo-usrc-main.jpeg"
+                    alt="USRC Logo"
+                    fill
+                    className="object-contain p-6"
+                  />
+                </div>
               </div>
-              
-              {/* Inner Container with Real Logo */}
-              <div className="relative flex h-full w-full items-center justify-center border-[3px] border-dark bg-white overflow-hidden p-4">
-                 {/* Pink Pin (z-10 so it sits above the logo) */}
-                 <div className="absolute right-4 top-4 z-10 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] neo-shadow-sm" />
-                 
-                 <Image src="/logo-usrc-main.jpeg" alt="USRC Logo" fill className="object-contain p-6" />
-              </div>
-            </div>
-            
+            </motion.div>
           </div>
         </div>
       </section>
 
+      {/* ── STRIP ────────────────────────────────── */}
+      <div
+        aria-hidden="true"
+        className={`${FONT_MONO} -mx-6 -rotate-[1.5deg] overflow-hidden whitespace-nowrap border-y-2 border-dark bg-maroon py-4 text-center text-sm font-semibold tracking-[0.08em] text-white`}
+      >
+        // STUDY ✦ RESEARCH ✦ BUILD PROJECT ✦ COLLABORATION ✦ [EST. 2026] ✦
+        // STUDY ✦ RESEARCH ✦ BUILD PROJECT ✦ COLLABORATION
+      </div>
 
       {/* ── 4 CORE VALUES ────────────────────────── */}
-      <section className="border-b-2 border-dark/10 px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-center font-[family-name:var(--font-outfit)] text-2xl font-extrabold uppercase tracking-tight text-dark md:text-3xl">
+      <section className="px-4 py-20">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10">
+          <SectionHead tag="// Fondasi kami">
             4 Pilar <span className="text-maroon">USRC</span>
-          </h2>
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          </SectionHead>
+          <div className="grid grid-cols-1 gap-7 sm:grid-cols-2 lg:grid-cols-4">
             {CORES.map((core) => (
               <div
                 key={core.title}
-                style={{ transform: `rotate(${core.rotate})` }}
-                className="border-2 border-dark bg-white p-5 neo-shadow transition-transform hover:rotate-0 hover:-translate-y-1"
+                className={`flex flex-col gap-3 border-2 border-dark bg-white p-6 shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:rotate-0 hover:shadow-[8px_8px_0px_var(--color-maroon)] ${core.rotate}`}
               >
-                <core.icon
-                  className="h-8 w-8 text-maroon"
-                  strokeWidth={2}
-                />
-                <h3 className="mt-3 font-[family-name:var(--font-outfit)] text-lg font-bold uppercase tracking-wide text-dark">
+                <span
+                  className={`inline-flex h-12 w-12 items-center justify-center border-2 border-dark ${core.tint}`}
+                >
+                  <core.icon className="h-6 w-6 text-dark" strokeWidth={2} />
+                </span>
+                <h3
+                  className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-wide text-dark`}
+                >
                   {core.title}
                 </h3>
-                <p className="mt-1 text-sm leading-relaxed text-dark/70">
+                <p className="text-sm leading-relaxed text-dark/70">
                   {core.desc}
                 </p>
               </div>
@@ -330,101 +438,117 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── LIVE STATS ───────────────────────────── */}
-      <section className="border-b-2 border-dark/10 px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase tracking-[0.2em] text-maroon">
-            // Data langsung dari database
+      {/* ── KEGIATAN TERAKHIR ────────────────────── */}
+      <section id="kegiatan" className="px-4 py-20">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10">
+          <SectionHead tag="// Sesi yang sudah berlalu">
+            Kegiatan <span className="text-maroon">Terakhir</span>
+          </SectionHead>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex border-2 border-dark/20 bg-white"
+                >
+                  <div className="flex-1 p-5">
+                    <Skeleton className="mb-3 h-4 w-24" />
+                    <Skeleton className="mb-2 h-5 w-3/4" />
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="mt-3 h-3 w-28" />
+                  </div>
+                  <div className="flex w-24 items-center justify-center border-l-2 border-dashed border-dark/20">
+                    <Skeleton className="h-10 w-10" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : meetings.length === 0 ? (
+            <p className="text-sm text-dark/50">
+              Belum ada kegiatan tercatat. Nantikan sesi pertama!
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {meetings.map((m, i) => (
+                <TicketCard key={m.id} meeting={m} index={i} />
+              ))}
+            </div>
+          )}
+
+          <p className={`${FONT_MONO} text-xs text-dark/50`}>
+            Login buat lihat jadwal &amp; absen →
           </p>
-          <h2 className="mt-2 text-center font-[family-name:var(--font-outfit)] text-2xl font-extrabold uppercase tracking-tight text-dark md:text-3xl">
-            USRC dalam Angka
-          </h2>
-          <div className="mt-8 grid grid-cols-3 gap-4">
+        </div>
+      </section>
+
+      {/* ── LIVE STATS (dark band) ───────────────── */}
+      <section className="border-y-2 border-dark bg-dark px-4 py-20 text-paper">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10">
+          <div className="flex flex-col gap-2">
+            <p
+              className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-[#E38595]`}
+            >
+              // Data langsung dari database
+            </p>
+            <h2
+              className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide md:text-5xl`}
+            >
+              USRC dalam Angka
+            </h2>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-dark md:gap-8">
             <StatCard
               icon={UserCheck}
               label="Anggota"
               value={stats.members}
               loading={loading}
+              rotate="-rotate-2"
             />
             <StatCard
               icon={Calendar}
               label="Sesi"
               value={stats.sessions}
               loading={loading}
+              rotate="rotate-1"
             />
             <StatCard
               icon={FolderKanban}
               label="Karya"
               value={stats.projects}
               loading={loading}
+              rotate="rotate-2"
             />
           </div>
         </div>
       </section>
 
-      {/* ── KEGIATAN TERAKHIR ────────────────────── */}
-      <section id="kegiatan" className="border-b-2 border-dark/10 px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <p className="text-center font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase tracking-[0.2em] text-maroon">
-            // Sesi yang sudah berlalu
-          </p>
-          <h2 className="mt-2 text-center font-[family-name:var(--font-outfit)] text-2xl font-extrabold uppercase tracking-tight text-dark md:text-3xl">
-            Kegiatan Terakhir
-          </h2>
-
-          {loading ? (
-            <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="border-2 border-dark/20 bg-white p-4"
-                >
-                  <Skeleton className="mb-2 h-3 w-20" />
-                  <Skeleton className="mb-1 h-5 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <div className="mt-3 flex justify-between border-t border-dashed border-dark/20 pt-2">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-3 w-14" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : meetings.length === 0 ? (
-            <p className="mt-8 text-center text-sm text-dark/50">
-              Belum ada kegiatan tercatat. Nantikan sesi pertama!
-            </p>
-          ) : (
-            <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {meetings.map((m) => (
-                <TicketCard key={m.id} meeting={m} />
-              ))}
-            </div>
-          )}
-
-          <p className="mt-6 text-center font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/40">
-            Login buat lihat jadwal &amp; absen →
-          </p>
-        </div>
-      </section>
-
       {/* ── CTA ──────────────────────────────────── */}
-      <section className="px-4 py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-[family-name:var(--font-outfit)] text-3xl font-black uppercase tracking-tight text-dark md:text-4xl">
+      <section className="px-4 py-24">
+        <div className="mx-auto flex max-w-3xl rotate-1 flex-col items-start gap-5 border-2 border-dark bg-white p-8 shadow-[8px_8px_0px_var(--color-maroon)] md:p-12">
+          <span
+            className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-[#FFF3C4] px-3 py-1 text-xs font-semibold`}
+          >
+            // PENDAFTARAN DIBUKA
+          </span>
+          <h2
+            className={`${FONT_DISPLAY} text-4xl font-black uppercase leading-none tracking-tight text-dark md:text-6xl`}
+          >
             Siap <span className="text-maroon">Gabung?</span>
           </h2>
-          <p className="mt-3 text-base text-dark/70">
+          <p className="max-w-xl text-base text-dark/70 md:text-lg">
             Terbuka untuk semua mahasiswa UBSI Pontianak — Informatika, Sistem
             Informasi, dan SI Akuntansi.
           </p>
           <Link
             href="/daftar"
-            className="mt-6 inline-flex items-center justify-center border-2 border-dark bg-maroon px-8 py-4 font-[family-name:var(--font-outfit)] text-base font-bold uppercase tracking-wider text-white neo-shadow-lg transition-transform hover:-translate-y-1 active:translate-y-0 active:shadow-none"
+            className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-8 py-4 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
           >
             Daftar Sekarang
+            <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }
