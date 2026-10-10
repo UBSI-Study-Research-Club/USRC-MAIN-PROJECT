@@ -58,15 +58,15 @@ export default function LoginPage() {
     }
 
     setStep('otp');
-    setMessage('Kode 6 angka telah dikirim ke email kamu. Cek Gmail.');
+    setMessage('Kode verifikasi telah dikirim ke email kamu. Cek Gmail.');
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (otp.length !== 6) {
-      setError('Kode OTP harus 6 angka.');
+    if (otp.length < 6 || otp.length > 8) {
+      setError('Kode verifikasi harus 6-8 karakter.');
       return;
     }
 
@@ -126,7 +126,7 @@ export default function LoginPage() {
             <p className="font-body text-sm text-dark/70">
               {step === 'email' 
                 ? 'Masuk menggunakan email yang terdaftar.' 
-                : 'Masukkan kode 6 angka yang dikirim ke emailmu.'}
+                : 'Masukkan kode yang dikirim ke emailmu (6-8 karakter).'}
             </p>
           </div>
 
@@ -172,13 +172,13 @@ export default function LoginPage() {
             <form onSubmit={handleVerifyOtp} className="space-y-6">
               <div className="space-y-2">
                 <label htmlFor="otp" className="block font-mono text-xs font-semibold text-dark uppercase">
-                  Kode OTP (6 Angka)
+                  Kode Verifikasi
                 </label>
                 <input
                   id="otp"
                   type="text"
-                  inputMode="numeric"
-                  maxLength={6}
+                  inputMode="text" autoCapitalize="characters"
+                  maxLength={8}
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   placeholder="••••••"
