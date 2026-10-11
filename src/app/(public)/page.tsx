@@ -343,7 +343,7 @@ export default function LandingPage() {
             </div>
 
             <h1
-              className={`${FONT_DISPLAY} flex flex-col text-[2.75rem] font-black uppercase leading-[0.88] tracking-tighter text-dark sm:text-[4.5rem] md:text-[7rem] lg:text-[8rem]`}
+              className={`${FONT_DISPLAY} flex flex-col text-[2.25rem] font-black uppercase leading-[0.88] tracking-tighter text-dark sm:text-[3rem] md:text-[4.5rem] lg:text-[5rem]`}
             >
               <span>RUANG</span>
               <span className="text-maroon">BERKARYA</span>
