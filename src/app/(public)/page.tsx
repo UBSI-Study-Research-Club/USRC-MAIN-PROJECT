@@ -257,18 +257,17 @@ export default function LandingPage() {
     async function fetchData() {
       try {
         // Stats via RPC — RLS-safe untuk tamu (anon gak bisa baca profiles langsung)
-        const statsData = (await supabase
+        const { data: statsData, error: statsError } = await supabase
           .rpc('get_public_stats')
-          .single()) as unknown as {
-          members: number
-          sessions: number
-          projects: number
-        } | null
-        if (statsData) {
+        if (statsError) {
+          console.error('RPC error:', statsError)
+        }
+        if (statsData && statsData.length > 0) {
+          const stat = statsData[0]
           setStats({
-            members: Number(statsData.members ?? 0),
-            sessions: Number(statsData.sessions ?? 0),
-            projects: Number(statsData.projects ?? 0),
+            members: Number(stat.members ?? 0),
+            sessions: Number(stat.sessions ?? 0),
+            projects: Number(stat.projects ?? 0),
           })
         }
 
