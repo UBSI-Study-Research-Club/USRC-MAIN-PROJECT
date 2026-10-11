@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState, useTransition, Suspense } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Users, ClipboardList, Check, X, Trash2, Calendar, Loader2, AlertCircle, Plus, CheckCheck } from 'lucide-react'
 
@@ -58,10 +58,11 @@ function SekretarisDashboardContent() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'absen' | 'registrations' | 'members'>('absen')
   const [animatingTab, setAnimatingTab] = useState<'absen' | 'registrations' | 'members' | null>(null)
+  const reduceMotion = useReducedMotion()
 
   const handleTabChange = (newTab: 'absen' | 'registrations' | 'members') => {
     if (newTab === activeTab) return
-    setAnimatingTab(activeTab)
+    if (!reduceMotion) setAnimatingTab(activeTab)
     setActiveTab(newTab)
   }
   const [members, setMembers] = useState<Member[]>([])
@@ -518,7 +519,7 @@ function SekretarisDashboardContent() {
 
           {/* Animasi Kertas Dicabut & Meluncur ke Belakang Tumpukan */}
           <AnimatePresence>
-            {animatingTab && (
+            {!reduceMotion && animatingTab && (
               <motion.div
                 key={`shuffle-${animatingTab}`}
                 initial={{ x: 0, y: 0, rotate: 0, zIndex: 40, opacity: 1 }}
@@ -548,7 +549,7 @@ function SekretarisDashboardContent() {
           {/* Layer 0 (Kertas Depan / Konten Aktif) */}
           <motion.section
             key={activeTab}
-            initial={{ opacity: 0.85, scale: 0.995 }}
+            initial={reduceMotion ? false : { opacity: 0.85, scale: 0.995 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
             role="tabpanel"

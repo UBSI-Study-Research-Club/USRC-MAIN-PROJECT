@@ -67,6 +67,23 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
 }
 
+/* ── Paper stack tab switch animation ── */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes paper-in {
+    from {
+      opacity: 0;
+      transform: translateY(-18px) rotate(-0.6deg) scale(1.015);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) rotate(0deg) scale(1);
+    }
+  }
+  .paper-in {
+    animation: paper-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
 /* ── Subtle entry motion ── */
 @media (prefers-reduced-motion: no-preference) {
   @keyframes fade-up {
