@@ -226,3 +226,21 @@ begin
 end;
 $$ language plpgsql security definer;
 
+
+-- 7. PUBLIC STATS (landing page — anon tidak boleh baca profiles langsung)
+-- Tamu lihat angka yang sama dengan yang login. Sessions = sesi lampau saja.
+create or replace function public.get_public_stats()
+returns table (members bigint, sessions bigint, projects bigint)
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select
+    (select count(*) from public.profiles),
+    (select count(*) from public.meetings where ends_at < now()),
+    (select count(*) from public.projects where status = 'approved');
+$$;
+
+revoke execute on function public.get_public_stats() from public;
+grant execute on function public.get_public_stats() to anon, authenticated;
