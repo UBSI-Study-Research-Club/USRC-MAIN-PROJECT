@@ -1,11 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
+import { createClient } from "@/lib/supabase/server";
 
-export default function PublicLayout({
+export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
     <>
       {/* ── Navbar (Neobrutalist) ────────────────── */}
@@ -48,12 +52,21 @@ export default function PublicLayout({
           </div>
 
           {/* CTA */}
-          <Link
-            href="/daftar"
-            className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-          >
-            DAFTAR
-          </Link>
+          {user ? (
+            <Link
+              href="/dashboard"
+              className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+            >
+              DASHBOARD
+            </Link>
+          ) : (
+            <Link
+              href="/daftar"
+              className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+            >
+              DAFTAR
+            </Link>
+          )}
         </nav>
       </header>
 

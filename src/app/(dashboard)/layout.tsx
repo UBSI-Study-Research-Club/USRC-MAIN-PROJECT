@@ -66,7 +66,7 @@ export default async function DashboardLayout({
 
             <div className="flex items-center gap-2 pl-2 border-l-2 border-[#1A1A1A]">
               <div className="text-right hidden md:block">
-                <p className="text-xs font-bold">{profile?.full_name || user.email}</p>
+                <p className="text-xs font-bold">{profile?.full_name || user?.email}</p>
                 <p className="text-[10px] font-mono uppercase bg-[#7A1B2E] text-white px-1.5 py-0.5 inline-block rounded-none">
                   {role}
                 </p>
