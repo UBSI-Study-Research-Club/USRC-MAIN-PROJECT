@@ -29,6 +29,7 @@ function AbsenPageContent() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const [userId, setUserId] = useState<string | null>(null)
+  const [ghost, setGhost] = useState(false)
 
   const supabase = createClient()
 
@@ -38,6 +39,19 @@ function AbsenPageContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
+
+      // Cek profil — kalau gak ada, pendaftarannya belum di-approve (akun hantu)
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle()
+      if (!myProfile) {
+        setGhost(true)
+        setLoading(false)
+        return
+      }
+      setGhost(false)
 
       // Fetch meetings
       const { data: meetingsData, error: meetErr } = await supabase
@@ -142,6 +156,30 @@ function AbsenPageContent() {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="w-8 h-8 animate-spin text-[#7A1B2E]" />
+      </div>
+    )
+  }
+
+  // Akun login tapi belum di-approve sekre (pendaftaran pending/ditolak)
+  if (ghost) {
+    return (
+      <div className="border-2 border-[#1A1A1A] bg-white p-8 text-center shadow-[4px_4px_0_#1A1A1A] max-w-lg mx-auto mt-10">
+        <AlertCircle className="w-10 h-10 text-[#7A1B2E] mx-auto mb-4" />
+        <h1 className="text-xl font-black uppercase font-['Outfit'] text-[#1A1A1A] mb-2">
+          Akun Belum Aktif
+        </h1>
+        <p className="text-sm font-['Work_Sans'] text-[#1A1A1A]/80 mb-1">
+          Kamu berhasil login, tapi pendaftaranmu <span className="font-bold">belum disetujui sekretaris</span>.
+        </p>
+        <p className="text-xs font-mono text-gray-500 mb-6">
+          Belum daftar? Klik daftar di halaman utama. Sudah daftar? Tunggu sekre approve.
+        </p>
+        <a
+          href="/daftar"
+          className="inline-block px-5 py-2.5 border-2 border-[#1A1A1A] bg-[#7A1B2E] text-white text-xs font-bold uppercase shadow-[3px_3px_0_#1A1A1A] hover:bg-[#5d1524] transition-colors"
+        >
+          Daftar Anggota
+        </a>
       </div>
     )
   }
