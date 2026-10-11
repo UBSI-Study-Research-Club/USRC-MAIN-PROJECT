@@ -16,6 +16,7 @@ type Meeting = {
 type Attendance = {
   id: string
   meeting_id: string
+  user_id: string
   status: 'pending' | 'approved'
   checked_at: string
 }
@@ -77,20 +78,20 @@ function AbsenPageContent() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'attendances' },
         (payload) => {
-          if (payload.new && (payload.new as any).user_id === userId) {
-            const att = payload.new as Attendance
-            if (payload.eventType === 'DELETE') {
-              setAttendances((prev) => {
-                const copy = { ...prev }
-                delete copy[att.meeting_id]
-                return copy
-              })
-            } else {
-              setAttendances((prev) => ({
-                ...prev,
-                [att.meeting_id]: att,
-              }))
-            }
+          // DELETE event: payload.new null — pakai payload.old
+          const att = ((payload.new ?? payload.old) as Attendance | null)
+          if (!att || att.user_id !== userId) return
+          if (payload.eventType === 'DELETE') {
+            setAttendances((prev) => {
+              const copy = { ...prev }
+              delete copy[att.meeting_id]
+              return copy
+            })
+          } else {
+            setAttendances((prev) => ({
+              ...prev,
+              [att.meeting_id]: att,
+            }))
           }
         }
       )
