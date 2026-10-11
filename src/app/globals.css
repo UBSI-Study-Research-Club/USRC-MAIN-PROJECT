@@ -1,83 +1,65 @@
 @import "tailwindcss";
 
-/* ── Design Tokens (design.md) ──────────────────── */
-:root {
-  --bg-paper: #F5F3EF;
-  --color-maroon: #7A1B2E;
-  --color-hot: #A62639;
-  --color-pink: #E38595;
-  --color-dark: #1A1A1A;
-  --color-white: #FFFFFF;
+@theme {
+  --font-display: var(--font-outfit), sans-serif;
+  --font-body: var(--font-work-sans), sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), monospace;
 
-  --status-pending: #FFF3C4;
-  --status-approved: #D1E7DD;
-  --status-rejected: #F8D7DA;
-
-  --background: var(--bg-paper);
-  --foreground: var(--color-dark);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-maroon: #7A1B2E;
-  --color-hot: #A62639;
-  --color-pink: #E38595;
-  --color-dark: #1A1A1A;
   --color-paper: #F5F3EF;
-  --color-status-approved: #D1E7DD;
-  --color-status-rejected: #F8D7DA;
-  --color-status-pending: #FFF3C4;
-  --font-display: var(--font-outfit);
-  --font-body: var(--font-work-sans);
-  --font-mono: var(--font-ibm-plex-mono);
+  --color-maroon: #7A1B2E;
+  --color-hot: #A62639;
+  --color-pink: #E38595;
+  --color-dark: #1A1A1A;
 }
 
+/* Custom Base Styles for Neobrutalism */
 body {
-  background: var(--bg-paper);
+  background-color: var(--color-paper);
   color: var(--color-dark);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
-/* Neobrutalist hard shadow */
-.neo-shadow {
-  box-shadow: 3px 3px 0px var(--color-maroon);
-}
-.neo-shadow-sm {
-  box-shadow: 2px 2px 0px var(--color-maroon);
-}
-.neo-shadow-lg {
-  box-shadow: 5px 5px 0px var(--color-maroon);
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
 }
 
-/* Glassmorphic accent */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Sticker rotation */
-.sticker-tilt {
-  transform: rotate(-2deg);
-}
-.sticker-tilt-r {
-  transform: rotate(4deg);
+::-webkit-scrollbar-track {
+  background: var(--color-paper);
+  border-left: 2px solid var(--color-dark);
 }
 
-/* Focus state neobrutalist */
+::-webkit-scrollbar-thumb {
+  background: var(--color-maroon);
+  border: 1px solid var(--color-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-hot);
+}
+
+/* Selection Highlight */
+::selection {
+  background-color: var(--color-maroon);
+  color: #ffffff;
+}
+
+/* Form Element Custom Focus */
 input:focus, textarea:focus, select:focus {
-  outline: none;
-  box-shadow: 4px 4px 0px var(--color-maroon);
-  border-color: var(--color-maroon);
+  outline: 2px solid var(--color-maroon);
+  outline-offset: 1px;
 }
 
-/* Skeleton loading */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
+
 .skeleton {
   background: linear-gradient(90deg, #e0ddd8 25%, #ebe8e3 50%, #e0ddd8 75%);
   background-size: 200% 100%;
@@ -106,4 +88,38 @@ input:focus, textarea:focus, select:focus {
   .fade-up-delay-2 {
     animation: fade-up 0.5s ease-out 0.2s both;
   }
+}
+
+@layer base {
+  :root {
+    --bg-paper: #F5F3EF;
+    --color-maroon: #7A1B2E;
+    --color-hot: #A62639;
+    --color-pink: #E38595;
+    --color-dark: #1A1A1A;
+    --color-white: #FFFFFF;
+    
+    --background: var(--bg-paper);
+    --foreground: var(--color-dark);
+  }
+}
+
+@utility shadow-hard {
+  box-shadow: 3px 3px 0px #1A1A1A;
+}
+
+@utility shadow-hard-lg {
+  box-shadow: 5px 5px 0px #1A1A1A;
+}
+
+@utility shadow-hard-maroon {
+  box-shadow: 4px 4px 0px #7A1B2E;
+}
+
+@utility shadow-hard-maroon-lg {
+  box-shadow: 6px 6px 0px #7A1B2E;
+}
+
+@utility border-dark {
+  border-color: #1A1A1A;
 }

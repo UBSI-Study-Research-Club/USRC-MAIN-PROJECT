@@ -1,7 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Calendar, Users, ClipboardList, LogOut, Home, User } from 'lucide-react'
+import { Users, ClipboardList, LogOut, Home, User } from 'lucide-react'
+import { NavLink } from './NavLink'
 
 export default async function DashboardLayout({
   children,
@@ -41,38 +42,26 @@ export default async function DashboardLayout({
           </Link>
 
           <nav className="flex items-center gap-3 md:gap-6">
-            <Link 
-              href="/" 
-              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
-            >
+            <NavLink href="/">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
-            </Link>
+            </NavLink>
 
-            <Link 
-              href="/absen" 
-              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
-            >
+            <NavLink href="/absen">
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Absen Anggota</span>
-            </Link>
+            </NavLink>
 
-            <Link 
-              href="/profil" 
-              className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#F5F3EF] hover:bg-[#7A1B2E] hover:text-white transition-colors"
-            >
+            <NavLink href="/profil">
               <User className="w-4 h-4" />
               <span className="hidden sm:inline">Profil</span>
-            </Link>
+            </NavLink>
 
             {isSekreOrAdmin && (
-              <Link 
-                href="/dashboard/sekre" 
-                className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#FFF3C4] hover:bg-[#7A1B2E] hover:text-white transition-colors"
-              >
+              <NavLink href="/dashboard/sekre" defaultBg="bg-[#FFF3C4]">
                 <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Dashboard Sekre</span>
-              </Link>
+              </NavLink>
             )}
 
             <div className="flex items-center gap-2 pl-2 border-l-2 border-[#1A1A1A]">

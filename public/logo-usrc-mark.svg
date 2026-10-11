@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="70 10 260 280" width="260" height="280">
+  <!-- USRC mark only — interlocked hexagons, transparent bg, for small sizes -->
+  <defs>
+    <mask id="mT">
+      <rect x="60" y="0" width="280" height="290" fill="#fff"/>
+      <circle cx="273.6" cy="130.2" r="10" fill="#000"/>
+      <circle cx="243.6" cy="167.8" r="10" fill="#000"/>
+      <circle cx="156.4" cy="167.8" r="10" fill="#000"/>
+    </mask>
+    <mask id="mBL">
+      <rect x="60" y="0" width="280" height="290" fill="#fff"/>
+      <circle cx="200" cy="257.7" r="10" fill="#000"/>
+      <circle cx="126.4" cy="130.2" r="10" fill="#000"/>
+    </mask>
+    <mask id="mBR">
+      <rect x="60" y="0" width="280" height="290" fill="#fff"/>
+      <circle cx="200" cy="122.3" r="10" fill="#000"/>
+      <circle cx="156.4" cy="167.8" r="10" fill="#000"/>
+    </mask>
+  </defs>
+
+  <g fill="none" stroke="#7A1B2E" stroke-width="10">
+    <polygon mask="url(#mT)" points="200,23 273.6,65.5 273.6,150.5 200,193 126.4,150.5 126.4,65.5"/>
+    <polygon mask="url(#mBL)" points="170,105 243.6,147.5 243.6,232.5 170,275 96.4,232.5 96.4,147.5"/>
+    <polygon mask="url(#mBR)" points="230,105 303.6,147.5 303.6,232.5 230,275 156.4,232.5 156.4,147.5"/>
+    <line x1="188.74" y1="128.8" x2="211.26" y2="115.8"/>
+    <line x1="188.74" y1="251.2" x2="211.26" y2="264.2"/>
+    <line x1="126.4"  y1="117.2" x2="126.4"  y2="143.2"/>
+    <line x1="262.34" y1="123.7" x2="284.86" y2="136.7"/>
+    <line x1="243.6"  y1="154.8" x2="243.6"  y2="180.8"/>
+    <line x1="156.4"  y1="154.8" x2="156.4"  y2="180.8"/>
+  </g>
+
+  <polygon fill="#7A1B2E" points="200,172 217.3,182 217.3,202 200,212 182.7,202 182.7,182"/>
+</svg>
