@@ -3,7 +3,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Users, ClipboardList, Check, X, Trash2, Calendar, Loader2, AlertCircle } from 'lucide-react'
+import { Users, ClipboardList, Check, X, Trash2, Calendar, Loader2, AlertCircle, Plus } from 'lucide-react'
 
 type Meeting = {
   id: string
@@ -47,8 +47,50 @@ function SekretarisDashboardContent() {
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'absen' | 'registrations'>('absen')
   const [isPending, startTransition] = useTransition()
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [creatingMeeting, setCreatingMeeting] = useState(false)
+  const [newMeeting, setNewMeeting] = useState({ title: '', date: '', start: '16:00', end: '17:30' })
 
   const supabase = createClient()
+
+  // Buat sesi baru (sekre/admin)
+  const handleCreateMeeting = async () => {
+    if (!newMeeting.title.trim() || !newMeeting.date || !newMeeting.start || !newMeeting.end) {
+      alert('Lengkapi judul, tanggal, dan jam mulai/selesai.')
+      return
+    }
+    const starts_at = new Date(`${newMeeting.date}T${newMeeting.start}:00+07:00`)
+    const ends_at = new Date(`${newMeeting.date}T${newMeeting.end}:00+07:00`)
+    if (isNaN(starts_at.getTime()) || isNaN(ends_at.getTime())) {
+      alert('Format tanggal/jam tidak valid.')
+      return
+    }
+    if (ends_at <= starts_at) {
+      alert('Jam selesai harus setelah jam mulai.')
+      return
+    }
+
+    setCreatingMeeting(true)
+    const { data, error } = await supabase
+      .from('meetings')
+      .insert({
+        title: newMeeting.title.trim(),
+        starts_at: starts_at.toISOString(),
+        ends_at: ends_at.toISOString(),
+      })
+      .select('id, title, starts_at, ends_at')
+      .single()
+    setCreatingMeeting(false)
+
+    if (error) {
+      alert('Gagal membuat sesi: ' + error.message)
+      return
+    }
+    setMeetings((prev) => [data, ...prev])
+    setSelectedMeetingId(data.id)
+    setNewMeeting({ title: '', date: '', start: '16:00', end: '17:30' })
+    setShowCreateForm(false)
+  }
 
   // Fetch meetings on mount
   useEffect(() => {
@@ -288,6 +330,77 @@ function SekretarisDashboardContent() {
       {/* Tab Content: Absen */}
       {activeTab === 'absen' && (
         <div className="space-y-4">
+          {/* Buat Sesi */}
+          <div className="border-2 border-[#1A1A1A] bg-white p-4 shadow-[3px_3px_0_#1A1A1A]">
+            <div className="flex items-center justify-between gap-4">
+              <p className="font-mono text-xs uppercase font-bold text-[#1A1A1A]">
+                Sesi belum ada? Bikin dulu.
+              </p>
+              <button
+                onClick={() => setShowCreateForm((v) => !v)}
+                className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#FFF3C4] hover:bg-[#7A1B2E] hover:text-white transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                Buat Sesi
+              </button>
+            </div>
+
+            {showCreateForm && (
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleCreateMeeting() }}
+                className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3 items-end border-t-2 border-dashed border-[#1A1A1A]/30 pt-4"
+              >
+                <div className="md:col-span-2">
+                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Judul Sesi</label>
+                  <input
+                    type="text"
+                    value={newMeeting.title}
+                    onChange={(e) => setNewMeeting((s) => ({ ...s, title: e.target.value }))}
+                    placeholder="Kumpul Study #5"
+                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Tanggal (WIB)</label>
+                  <input
+                    type="date"
+                    value={newMeeting.date}
+                    onChange={(e) => setNewMeeting((s) => ({ ...s, date: e.target.value }))}
+                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Mulai</label>
+                  <input
+                    type="time"
+                    value={newMeeting.start}
+                    onChange={(e) => setNewMeeting((s) => ({ ...s, start: e.target.value }))}
+                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
+                  />
+                </div>
+                <div>
+                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Selesai</label>
+                  <input
+                    type="time"
+                    value={newMeeting.end}
+                    onChange={(e) => setNewMeeting((s) => ({ ...s, end: e.target.value }))}
+                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={creatingMeeting}
+                  className="w-full px-3 py-2 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#7A1B2E] text-white hover:bg-[#5d1524] transition-colors disabled:opacity-50"
+                >
+                  {creatingMeeting ? 'Menyimpan...' : 'Simpan Sesi'}
+                </button>
+                <p className="md:col-span-6 font-mono text-[10px] text-gray-500">
+                  // Jam pakai WIB. Absen terbuka otomatis 30 menit sebelum sesi mulai sampai sesi selesai.
+                </p>
+              </form>
+            )}
+          </div>
+
           {/* Meeting Selector */}
           <div className="border-2 border-[#1A1A1A] bg-white p-4 shadow-[3px_3px_0_#1A1A1A] flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2 w-full md:w-auto">
