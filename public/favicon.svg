@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- USRC favicon: single hexagon + "U", readable at 16px -->
+  <polygon points="32,4 56,18 56,46 32,60 8,46 8,18"
+           fill="#7A1B2E"/>
+  <text x="32" y="44" text-anchor="middle"
+        font-family="Arial, sans-serif"
+        font-size="28" font-weight="900" fill="#FFFFFF">U</text>
+</svg>

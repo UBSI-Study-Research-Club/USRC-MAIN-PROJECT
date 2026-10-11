@@ -84,3 +84,42 @@ input:focus, textarea:focus, select:focus {
   animation: shimmer 1.5s infinite;
   border-radius: 4px;
 }
+@layer base {
+  :root {
+    --bg-paper: #F5F3EF;
+    --color-maroon: #7A1B2E;
+    --color-hot: #A62639;
+    --color-pink: #E38595;
+    --color-dark: #1A1A1A;
+    --color-white: #FFFFFF;
+    
+    --background: var(--bg-paper);
+    --foreground: var(--color-dark);
+  }
+
+  body {
+    background-color: var(--bg-paper);
+    color: var(--color-dark);
+    font-family: var(--font-work-sans), sans-serif;
+  }
+}
+
+@utility shadow-hard {
+  box-shadow: 3px 3px 0px #1A1A1A;
+}
+
+@utility shadow-hard-lg {
+  box-shadow: 5px 5px 0px #1A1A1A;
+}
+
+@utility shadow-hard-maroon {
+  box-shadow: 4px 4px 0px #7A1B2E;
+}
+
+@utility shadow-hard-maroon-lg {
+  box-shadow: 6px 6px 0px #7A1B2E;
+}
+
+@utility border-dark {
+  border-color: #1A1A1A;
+}
