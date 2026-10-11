@@ -301,8 +301,9 @@ export default function LandingPage() {
             }))
           );
         }
-      } catch {
-        // Supabase unavailable — stats stay at 0, meetings empty
+      } catch (err) {
+        console.error('Landing stats fetch failed:', err)
+        // Fallback: stats stay at 0, meetings empty
       } finally {
         setLoading(false);
       }
