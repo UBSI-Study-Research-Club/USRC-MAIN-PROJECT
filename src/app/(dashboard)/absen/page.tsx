@@ -16,6 +16,7 @@ type Meeting = {
 type Attendance = {
   id: string
   meeting_id: string
+  user_id: string
   status: 'pending' | 'approved'
   checked_at: string
 }
