@@ -36,6 +36,16 @@ type Registration = {
   created_at: string
 }
 
+type Member = {
+  id: string
+  full_name: string
+  nim: string
+  prodi: string
+  role: 'anggota' | 'sekre' | 'admin'
+  created_at: string
+  reason: string | null
+}
+
 function SekretarisDashboardContent() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>('')
@@ -45,7 +55,10 @@ function SekretarisDashboardContent() {
   const [loadingAttendances, setLoadingAttendances] = useState(false)
   const [loadingRegs, setLoadingRegs] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'absen' | 'registrations'>('absen')
+  const [activeTab, setActiveTab] = useState<'absen' | 'registrations' | 'members'>('absen')
+  const [members, setMembers] = useState<Member[]>([])
+  const [loadingMembers, setLoadingMembers] = useState(true)
+  const [memberSearch, setMemberSearch] = useState('')
   const [isPending, startTransition] = useTransition()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [creatingMeeting, setCreatingMeeting] = useState(false)
@@ -132,8 +145,42 @@ function SekretarisDashboardContent() {
       }
     }
 
+    const fetchMembers = async () => {
+      try {
+        setLoadingMembers(true)
+
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, nim, prodi, role, created_at')
+          .order('full_name', { ascending: true })
+
+        if (profilesError) throw profilesError
+
+        const { data: approvedRegs, error: regsError } = await supabase
+          .from('registrations')
+          .select('nim, reason')
+          .eq('status', 'approved')
+
+        if (regsError) throw regsError
+
+        const reasonByNim = new Map((approvedRegs || []).map((r) => [r.nim, r.reason]))
+
+        const merged = (profilesData || []).map((p) => ({
+          ...p,
+          reason: reasonByNim.get(p.nim) || null,
+        }))
+
+        setMembers(merged as Member[])
+      } catch (err) {
+        console.error('Error fetching members:', err)
+      } finally {
+        setLoadingMembers(false)
+      }
+    }
+
     fetchMeetings()
     fetchRegistrations()
+    fetchMembers()
 
     // Realtime subscriptions for registrations
     const regChannel = supabase
@@ -143,6 +190,7 @@ function SekretarisDashboardContent() {
         { event: '*', schema: 'public', table: 'registrations' },
         () => {
           fetchRegistrations()
+          fetchMembers()
         }
       )
       .subscribe()
@@ -321,6 +369,25 @@ function SekretarisDashboardContent() {
             {registrations.length > 0 && (
               <span className="bg-[#FFF3C4] text-[#1A1A1A] font-mono text-[10px] px-1.5 py-0.2 border border-[#1A1A1A] font-black">
                 {registrations.length}
+              </span>
+            )}
+          </div>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('members')}
+          className={`px-5 py-2.5 font-bold uppercase font-['Outfit'] text-sm border-2 border-[#1A1A1A] border-b-0 transition-all ${
+            activeTab === 'members'
+              ? 'bg-[#7A1B2E] text-white shadow-[2px_-2px_0_#1A1A1A]'
+              : 'bg-white text-[#1A1A1A] hover:bg-gray-50'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            <span>Anggota</span>
+            {members.length > 0 && (
+              <span className="bg-[#FFF3C4] text-[#1A1A1A] font-mono text-[10px] px-1.5 py-0.2 border border-[#1A1A1A] font-black">
+                {members.length}
               </span>
             )}
           </div>
@@ -588,6 +655,96 @@ function SekretarisDashboardContent() {
           </div>
         </div>
       )}
+
+      {/* Tab Content: Members */}
+      {activeTab === 'members' && (() => {
+        const filteredMembers = members.filter((member) => {
+          const q = memberSearch.trim().toLowerCase()
+          if (!q) return true
+
+          return [
+            member.full_name,
+            member.nim,
+            member.prodi,
+            member.role,
+            member.reason || '',
+          ]
+            .join(' ')
+            .toLowerCase()
+            .includes(q)
+        })
+
+        return (
+          <div className="space-y-4">
+            <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
+              <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                    Semua Anggota ({filteredMembers.length})
+                  </h3>
+                  <p className="font-mono text-[10px] uppercase text-gray-500 mt-1">
+                    Urut nama A-Z. Data alasan diambil dari pendaftaran approved.
+                  </p>
+                </div>
+                <input
+                  type="search"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  placeholder="Cari nama, NIM, prodi, alasan..."
+                  className="w-full md:w-80 border-2 border-[#1A1A1A] bg-white px-3 py-2 font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
+                />
+              </div>
+
+              {loadingMembers ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="p-8 text-center font-mono text-xs text-gray-500">
+                  {memberSearch ? 'Tidak ada anggota yang cocok dengan pencarian.' : 'Tidak ada anggota.'}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">Nama</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi/Kelas</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">Role</th>
+                        <th className="p-3">Alasan Masuk USRC</th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-['Work_Sans'] text-sm">
+                      {filteredMembers.map((member) => (
+                        <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
+                          <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
+                            {member.full_name}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
+                            {member.nim}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-xs font-bold">
+                            {member.prodi}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A]">
+                            <span className="inline-block font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
+                              {member.role}
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs italic text-gray-700 max-w-md">
+                            {member.reason || 'Belum ada alasan tersimpan.'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
