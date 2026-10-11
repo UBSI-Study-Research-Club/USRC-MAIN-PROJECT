@@ -244,3 +244,11 @@ $$;
 
 revoke execute on function public.get_public_stats() from public;
 grant execute on function public.get_public_stats() to anon, authenticated;
+
+-- 8. REJECT-REAPPLY FIX
+-- Unique constraint lama (email,nim) mengunci pendaftar 'rejected' selamanya.
+-- Ganti dengan partial index: hanya email aktif (pending/approved) yang di-unlock satu.
+alter table public.registrations drop constraint if exists registrations_email_nim_key;
+create unique index if not exists registrations_email_active_key
+  on public.registrations (lower(email))
+  where status in ('pending', 'approved');

@@ -49,7 +49,9 @@ export default function DaftarPage() {
 
       if (error) {
         if (error.code === "23505") {
-          setErrorMsg("Email atau NIM sudah terdaftar sebelumnya.");
+          setErrorMsg(
+            "Email ini masih menunggu persetujuan atau sudah terdaftar. Kalau dulu ditolak, silakan daftar ulang."
+          );
         } else {
           setErrorMsg(error.message);
         }
