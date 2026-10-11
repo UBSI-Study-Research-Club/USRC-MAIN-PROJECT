@@ -86,7 +86,7 @@ const CORES = [
   {
     icon: Users,
     title: "Collaboration",
-    desc: "Kolaborasi lintas prodi: Informatika, SI, SI Akuntansi.",
+    desc: "Kolaborasi lintas prodi: Informatika, Sistem Informasi, Sistem Informasi Akuntansi.",
     rotate: "rotate-2",
     tint: "bg-[#E38595]",
   },
