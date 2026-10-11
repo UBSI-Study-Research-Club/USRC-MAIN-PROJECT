@@ -482,8 +482,9 @@ function SekretarisDashboardContent() {
 
           {/* Layer 0 (Kertas Depan / Konten Aktif) */}
           <section
+            key={activeTab}
             role="tabpanel"
-            className="relative z-10 border-2 border-[#1A1A1A] p-5 md:p-8 shadow-[6px_6px_0_#7A1B2E] transition-all duration-300"
+            className="paper-in relative z-10 border-2 border-[#1A1A1A] p-5 md:p-8 shadow-[6px_6px_0_#7A1B2E] transition-colors duration-300"
             style={{ backgroundColor: frontSheetColor }}
           >
             {/* Tab Content: Absen */}
