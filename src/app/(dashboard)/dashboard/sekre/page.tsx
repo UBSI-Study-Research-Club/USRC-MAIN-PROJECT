@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState, useTransition, Suspense } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { Users, ClipboardList, Check, X, Trash2, Calendar, Loader2, AlertCircle, Plus, CheckCheck } from 'lucide-react'
 
@@ -56,6 +57,13 @@ function SekretarisDashboardContent() {
   const [loadingRegs, setLoadingRegs] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'absen' | 'registrations' | 'members'>('absen')
+  const [animatingTab, setAnimatingTab] = useState<'absen' | 'registrations' | 'members' | null>(null)
+
+  const handleTabChange = (newTab: 'absen' | 'registrations' | 'members') => {
+    if (newTab === activeTab) return
+    setAnimatingTab(activeTab)
+    setActiveTab(newTab)
+  }
   const [members, setMembers] = useState<Member[]>([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [memberSearch, setMemberSearch] = useState('')
@@ -336,17 +344,45 @@ function SekretarisDashboardContent() {
   }
 
   // Tab Colors for Physical Paper Stack
-  const tabColors: Record<'absen' | 'registrations' | 'members', string> = {
+  const TAB_COLORS: Record<'absen' | 'registrations' | 'members', string> = {
     absen: '#FFFFFF',
     registrations: '#FFF9DC',
     members: '#FCE9ED',
   }
 
-  const allTabs: Array<'absen' | 'registrations' | 'members'> = ['absen', 'registrations', 'members']
-  const backgroundTabs = allTabs.filter((t) => t !== activeTab)
-  const backSheet1Color = tabColors[backgroundTabs[0]]
-  const backSheet2Color = tabColors[backgroundTabs[1]]
-  const frontSheetColor = tabColors[activeTab]
+  // Synchronized Deck Order:
+  // - members (pink): middle = registrations (kuning), back = absen (putih)
+  // - absen (putih): middle = registrations (kuning), back = members (pink)
+  // - registrations (kuning): middle = members (pink), back = absen (putih)
+  const stackDeckByTab: Record<
+    'absen' | 'registrations' | 'members',
+    {
+      front: 'absen' | 'registrations' | 'members'
+      middle: 'absen' | 'registrations' | 'members'
+      back: 'absen' | 'registrations' | 'members'
+    }
+  > = {
+    absen: {
+      front: 'absen',
+      middle: 'registrations',
+      back: 'members',
+    },
+    registrations: {
+      front: 'registrations',
+      middle: 'members',
+      back: 'absen',
+    },
+    members: {
+      front: 'members',
+      middle: 'registrations',
+      back: 'absen',
+    },
+  }
+
+  const currentDeck = stackDeckByTab[activeTab]
+  const frontSheetColor = TAB_COLORS[currentDeck.front]
+  const middleSheetColor = TAB_COLORS[currentDeck.middle]
+  const backSheetColor = TAB_COLORS[currentDeck.back]
 
   const selectedMeeting = meetings.find((m) => m.id === selectedMeetingId)
   const approvedCount = attendances.filter((a) => a.status === 'approved').length
@@ -402,7 +438,7 @@ function SekretarisDashboardContent() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'absen'}
-            onClick={() => setActiveTab('absen')}
+            onClick={() => handleTabChange('absen')}
             className={`group relative inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'absen'
                 ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
@@ -418,7 +454,7 @@ function SekretarisDashboardContent() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'registrations'}
-            onClick={() => setActiveTab('registrations')}
+            onClick={() => handleTabChange('registrations')}
             className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'registrations'
                 ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
@@ -439,7 +475,7 @@ function SekretarisDashboardContent() {
             type="button"
             role="tab"
             aria-selected={activeTab === 'members'}
-            onClick={() => setActiveTab('members')}
+            onClick={() => handleTabChange('members')}
             className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'members'
                 ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
@@ -455,35 +491,68 @@ function SekretarisDashboardContent() {
         </div>
 
         {/* Tumpukan Kertas (Physical Paper Stack Deck) */}
-        <div className="relative mr-2 md:mr-4">
-          {/* Layer 2 (Paling belakang — offset 12px tilt -0.8deg) */}
+        <div className="relative mr-3 md:mr-6">
+          {/* Layer 2 (Paling belakang — offset 16px tilt -0.9deg) */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[3px_3px_0_#1A1A1A] transition-all duration-300"
+            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[3px_3px_0_#1A1A1A] transition-colors duration-500 ease-out"
             style={{
-              backgroundColor: backSheet2Color,
-              transform: 'translate(12px, 12px) rotate(-0.8deg)',
+              backgroundColor: backSheetColor,
+              transform: 'translate(16px, 16px) rotate(-0.9deg)',
               zIndex: 1,
               backgroundImage: 'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
             }}
           />
 
-          {/* Layer 1 (Tengah — offset 6px tilt 0.8deg) */}
+          {/* Layer 1 (Tengah / Di bawahnya — offset 8px tilt 0.9deg) */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] transition-all duration-300"
+            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] transition-colors duration-500 ease-out"
             style={{
-              backgroundColor: backSheet1Color,
-              transform: 'translate(6px, 6px) rotate(0.8deg)',
+              backgroundColor: middleSheetColor,
+              transform: 'translate(8px, 8px) rotate(0.9deg)',
               zIndex: 2,
               backgroundImage: 'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
             }}
           />
 
+          {/* Animasi Kertas Dicabut & Meluncur ke Belakang Tumpukan */}
+          <AnimatePresence>
+            {animatingTab && (
+              <motion.div
+                key={`shuffle-${animatingTab}`}
+                initial={{ x: 0, y: 0, rotate: 0, zIndex: 40, opacity: 1 }}
+                animate={{
+                  x: [0, 75, 16],
+                  y: [0, -32, 16],
+                  rotate: [0, 5, -0.9],
+                  zIndex: [40, 40, 1],
+                  opacity: [1, 1, 0],
+                }}
+                transition={{
+                  duration: 0.52,
+                  times: [0, 0.42, 1],
+                  ease: [0.25, 0.9, 0.3, 1.15],
+                }}
+                onAnimationComplete={() => setAnimatingTab(null)}
+                className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[5px_5px_0_#1A1A1A]"
+                style={{
+                  backgroundColor: TAB_COLORS[animatingTab],
+                  backgroundImage:
+                    'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
+                }}
+              />
+            )}
+          </AnimatePresence>
+
           {/* Layer 0 (Kertas Depan / Konten Aktif) */}
-          <section
+          <motion.section
+            key={activeTab}
+            initial={{ opacity: 0.85, scale: 0.995 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
             role="tabpanel"
-            className="relative z-10 border-2 border-[#1A1A1A] p-5 md:p-8 shadow-[6px_6px_0_#7A1B2E] transition-all duration-300"
+            className="relative z-10 border-2 border-[#1A1A1A] p-5 md:p-8 shadow-[6px_6px_0_#7A1B2E] transition-colors duration-300"
             style={{ backgroundColor: frontSheetColor }}
           >
             {/* Tab Content: Absen */}
@@ -848,7 +917,7 @@ function SekretarisDashboardContent() {
                 )}
               </div>
             )}
-          </section>
+          </motion.section>
         </div>
       </div>
 
