@@ -23,16 +23,28 @@ export default function PublicLayout({
           </Link>
 
           {/* Nav Links (Desktop) */}
-          <div className="hidden items-center gap-8 md:flex">
-            <a href="#tentang" className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold uppercase text-dark hover:text-maroon">
-              // tentang
-            </a>
-            <a href="#sesi" className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold uppercase text-dark hover:text-maroon">
-              // sesi
-            </a>
-            <a href="#project" className="font-[family-name:var(--font-ibm-plex-mono)] text-sm font-bold uppercase text-dark hover:text-maroon">
-              // project
-            </a>
+          <div className="hidden items-center gap-2.5 md:flex">
+            <Link
+              href="/#tentang"
+              className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-[#FFF3C4] hover:shadow-[4px_4px_0px_var(--color-dark)]"
+            >
+              <span className="font-black text-maroon">01</span>
+              <span>Tentang</span>
+            </Link>
+            <Link
+              href="/#sesi"
+              className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-[#FFF3C4] hover:shadow-[4px_4px_0px_var(--color-dark)]"
+            >
+              <span className="font-black text-maroon">02</span>
+              <span>Sesi</span>
+            </Link>
+            <Link
+              href="/#project"
+              className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-[#FFF3C4] hover:shadow-[4px_4px_0px_var(--color-dark)]"
+            >
+              <span className="font-black text-maroon">03</span>
+              <span>Project</span>
+            </Link>
           </div>
 
           {/* CTA */}

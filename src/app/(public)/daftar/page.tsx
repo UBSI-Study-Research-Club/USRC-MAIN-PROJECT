@@ -120,7 +120,6 @@ export default function DaftarPage() {
             value={form.full_name}
             onChange={handleChange}
             className="w-full border-2 border-dark bg-white px-3 py-2 text-sm"
-            placeholder="Contoh: Chello Pratama"
           />
         </div>
 
@@ -136,7 +135,6 @@ export default function DaftarPage() {
             value={form.nim}
             onChange={handleChange}
             className="w-full border-2 border-dark bg-white px-3 py-2 text-sm"
-            placeholder="Contoh: 12345678"
           />
         </div>
 
@@ -152,7 +150,6 @@ export default function DaftarPage() {
             value={form.email}
             onChange={handleChange}
             className="w-full border-2 border-dark bg-white px-3 py-2 text-sm"
-            placeholder="nama@bsi.ac.id"
           />
         </div>
 
@@ -188,8 +185,11 @@ export default function DaftarPage() {
             onChange={handleChange}
             rows={3}
             className="w-full resize-none border-2 border-dark bg-white px-3 py-2 text-sm"
-            placeholder="Ceritakan singkat kenapa tertarik gabung USRC..."
+            placeholder="Ceritain singkat: kamu pengen belajar apa, bikin apa, atau cari teman diskusi soal apa?"
           />
+          <p className="mt-1 font-mono text-[10px] uppercase text-dark/50">
+            Tidak harus formal. 1-3 kalimat cukup.
+          </p>
         </div>
 
         {/* Error */}

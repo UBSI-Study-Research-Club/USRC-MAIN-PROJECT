@@ -327,7 +327,7 @@ export default function LandingPage() {
       <section
         ref={heroRef}
         id="tentang"
-        className="relative px-6 pb-20 pt-12 md:pb-32 md:pt-20"
+        className="relative scroll-mt-24 px-6 pb-20 pt-12 md:pb-32 md:pt-20"
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — Text & Badges */}
@@ -401,10 +401,10 @@ export default function LandingPage() {
                 </>
               )}
               <a
-                href="#kegiatan"
+                href="#sesi"
                 className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-paper px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
               >
-                Lihat kegiatan
+                Lihat sesi
               </a>
             </div>
           </div>
@@ -461,7 +461,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── 4 CORE VALUES ────────────────────────── */}
-      <section className="px-4 py-20">
+      <section id="project" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <Reveal>
             <SectionHead tag="// Fondasi kami">
@@ -495,7 +495,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── KEGIATAN TERAKHIR ────────────────────── */}
-      <section id="kegiatan" className="px-4 py-20">
+      <section id="sesi" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <Reveal>
             <SectionHead tag="// Sesi yang sudah berlalu">
