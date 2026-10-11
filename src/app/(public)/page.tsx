@@ -256,18 +256,21 @@ export default function LandingPage() {
 
     async function fetchData() {
       try {
-        // Fetch stats in parallel
-        const [profilesRes, meetingsCountRes, projectsRes] = await Promise.all([
-          supabase.from("profiles").select("id", { count: "exact", head: true }),
-          supabase.from("meetings").select("id", { count: "exact", head: true }),
-          supabase.from("projects").select("id", { count: "exact", head: true }),
-        ]);
-
-        setStats({
-          members: profilesRes.count ?? 0,
-          sessions: meetingsCountRes.count ?? 0,
-          projects: projectsRes.count ?? 0,
-        });
+        // Stats via RPC — RLS-safe untuk tamu (anon gak bisa baca profiles langsung)
+        const statsData = (await supabase
+          .rpc('get_public_stats')
+          .single()) as unknown as {
+          members: number
+          sessions: number
+          projects: number
+        } | null
+        if (statsData) {
+          setStats({
+            members: Number(statsData.members ?? 0),
+            sessions: Number(statsData.sessions ?? 0),
+            projects: Number(statsData.projects ?? 0),
+          })
+        }
 
         // Fetch past meetings with attendee count
         const { data: pastMeetings } = await supabase
