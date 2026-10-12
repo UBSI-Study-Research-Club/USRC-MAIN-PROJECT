@@ -71,6 +71,9 @@ exception when duplicate_object then null;
 end $$;
 
 -- ============ 6. RPC get_public_karya v2 ============
+-- Tipe return berubah (links jsonb) → function lama WAJIB di-drop dulu,
+-- kalau gak Postgres proses error 42P13 "cannot change return type".
+drop function if exists public.get_public_karya();
 -- links: jsonb array [{link_type,url,label}]
 -- owner_socials: jsonb {instagram,github,behance,linkedin}
 -- members: jsonb array [{full_name,instagram,github,behance,linkedin}]
@@ -121,6 +124,8 @@ grant execute on function public.get_public_karya() to anon, authenticated;
 
 -- ============ 7. RPC get_member_directory v2 ============
 -- Sekarang ikut bawa sosmed (dipakai kotak anggota di Gelombang C).
+-- Return type berubah → drop dulu (alasan sama dengan nomor 6).
+drop function if exists public.get_member_directory();
 create or replace function public.get_member_directory()
 returns table (id uuid, full_name text, instagram text, github text, behance text, linkedin text)
 language sql security definer stable as $$
