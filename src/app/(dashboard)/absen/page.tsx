@@ -1,28 +1,14 @@
-
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { Suspense, useEffect, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, Clock, CheckCircle2, AlertCircle, Loader2, Send } from 'lucide-react'
+import { isWithinWindow, GhostScreen, type Meeting, type Attendance } from './shared'
+import { AbsenTabs } from './AbsenTabs'
 
-type Meeting = {
-  id: string
-  title: string
-  description: string | null
-  starts_at: string
-  ends_at: string
-}
-
-type Attendance = {
-  id: string
-  meeting_id: string
-  user_id: string
-  status: 'pending' | 'approved'
-  checked_at: string
-}
-
-function AbsenPageContent() {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
+function SesiAktifContent() {
+  const [activeMeetings, setActiveMeetings] = useState<Meeting[]>([])
+  const [upcomingMeetings, setUpcomingMeetings] = useState<Meeting[]>([])
   const [attendances, setAttendances] = useState<Record<string, Attendance>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,14 +39,18 @@ function AbsenPageContent() {
       }
       setGhost(false)
 
-      // Fetch meetings
+      // Sesi aktif + mendatang saja (lampau = tanggungan halaman riwayat)
       const { data: meetingsData, error: meetErr } = await supabase
         .from('meetings')
         .select('*')
-        .order('starts_at', { ascending: false })
+        .gte('ends_at', new Date().toISOString())
+        .order('starts_at', { ascending: true })
 
       if (meetErr) throw meetErr
-      setMeetings(meetingsData || [])
+      const all = meetingsData || []
+      const nowIso = Date.now()
+      setActiveMeetings(all.filter((m) => isWithinWindow(m.starts_at, m.ends_at)))
+      setUpcomingMeetings(all.filter((m) => new Date(m.starts_at).getTime() > nowIso))
 
       // Fetch my attendances
       const { data: attData, error: attErr } = await supabase
@@ -69,7 +59,7 @@ function AbsenPageContent() {
         .eq('user_id', user.id)
 
       if (attErr) throw attErr
-      
+
       const attMap: Record<string, Attendance> = {}
       attData?.forEach((att) => {
         attMap[att.meeting_id] = att
@@ -85,7 +75,7 @@ function AbsenPageContent() {
   useEffect(() => {
     fetchData()
 
-    // Realtime subscription for attendances & meetings
+    // Realtime: absen milik sendiri + sesi baru dari sekre (tanpa refresh)
     const channel = supabase
       .channel('absen-page-changes')
       .on(
@@ -108,6 +98,11 @@ function AbsenPageContent() {
             }))
           }
         }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meetings' },
+        () => fetchData()
       )
       .subscribe()
 
@@ -144,14 +139,6 @@ function AbsenPageContent() {
     })
   }
 
-  // Check if current time is within window: starts_at - 30 min <= now <= ends_at
-  const isWithinWindow = (startsAt: string, endsAt: string) => {
-    const now = new Date().getTime()
-    const start = new Date(startsAt).getTime() - 30 * 60 * 1000
-    const end = new Date(endsAt).getTime()
-    return now >= start && now <= end
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -160,28 +147,8 @@ function AbsenPageContent() {
     )
   }
 
-  // Akun login tapi belum di-approve sekre (pendaftaran pending/ditolak)
   if (ghost) {
-    return (
-      <div className="border-2 border-[#1A1A1A] bg-white p-8 text-center shadow-[4px_4px_0_#1A1A1A] max-w-lg mx-auto mt-10">
-        <AlertCircle className="w-10 h-10 text-[#7A1B2E] mx-auto mb-4" />
-        <h1 className="text-xl font-black uppercase font-['Outfit'] text-[#1A1A1A] mb-2">
-          Akun Belum Aktif
-        </h1>
-        <p className="text-sm font-['Work_Sans'] text-[#1A1A1A]/80 mb-1">
-          Kamu berhasil login, tapi pendaftaranmu <span className="font-bold">belum disetujui sekretaris</span>.
-        </p>
-        <p className="text-xs font-mono text-gray-500 mb-6">
-          Belum daftar? Klik daftar di halaman utama. Sudah daftar? Tunggu sekre approve.
-        </p>
-        <a
-          href="/daftar"
-          className="inline-block px-5 py-2.5 border-2 border-[#1A1A1A] bg-[#7A1B2E] text-white text-xs font-bold uppercase shadow-[3px_3px_0_#1A1A1A] hover:bg-[#5d1524] transition-colors"
-        >
-          Daftar Anggota
-        </a>
-      </div>
-    )
+    return <GhostScreen />
   }
 
   return (
@@ -195,9 +162,11 @@ function AbsenPageContent() {
           Absensi Sesi USRC
         </h1>
         <p className="text-sm font-['Work_Sans'] text-[#1A1A1A] mt-1 max-w-2xl">
-          Tombol absen hanya akan muncul jika sesi sedang berlangsung (mulai 30 menit sebelum sesi hingga waktu selesai). Absen yang masuk akan berstatus <span className="font-bold underline">pending</span> sampai disetujui sekretaris.
+          Tombol absen hanya muncul saat window buka (mulai 30 menit sebelum sesi hingga selesai). Riwayat absen lampau ada di tab <span className="font-bold underline">Riwayat</span>.
         </p>
       </div>
+
+      <AbsenTabs />
 
       {error && (
         <div className="border-2 border-[#1A1A1A] bg-[#F8D7DA] p-4 shadow-[3px_3px_0_#1A1A1A] flex items-center gap-3 text-[#1A1A1A]">
@@ -213,34 +182,35 @@ function AbsenPageContent() {
         </div>
       )}
 
-      {/* Meetings List */}
+      {/* Sesi Aktif */}
       <div className="space-y-4">
         <h2 className="text-lg font-black uppercase font-['Outfit'] border-b-2 border-[#1A1A1A] pb-2 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-[#7A1B2E]" />
-          Daftar Pertemuan & Sesi
+          Sesi Aktif
         </h2>
 
-        {meetings.length === 0 ? (
+        {activeMeetings.length === 0 ? (
           <div className="border-2 border-[#1A1A1A] bg-white p-8 text-center shadow-[4px_4px_0_#1A1A1A]">
-            <p className="font-mono text-sm text-gray-600">Belum ada jadwal pertemuan yang dibuat.</p>
+            <p className="font-mono text-sm text-gray-600">
+              Belum ada sesi aktif. Jadwal mendatang tampil di bawah kalau ada.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {meetings.map((meeting) => {
-              const activeWindow = isWithinWindow(meeting.starts_at, meeting.ends_at)
+            {activeMeetings.map((meeting) => {
               const attendance = attendances[meeting.id]
               const startDate = new Date(meeting.starts_at)
               const endDate = new Date(meeting.ends_at)
 
               return (
-                <div 
+                <div
                   key={meeting.id}
                   className="border-2 border-[#1A1A1A] bg-white p-5 shadow-[4px_4px_0_#1A1A1A] flex flex-col justify-between relative"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="font-mono text-[10px] bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-bold uppercase">
-                        {activeWindow ? '🟢 SESI AKTIF (WINDOW BUKA)' : '⚪️ DI LUAR WINDOW'}
+                        🟢 SESI AKTIF (WINDOW BUKA)
                       </span>
                       {attendance && (
                         <span className={`font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] font-bold uppercase ${
@@ -279,11 +249,11 @@ function AbsenPageContent() {
                         <CheckCircle2 className="w-4 h-4 text-green-700" />
                         <span>Sudah Absen ({attendance.status})</span>
                       </div>
-                    ) : activeWindow ? (
+                    ) : (
                       <button
                         onClick={() => handleAbsen(meeting.id)}
                         disabled={isPending}
-                        className="w-full py-2.5 px-4 bg-[#7A1B2E] text-white border-2 border-[#1A1A1A] font-bold uppercase font-['Outfit'] shadow-[3px_3px_0_#1A1A1A] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_#1A1A1A] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                        className="w-full py-3 px-4 bg-[#7A1B2E] text-white border-2 border-[#1A1A1A] font-bold uppercase font-['Outfit'] text-sm shadow-[3px_3px_0_#1A1A1A] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-[1px_1px_0_#1A1A1A] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                       >
                         {isPending ? (
                           <>
@@ -297,10 +267,6 @@ function AbsenPageContent() {
                           </>
                         )}
                       </button>
-                    ) : (
-                      <div className="w-full py-2.5 px-4 bg-gray-100 border-2 border-[#1A1A1A] text-center font-mono text-xs text-gray-500 uppercase">
-                        Window Absen Tutup / Belum Buka
-                      </div>
                     )}
                   </div>
                 </div>
@@ -309,17 +275,51 @@ function AbsenPageContent() {
           </div>
         )}
       </div>
+
+      {/* Jadwal Mendatang */}
+      {upcomingMeetings.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-black uppercase font-['Outfit'] border-b-2 border-[#1A1A1A] pb-2 flex items-center gap-2">
+            <Clock className="w-5 h-5 text-[#7A1B2E]" />
+            Jadwal Mendatang
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {upcomingMeetings.map((meeting) => {
+              const startDate = new Date(meeting.starts_at)
+              return (
+                <div
+                  key={meeting.id}
+                  className="border-2 border-[#1A1A1A] bg-[#F5F3EF] p-5 shadow-[4px_4px_0_#1A1A1A] flex items-center justify-between gap-3"
+                >
+                  <div>
+                    <h3 className="font-black uppercase font-['Outfit'] text-[#1A1A1A]">
+                      {meeting.title}
+                    </h3>
+                    <div className="flex items-center gap-2 font-mono text-xs text-gray-600 mt-1">
+                      <Calendar className="w-3.5 h-3.5 text-[#7A1B2E]" />
+                      <span>
+                        {startDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })} ·{' '}
+                        {startDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                      </span>
+                    </div>
+                  </div>
+                  <span className="font-mono text-[10px] bg-white border border-[#1A1A1A] px-2 py-1 font-bold uppercase text-gray-500 shrink-0">
+                    Belum Buka
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-
-import { Suspense } from 'react'
-
-export default function AbsenPageWrapper() {
+export default function SesiAktifPage() {
   return (
     <Suspense fallback={<div className="flex justify-center items-center py-20"><Loader2 className="w-8 h-8 animate-spin text-[#7A1B2E]" /></div>}>
-      <AbsenPageContent />
+      <SesiAktifContent />
     </Suspense>
   )
 }
