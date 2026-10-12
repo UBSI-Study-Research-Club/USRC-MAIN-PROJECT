@@ -333,6 +333,12 @@ $$;
 
 grant execute on function public.get_member_directory() to authenticated;
 
+-- Default Postgres kasih EXECUTE ke PUBLIC → tanpa revoke ini, anon bisa
+-- narik daftar anggota walau RLS profiles menolak. (Fix kebocoran PR #20.)
+revoke execute on function public.get_member_directory() from public;
+revoke execute on function public.get_member_directory() from anon;
+grant execute on function public.get_member_directory() to authenticated;
+
 
 -- 5. REALTIME PUBLICATION
 -- Idempotent: SQL Editor bisa dijalankan ulang tanpa error "already member".

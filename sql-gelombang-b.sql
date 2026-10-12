@@ -132,6 +132,10 @@ language sql security definer stable as $$
   select id, full_name, instagram, github, behance, linkedin from profiles order by full_name;
 $$;
 
+-- PENTING: function baru default-nya dapat EXECUTE untuk PUBLIC → anon
+-- bisa narik daftar anggota. Cabut lalu grant ke authenticated saja.
+revoke execute on function public.get_member_directory() from public;
+revoke execute on function public.get_member_directory() from anon;
 grant execute on function public.get_member_directory() to authenticated;
 
 -- ============================================================
