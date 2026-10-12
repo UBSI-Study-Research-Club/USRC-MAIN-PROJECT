@@ -868,6 +868,7 @@ function AdminDashboardContent() {
       </motion.div>
       </div>
       </div>
+      </div>
       )
       }
 
