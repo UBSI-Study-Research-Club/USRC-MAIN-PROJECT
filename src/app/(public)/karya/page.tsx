@@ -40,6 +40,7 @@ export default function KaryaPage() {
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [myStars, setMyStars] = useState<Set<string>>(new Set())
+  const [inactive, setInactive] = useState(false)
 
   const [detailId, setDetailId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -61,6 +62,19 @@ export default function KaryaPage() {
       setError(null)
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id ?? null)
+
+      // Pendaftar pending/rejected: OTP berhasil tapi belum punya baris profiles.
+      // Halaman karya publik — tetap boleh lihat, tapi aksi tulis ditutup.
+      if (user) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle()
+        setInactive(!prof)
+      } else {
+        setInactive(false)
+      }
 
       const { data, error: rpcErr } = await supabase.rpc('get_public_karya')
       if (rpcErr) throw rpcErr
@@ -102,7 +116,7 @@ export default function KaryaPage() {
   // Toggle bintang: cuma anggota login, dan gak bisa bintang karya sendiri.
   // RLS juga nolak kalau macem-macem — optimis update, gagal = rollback.
   const toggleStar = async (k: Karya) => {
-    if (!userId || k.owner_id === userId) return
+    if (!userId || inactive || k.owner_id === userId) return
     const starred = myStars.has(k.id)
 
     // optimis
@@ -156,7 +170,7 @@ export default function KaryaPage() {
   const submitKarya = async () => {
     setError(null)
     setSuccessMsg(null)
-    if (!userId) return
+    if (!userId || inactive) return
     if (!form.title.trim()) {
       setError('Judul karya wajib diisi.')
       return
@@ -202,14 +216,22 @@ export default function KaryaPage() {
     const starred = myStars.has(k.id)
     const own = userId != null && k.owner_id === userId
     const guest = userId == null
+    const blocked = own || guest || inactive
+    const hint = own
+      ? 'Gak bisa bintang karya sendiri'
+      : guest
+        ? 'Login dulu buat kasih bintang'
+        : inactive
+          ? 'Akun belum aktif — tunggu sekre menyetujui pendaftaranmu'
+          : starred ? 'Cabut bintang' : 'Kasih bintang'
     return (
       <button
         onClick={(e) => {
           e.stopPropagation()
           toggleStar(k)
         }}
-        disabled={own || guest}
-        title={own ? 'Gak bisa bintang karya sendiri' : guest ? 'Login dulu buat kasih bintang' : starred ? 'Cabut bintang' : 'Kasih bintang'}
+        disabled={blocked}
+        title={hint}
         className={`flex items-center gap-1.5 border-2 border-dark px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-60 disabled:cursor-not-allowed ${
           starred ? 'bg-[#FFF3C4] text-dark' : 'bg-white text-dark hover:bg-[#FFF3C4]'
         } ${big ? 'text-sm px-4 py-2' : ''}`}
@@ -245,7 +267,7 @@ export default function KaryaPage() {
         <p className="text-sm font-[family-name:var(--font-ibm-plex-mono)] text-dark/70 mt-2 max-w-2xl">
           Hasil nyata anggota USRC. Kasih bintang buat karya favoritmu — karya terbaik tampil di halaman utama.
         </p>
-        {userId && (
+        {userId && !inactive && (
           <button
             onClick={openForm}
             className="mt-4 inline-flex items-center gap-2 border-2 border-dark bg-maroon px-4 py-2 font-[family-name:var(--font-outfit)] text-sm font-bold uppercase text-white shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
@@ -253,6 +275,11 @@ export default function KaryaPage() {
             <Plus className="w-4 h-4" />
             Buat Karya
           </button>
+        )}
+        {userId && inactive && (
+          <p className="mt-4 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold">
+            Akun belum aktif — buat karya bisa setelah sekre menyetujui pendaftaranmu.
+          </p>
         )}
       </div>
 
