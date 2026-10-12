@@ -21,6 +21,9 @@ create table profiles (
   github text,
   behance text,
   linkedin text,
+  -- Status keanggotaan (Gelombang C): nonaktif = dijeda admin,
+  -- gak muncul di directory & aksi tulis ditutup di app
+  status text not null default 'aktif' check (status in ('aktif', 'nonaktif')),
   created_at timestamptz default now()
 );
 
@@ -81,6 +84,18 @@ create table project_links (
   )),
   url text not null,
   label text,
+  created_at timestamptz default now()
+);
+
+-- PROJECT_DETAIL_POINTS (Gelombang C — detail karya per poin bertipe)
+-- teks/chips/warna/link/tabel — value jsonb sesuai tipe (lihat SQL gelombang C)
+create table project_detail_points (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  point_type text not null check (point_type in ('teks', 'chips', 'warna', 'link', 'tabel')),
+  title text,
+  value jsonb not null default '{}'::jsonb,
+  sort_order int not null default 0,
   created_at timestamptz default now()
 );
 
@@ -206,6 +221,29 @@ create policy "Owner manages links, admin all"
     or get_my_role() = 'admin'
   );
 
+-- PROJECT_DETAIL_POINTS POLICIES (Gelombang C)
+create policy "Read detail points of visible projects"
+  on project_detail_points for select
+  using (
+    exists (
+      select 1 from projects p
+      where p.id = project_id
+        and (p.status = 'approved' or p.user_id = auth.uid())
+    )
+    or get_my_role() = 'admin'
+  );
+
+create policy "Owner manages detail points, admin all"
+  on project_detail_points for all
+  using (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or get_my_role() = 'admin'
+  )
+  with check (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or get_my_role() = 'admin'
+  );
+
 -- PROJECT MEMBERS (Fase 2 revamp: karya kelompok) — pembuat tambahan selain owner
 create table project_members (
   project_id uuid not null references projects(id) on delete cascade,
@@ -274,11 +312,11 @@ create policy "Member unstars own star, admin all"
   on project_stars for delete
   using (user_id = auth.uid() or get_my_role() = 'admin');
 
--- RPC KARYA (Fase 2.1 — Gelombang B)
+-- RPC KARYA (Fase 2.1 — Gelombang C)
 -- RLS profiles melarang publik baca nama anggota, tapi card karya harus
 -- nampilin "Dibuat oleh siapa" + sosmed pembuat ke tamu → security definer,
 -- cuma bocorin nama, sosmed, dan agregat bintang milik karya APPROVED.
--- links: jsonb [{link_type,url,label}] · members: jsonb [{full_name,sosmed...}]
+-- links/members/detail_points: jsonb sesuai tipe masing-masing.
 create or replace function public.get_public_karya()
 returns table (
   id uuid,
@@ -291,6 +329,7 @@ returns table (
   owner_name text,
   owner_socials jsonb,
   members jsonb,
+  detail_points jsonb,
   stars bigint,
   created_at timestamptz
 )
@@ -313,22 +352,30 @@ language sql security definer stable as $$
       join profiles pr on pr.id = pm.user_id
       where pm.project_id = p.id
     ), '[]'::jsonb),
+    coalesce((
+      select jsonb_agg(jsonb_build_object('point_type', d.point_type, 'title', d.title, 'value', d.value) order by d.sort_order, d.created_at)
+      from project_detail_points d
+      where d.project_id = p.id
+    ), '[]'::jsonb),
     (select count(*) from project_stars ps where ps.project_id = p.id),
     p.created_at
   from projects p
   join profiles o on o.id = p.user_id
   where p.status = 'approved'
-  order by 11 desc, p.created_at desc;
+  order by 12 desc, p.created_at desc;
 $$;
 
 grant execute on function public.get_public_karya() to anon, authenticated;
 
 -- Daftar anggota buat form pilih kelompok (khusus yang login — anon ditolak).
--- v2: ikut bawa sosmed buat kotak anggota (Gelombang C).
+-- v3: nonaktif gak ikut (Gelombang C).
 create or replace function public.get_member_directory()
 returns table (id uuid, full_name text, instagram text, github text, behance text, linkedin text)
 language sql security definer stable as $$
-  select id, full_name, instagram, github, behance, linkedin from profiles order by full_name;
+  select id, full_name, instagram, github, behance, linkedin
+  from profiles
+  where status = 'aktif'
+  order by full_name;
 $$;
 
 grant execute on function public.get_member_directory() to authenticated;
@@ -387,6 +434,12 @@ end $$;
 do $$
 begin
   alter publication supabase_realtime add table project_links;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table project_detail_points;
 exception when duplicate_object then null;
 end $$;
 
