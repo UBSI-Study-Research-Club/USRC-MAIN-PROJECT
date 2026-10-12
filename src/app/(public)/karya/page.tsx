@@ -14,8 +14,7 @@ type Karya = {
   description: string | null
   image_url: string | null
   category: string | null
-  repo_url: string | null
-  live_url: string | null
+  links: Array<{ id: string; type: string; url: string; label?: string }> | null
   owner_id: string
   owner_name: string
   members: string[] | null
