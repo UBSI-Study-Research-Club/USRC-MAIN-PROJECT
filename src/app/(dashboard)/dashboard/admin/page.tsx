@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
-import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock } from 'lucide-react'
+import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock, Trash2, CalendarDays, Ban, RotateCcw } from 'lucide-react'
 
 type Profile = {
   id: string
@@ -11,6 +11,14 @@ type Profile = {
   nim: string
   prodi: string
   role: 'anggota' | 'sekre' | 'admin'
+  status: 'aktif' | 'nonaktif'
+}
+
+type MeetingRow = {
+  id: string
+  title: string
+  starts_at: string
+  ends_at: string
 }
 
 type Project = {
@@ -33,8 +41,8 @@ function AdminDashboardContent() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'anggota' | 'karya'>('anggota')
-  const [animatingTab, setAnimatingTab] = useState<'anggota' | 'karya' | null>(null)
+  const [activeTab, setActiveTab] = useState<'anggota' | 'karya' | 'sesi'>('anggota')
+  const [animatingTab, setAnimatingTab] = useState<'anggota' | 'karya' | 'sesi' | null>(null)
   const reduceMotion = useReducedMotion()
   const [isPending, startTransition] = useTransition()
 
@@ -47,7 +55,11 @@ function AdminDashboardContent() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loadingProjects, setLoadingProjects] = useState(true)
 
-  const handleTabChange = (newTab: 'anggota' | 'karya') => {
+  // SESI Tab (Gelombang C)
+  const [meetings, setMeetings] = useState<MeetingRow[]>([])
+  const [loadingMeetings, setLoadingMeetings] = useState(true)
+
+  const handleTabChange = (newTab: 'anggota' | 'karya' | 'sesi') => {
     if (newTab === activeTab) return
     if (!reduceMotion) setAnimatingTab(activeTab)
     setActiveTab(newTab)
@@ -102,7 +114,7 @@ function AdminDashboardContent() {
         setLoadingMembers(true)
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, nim, prodi, role')
+          .select('id, full_name, nim, prodi, role, status')
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -141,7 +153,6 @@ function AdminDashboardContent() {
         const { data, error } = await supabase
           .from('projects')
           .select('id, user_id, title, description, image_url, category, status, created_at, project_links(link_type, url, label)')
-          .eq('status', 'pending')
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -177,7 +188,7 @@ function AdminDashboardContent() {
       .channel('admin-projects-realtime')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'projects', filter: 'status=eq.pending' },
+        { event: '*', schema: 'public', table: 'projects' },
         () => {
           fetchProjects()
         }
@@ -249,6 +260,113 @@ function AdminDashboardContent() {
     })
   }
 
+  // Hapus karya apa pun statusnya (Gelombang C)
+  const handleDeleteProject = async (project: Project) => {
+    if (!confirm(`PERMANEN: hapus karya "${project.title}"? Link, detail poin, dan bintangnya ikut terhapus dan tidak bisa dikembalikan.`)) return
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .delete()
+          .eq('id', project.id)
+
+        if (error) throw error
+        setProjects((prev) => prev.filter((p) => p.id !== project.id))
+      } catch (err: any) {
+        alert('Gagal menghapus karya: ' + err.message)
+      }
+    })
+  }
+
+  // Nonaktifkan / aktifkan anggota (Gelombang C)
+  const handleToggleStatus = async (member: Profile) => {
+    const next = member.status === 'aktif' ? 'nonaktif' : 'aktif'
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ status: next })
+          .eq('id', member.id)
+
+        if (error) throw error
+        setMembers((prev) =>
+          prev.map((m) => (m.id === member.id ? { ...m, status: next } : m))
+        )
+      } catch (err: any) {
+        alert('Gagal mengubah status: ' + err.message)
+      }
+    })
+  }
+
+  // Keluarkan anggota — HAPUS permanen, cascade semua datanya (Gelombang C)
+  const handleKickMember = async (member: Profile) => {
+    if (!confirm(`PERMANEN: keluarkan ${member.full_name}? SEMUA datanya ikut terhapus — karya, absen, pendaftaran — dan tidak bisa dikembalikan.`)) return
+    if (!confirm('Yakin 100%? Aksi ini gak ada jalan balik.')) return
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', member.id)
+
+        if (error) throw error
+        setMembers((prev) => prev.filter((m) => m.id !== member.id))
+      } catch (err: any) {
+        alert('Gagal mengeluarkan anggota: ' + err.message)
+      }
+    })
+  }
+
+  // Fetch semua sesi absen + hapus sesi (Gelombang C)
+  useEffect(() => {
+    if (userRole !== 'admin') return
+
+    const fetchMeetings = async () => {
+      try {
+        setLoadingMeetings(true)
+        const { data, error } = await supabase
+          .from('meetings')
+          .select('id, title, starts_at, ends_at')
+          .order('starts_at', { ascending: false })
+
+        if (error) throw error
+        setMeetings(data || [])
+      } catch (err: any) {
+        setError(err.message || 'Gagal memuat sesi.')
+      } finally {
+        setLoadingMeetings(false)
+      }
+    }
+
+    fetchMeetings()
+
+    const meetingChannel = supabase
+      .channel('admin-meetings-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => fetchMeetings())
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(meetingChannel)
+    }
+  }, [userRole])
+
+  const handleDeleteMeeting = async (meeting: MeetingRow) => {
+    if (!confirm(`PERMANEN: hapus sesi "${meeting.title}"? Semua data absennya ikut terhapus.`)) return
+    startTransition(async () => {
+      try {
+        const { error } = await supabase
+          .from('meetings')
+          .delete()
+          .eq('id', meeting.id)
+
+        if (error) throw error
+        setMeetings((prev) => prev.filter((m) => m.id !== meeting.id))
+      } catch (err: any) {
+        alert('Gagal menghapus sesi: ' + err.message)
+      }
+    })
+  }
+
   // Filter members by search
   const filteredMembers = members.filter((m) =>
     m.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -256,29 +374,35 @@ function AdminDashboardContent() {
   )
 
   // Paper Stack Animation Colors
-  const TAB_COLORS: Record<'anggota' | 'karya', string> = {
+  const TAB_COLORS: Record<'anggota' | 'karya' | 'sesi', string> = {
     anggota: '#FFFFFF',
     karya: '#FFF9DC',
+    sesi: '#F8D7DA',
   }
 
   // Stack Deck Order
   const stackDeckByTab: Record<
-    'anggota' | 'karya',
+    'anggota' | 'karya' | 'sesi',
     {
-      front: 'anggota' | 'karya'
-      middle: 'anggota' | 'karya'
-      back: 'anggota' | 'karya'
+      front: 'anggota' | 'karya' | 'sesi'
+      middle: 'anggota' | 'karya' | 'sesi'
+      back: 'anggota' | 'karya' | 'sesi'
     }
   > = {
     anggota: {
       front: 'anggota',
       middle: 'karya',
-      back: 'karya',
+      back: 'sesi',
     },
     karya: {
       front: 'karya',
       middle: 'anggota',
-      back: 'anggota',
+      back: 'sesi',
+    },
+    sesi: {
+      front: 'sesi',
+      middle: 'anggota',
+      back: 'karya',
     },
   }
 
@@ -324,7 +448,7 @@ function AdminDashboardContent() {
           Panel Admin
         </h1>
         <p className="text-sm font-['Work_Sans'] text-[#1A1A1A] mt-1 max-w-2xl">
-          Kelola anggota, ubah role, dan setujui karya member yang akan ditampilkan di landing.
+          Kelola anggota, ubah role, setujui karya, dan kelola sesi absen. Aksi hapus bersifat permanen — baca konfirmasinya baik-baik.
         </p>
       </div>
 
@@ -378,6 +502,22 @@ function AdminDashboardContent() {
                 {projects.length}
               </span>
             )}
+          </button>
+
+          {/* Tab 2: Sesi Absen (Gelombang C) */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'sesi'}
+            onClick={() => handleTabChange('sesi')}
+            className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'sesi'
+                ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
+                : 'z-[8] bg-[#F8D7DA] text-[#1A1A1A] hover:-translate-y-1 shadow-[2px_0_0_#1A1A1A]'
+            }`}
+          >
+            <CalendarDays className="h-4 w-4 shrink-0" />
+            <span>Sesi Absen</span>
           </button>
         </div>
 
@@ -491,12 +631,14 @@ function AdminDashboardContent() {
                       <th className="p-3 border-r-2 border-[#1A1A1A]">Nama Lengkap</th>
                       <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
                       <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi</th>
-                      <th className="p-3">Role</th>
+                      <th className="p-3 border-r-2 border-[#1A1A1A]">Role</th>
+                      <th className="p-3 border-r-2 border-[#1A1A1A]">Status</th>
+                      <th className="p-3">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="font-['Work_Sans'] text-sm">
                     {filteredMembers.map((member) => (
-                      <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
+                      <tr key={member.id} className={`border-b border-[#1A1A1A] hover:bg-gray-50 ${member.status === 'nonaktif' ? 'opacity-60' : ''}`}>
                         <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
                           {member.full_name}
                         </td>
@@ -506,7 +648,7 @@ function AdminDashboardContent() {
                         <td className="p-3 border-r-2 border-[#1A1A1A] text-xs">
                           {member.prodi}
                         </td>
-                        <td className="p-3">
+                        <td className="p-3 border-r-2 border-[#1A1A1A]">
                           <select
                             value={member.role}
                             onChange={(e) => handleUpdateRole(member.id, e.target.value)}
@@ -517,6 +659,35 @@ function AdminDashboardContent() {
                             <option value="sekre">Sekretaris</option>
                             <option value="admin">Admin</option>
                           </select>
+                        </td>
+                        <td className="p-3 border-r-2 border-[#1A1A1A]">
+                          <span className={`border border-[#1A1A1A] px-2 py-0.5 font-mono text-[10px] font-bold ${member.status === 'aktif' ? 'bg-[#D1E7DD]' : 'bg-[#F8D7DA]'}`}>
+                            {member.status === 'aktif' ? 'AKTIF' : 'NONAKTIF'}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(member)}
+                              disabled={isPending}
+                              title={member.status === 'aktif' ? 'Jeda anggota ini' : 'Aktifkan kembali'}
+                              className="inline-flex items-center gap-1 px-2 py-1 border-2 border-[#1A1A1A] bg-[#FFF3C4] font-mono text-[10px] font-bold uppercase hover:bg-[#FFE9A8] transition-colors shadow-[2px_2px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                            >
+                              {member.status === 'aktif' ? <Ban className="w-3.5 h-3.5" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                              {member.status === 'aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleKickMember(member)}
+                              disabled={isPending}
+                              title="Keluarkan permanen (semua data ikut terhapus)"
+                              className="inline-flex items-center gap-1 px-2 py-1 border-2 border-[#1A1A1A] bg-[#F8D7DA] font-mono text-[10px] font-bold uppercase text-[#7A1B2E] hover:bg-red-300 transition-colors shadow-[2px_2px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              Keluarkan
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -534,10 +705,10 @@ function AdminDashboardContent() {
             <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
               <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
                 <h3 className="font-black uppercase font-['Outfit'] text-sm">
-                  Karya Menunggu Persetujuan ({projects.length})
+                  Semua Karya ({projects.length})
                 </h3>
                 <span className="font-mono text-[10px] bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-bold">
-                  PENDING APPROVAL
+                  {projects.filter((p) => p.status === 'pending').length} MENUNGGU
                 </span>
               </div>
 
@@ -547,7 +718,7 @@ function AdminDashboardContent() {
                 </div>
               ) : projects.length === 0 ? (
                 <div className="p-8 text-center font-mono text-xs text-gray-500">
-                  Tidak ada karya menunggu persetujuan.
+                  Belum ada karya.
                 </div>
               ) : (
                 <div className="space-y-4 p-4">
@@ -582,6 +753,9 @@ function AdminDashboardContent() {
                             <span className="bg-white border border-[#1A1A1A] px-2 py-0.5 font-mono font-bold">
                               {project.profiles?.full_name || 'Tanpa nama'} ({project.profiles?.nim})
                             </span>
+                            <span className={`border border-[#1A1A1A] px-2 py-0.5 font-mono font-bold ${project.status === 'pending' ? 'bg-[#FFF3C4]' : 'bg-[#D1E7DD]'}`}>
+                              {project.status === 'pending' ? 'MENUNGGU' : 'LIVE'}
+                            </span>
                           </div>
                           {(project.project_links || []).length > 0 ? (
                             <div className="flex flex-wrap gap-2 mt-2 text-xs">
@@ -602,21 +776,33 @@ function AdminDashboardContent() {
 
                         {/* Actions */}
                         <div className="col-span-1 flex flex-col gap-2 justify-center">
+                          {project.status === 'pending' && (
+                            <button
+                              onClick={() => handleApproveProject(project.id)}
+                              disabled={isPending}
+                              className="w-full px-3 py-2 bg-[#D1E7DD] border-2 border-[#1A1A1A] font-mono text-xs font-bold uppercase hover:bg-green-300 transition-colors shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center gap-1"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>Setujui</span>
+                            </button>
+                          )}
+                          {project.status === 'pending' && (
+                            <button
+                              onClick={() => handleRejectProject(project.id)}
+                              disabled={isPending}
+                              className="w-full px-3 py-2 bg-[#F8D7DA] border-2 border-[#1A1A1A] font-mono text-xs font-bold uppercase text-[#7A1B2E] hover:bg-red-300 transition-colors shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center gap-1"
+                            >
+                              <X className="w-4 h-4" />
+                              <span>Tolak</span>
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleApproveProject(project.id)}
+                            onClick={() => handleDeleteProject(project)}
                             disabled={isPending}
-                            className="w-full px-3 py-2 bg-[#D1E7DD] border-2 border-[#1A1A1A] font-mono text-xs font-bold uppercase hover:bg-green-300 transition-colors shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center gap-1"
+                            className="w-full px-3 py-2 bg-white border-2 border-[#1A1A1A] font-mono text-xs font-bold uppercase text-[#7A1B2E] hover:bg-red-100 transition-colors shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center gap-1"
                           >
-                            <Check className="w-4 h-4" />
-                            <span>Setujui</span>
-                          </button>
-                          <button
-                            onClick={() => handleRejectProject(project.id)}
-                            disabled={isPending}
-                            className="w-full px-3 py-2 bg-[#F8D7DA] border-2 border-[#1A1A1A] font-mono text-xs font-bold uppercase text-[#7A1B2E] hover:bg-red-300 transition-colors shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center gap-1"
-                          >
-                            <X className="w-4 h-4" />
-                            <span>Tolak</span>
+                            <Trash2 className="w-4 h-4" />
+                            <span>Hapus</span>
                           </button>
                         </div>
                       </div>
@@ -627,8 +813,59 @@ function AdminDashboardContent() {
             </div>
           </div>
         )}
+
+        {/* Tab Content: Sesi Absen (Gelombang C) */}
+        {activeTab === 'sesi' && (
+          <div className="space-y-4">
+            <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
+              <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
+                <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                  Semua Sesi Absen ({meetings.length})
+                </h3>
+                <span className="font-mono text-[10px] bg-[#F8D7DA] border border-[#1A1A1A] px-2 py-0.5 font-bold">
+                  HAPUS = DATA ABSEN IKUT HILANG
+                </span>
+              </div>
+
+              {loadingMeetings ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
+                </div>
+              ) : meetings.length === 0 ? (
+                <div className="p-8 text-center font-mono text-xs text-gray-500">
+                  Belum ada sesi absen.
+                </div>
+              ) : (
+                <div className="divide-y-2 divide-[#1A1A1A]/10">
+                  {meetings.map((meeting) => (
+                    <div key={meeting.id} className="flex items-center justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <p className="font-black uppercase font-['Outfit'] text-sm truncate">
+                          {meeting.title}
+                        </p>
+                        <p className="font-mono text-[10px] text-gray-500">
+                          {new Date(meeting.starts_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Pontianak' })}
+                          {' → '}
+                          {new Date(meeting.ends_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Pontianak' })} WIB
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteMeeting(meeting)}
+                        disabled={isPending}
+                        className="shrink-0 inline-flex items-center gap-1 px-3 py-2 border-2 border-[#1A1A1A] bg-[#F8D7DA] font-mono text-xs font-bold uppercase text-[#7A1B2E] hover:bg-red-300 transition-colors shadow-[2px_2px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Hapus
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </motion.div>
-      </div>
       </div>
       </div>
       )
