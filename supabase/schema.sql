@@ -235,6 +235,54 @@ create policy "Member unstars own star, admin all"
   on project_stars for delete
   using (user_id = auth.uid() or get_my_role() = 'admin');
 
+-- RPC KARYA (Fase 2 revamp)
+-- RLS profiles melarang publik baca nama anggota, tapi card karya harus
+-- nampilin "Dibuat oleh siapa" ke tamu → security definer, cuma bocorin
+-- nama + agregat bintang milik karya APPROVED.
+create or replace function public.get_public_karya()
+returns table (
+  id uuid,
+  title text,
+  description text,
+  image_url text,
+  category text,
+  repo_url text,
+  live_url text,
+  owner_id uuid,
+  owner_name text,
+  members text[],
+  stars bigint,
+  created_at timestamptz
+)
+language sql security definer stable as $$
+  select
+    p.id, p.title, p.description, p.image_url, p.category, p.repo_url, p.live_url,
+    p.user_id, o.full_name,
+    coalesce((
+      select array_agg(pr.full_name order by pr.full_name)
+      from project_members pm
+      join profiles pr on pr.id = pm.user_id
+      where pm.project_id = p.id
+    ), '{}'),
+    (select count(*) from project_stars ps where ps.project_id = p.id),
+    p.created_at
+  from projects p
+  join profiles o on o.id = p.user_id
+  where p.status = 'approved'
+  order by 11 desc, p.created_at desc;
+$$;
+
+grant execute on function public.get_public_karya() to anon, authenticated;
+
+-- Daftar anggota buat form pilih kelompok (khusus yang login — anon ditolak).
+create or replace function public.get_member_directory()
+returns table (id uuid, full_name text)
+language sql security definer stable as $$
+  select id, full_name from profiles order by full_name;
+$$;
+
+grant execute on function public.get_member_directory() to authenticated;
+
 
 -- 5. REALTIME PUBLICATION
 alter publication supabase_realtime add table attendances;
