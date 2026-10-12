@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
-import { Outfit, Work_Sans, IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const outfit = Outfit({
+// Self-hosted (Gelombang C hotfix) — build Vercel gak lagi tergantung
+// jaringan ke fonts.googleapis.com yang suka gagal di build machine.
+const outfit = localFont({
   variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800", "900"],
+  src: "./fonts/outfit-var.woff2",
+  display: "swap",
 });
 
-const workSans = Work_Sans({
+const workSans = localFont({
   variable: "--font-work-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  src: "./fonts/worksans-var.woff2",
+  display: "swap",
 });
 
-const ibmPlexMono = IBM_Plex_Mono({
+const ibmPlexMono = localFont({
   variable: "--font-ibm-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  src: [
+    { path: "./fonts/plexmono-400.woff2", weight: "400" },
+    { path: "./fonts/plexmono-500.woff2", weight: "500" },
+    { path: "./fonts/plexmono-600.woff2", weight: "600" },
+  ],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
