@@ -4,9 +4,13 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Star, Users, ExternalLink, Code2, X, Plus, ArrowLeft,
+  Star, Users, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
 } from 'lucide-react'
+
+type KaryaLink = { link_type: string; url: string; label: string | null }
+type Socials = { instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
+type MemberInfo = { full_name: string; instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
 
 type Karya = {
   id: string
@@ -14,24 +18,82 @@ type Karya = {
   description: string | null
   image_url: string | null
   category: string | null
-  repo_url: string | null
-  live_url: string | null
+  links: KaryaLink[] | null
   owner_id: string
   owner_name: string
-  members: string[] | null
+  owner_socials: Socials | null
+  members: MemberInfo[] | null
   stars: number
   created_at: string
 }
 
 type Directory = { id: string; full_name: string }
 
+const LINK_TYPES: [string, string][] = [
+  ['repo', 'Repo'], ['live', 'Live'], ['instagram', 'Instagram'],
+  ['youtube', 'YouTube'], ['behance', 'Behance'], ['figma', 'Figma'],
+  ['portfolio', 'Portofolio'], ['image', 'Gambar'], ['other', 'Lainnya'],
+]
+const SOCIAL_LABELS: [keyof Socials, string][] = [
+  ['instagram', 'IG'], ['github', 'GitHub'], ['behance', 'Behance'], ['linkedin', 'LinkedIn'],
+]
+const MAX_LINKS = 6
+
+type FormLink = { link_type: string; url: string; label: string }
+const emptyLink = (): FormLink => ({ link_type: 'repo', url: '', label: '' })
+
 const emptyForm = {
   title: '',
   description: '',
   category: '',
   image_url: '',
-  repo_url: '',
-  live_url: '',
+}
+
+// Lengkapi url tanpa skema jadi https:// — biar link sosmed bisa diisi
+// bentuk apa pun ("instagram.com/aku" tetap jadi link yang bisa diklik).
+const normalizeUrl = (raw: string): string | null => {
+  const v = raw.trim()
+  if (!v) return null
+  const withScheme = /^https?:\/\//i.test(v) ? v : `https://${v}`
+  try {
+    return new URL(withScheme).toString()
+  } catch {
+    return null
+  }
+}
+
+// Chip sosmed kecil (mono) — brand icons gak ada di lucide-react versi baru.
+const socialChips = (s: Socials | null) => {
+  if (!s) return null
+  const chips = SOCIAL_LABELS.map(([key, label]) =>
+    s[key] ? (
+      <a
+        key={key}
+        href={s[key] as string}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="border border-dark bg-paper px-1.5 py-0.5 font-mono text-[10px] font-bold hover:bg-[#FFF3C4]"
+      >
+        {label}
+      </a>
+    ) : null
+  ).filter(Boolean)
+  return chips.length > 0 ? <span className="inline-flex flex-wrap gap-1">{chips}</span> : null
+}
+
+// Gabung sosmed pembuat (owner dulu, anggota ngisi yang kosong) per platform.
+const mergedSocials = (k: Karya): Socials => {
+  const sources: (Socials | null)[] = [
+    k.owner_socials,
+    ...(k.members || []).map((m) => ({
+      instagram: m.instagram, github: m.github, behance: m.behance, linkedin: m.linkedin,
+    })),
+  ]
+  const out = { instagram: null, github: null, behance: null, linkedin: null } as Socials
+  for (const [key] of SOCIAL_LABELS) {
+    out[key] = sources.map((s) => s?.[key] ?? null).find(Boolean) ?? null
+  }
+  return out
 }
 
 export default function KaryaPage() {
@@ -48,6 +110,7 @@ export default function KaryaPage() {
   const [pickedMembers, setPickedMembers] = useState<Set<string>>(new Set())
   const [directory, setDirectory] = useState<Directory[] | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [formLinks, setFormLinks] = useState<FormLink[]>([emptyLink()])
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
@@ -102,6 +165,7 @@ export default function KaryaPage() {
       .channel('karya-page-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_links' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stars' }, () => fetchData())
       .subscribe()
 
@@ -111,7 +175,7 @@ export default function KaryaPage() {
   }, [fetchData, supabase])
 
   const creatorsOf = (k: Karya) =>
-    [k.owner_name, ...(k.members || [])].join(', ')
+    [k.owner_name, ...(k.members || []).map((m) => m.full_name)].join(', ')
 
   // Toggle bintang: cuma anggota login, dan gak bisa bintang karya sendiri.
   // RLS juga nolak kalau macem-macem — optimis update, gagal = rollback.
@@ -175,6 +239,27 @@ export default function KaryaPage() {
       setError('Judul karya wajib diisi.')
       return
     }
+
+    // Validasi link: normalisasi + tolak yang gak bisa jadi URL.
+    const filledLinks = formLinks
+      .map((l) => ({ ...l, url: l.url.trim(), label: l.label.trim() }))
+      .filter((l) => l.url)
+    if (filledLinks.length > MAX_LINKS) {
+      setError(`Maksimal ${MAX_LINKS} link per karya.`)
+      return
+    }
+    const linksToSave = filledLinks.map((l) => {
+      const url = normalizeUrl(l.url)
+      if (!url) {
+        return { ...l, bad: true }
+      }
+      return { ...l, url, bad: false }
+    })
+    if (linksToSave.some((l) => l.bad)) {
+      setError('Ada link yang gak valid — cek lagi penulisannya.')
+      return
+    }
+
     setSubmitting(true)
     try {
       const { data: inserted, error: insErr } = await supabase
@@ -185,13 +270,27 @@ export default function KaryaPage() {
           description: form.description.trim() || null,
           category: form.category.trim() || null,
           image_url: form.image_url.trim() || null,
-          repo_url: form.repo_url.trim() || null,
-          live_url: form.live_url.trim() || null,
           status: 'pending',
         })
         .select('id')
         .single()
       if (insErr) throw insErr
+
+      if (linksToSave.length > 0) {
+        const { error: linkErr } = await supabase.from('project_links').insert(
+          linksToSave.map((l) => ({
+            project_id: inserted.id,
+            link_type: l.link_type,
+            url: l.url,
+            label: l.label || null,
+          }))
+        )
+        if (linkErr) {
+          // Rollback: gak boleh ada karya tanpa link yang sudah ke-submit.
+          await supabase.from('projects').delete().eq('id', inserted.id)
+          throw new Error('Gagal menyimpan link karya — karya dibatalkan. Coba lagi.')
+        }
+      }
 
       if (isKelompok && pickedMembers.size > 0) {
         const { error: memErr } = await supabase.from('project_members').insert(
@@ -206,6 +305,7 @@ export default function KaryaPage() {
       }
 
       setForm(emptyForm)
+      setFormLinks([emptyLink()])
       setPickedMembers(new Set())
       setIsKelompok(false)
       setShowForm(false)
@@ -403,26 +503,21 @@ export default function KaryaPage() {
               )}
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {starBtn(detail, true)}
-                {detail.repo_url && (
+                {(detail.links || []).map((l, i) => (
                   <a
-                    href={detail.repo_url}
+                    key={i}
+                    href={l.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                   >
-                    <Code2 className="w-4 h-4" /> Repo
+                    <ExternalLink className="w-4 h-4" />
+                    {l.label || LINK_TYPES.find(([v]) => v === l.link_type)?.[1] || 'Link'}
                   </a>
-                )}
-                {detail.live_url && (
-                  <a
-                    href={detail.live_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 border-2 border-dark bg-dark px-3 py-1.5 font-mono text-xs font-bold text-white shadow-[2px_2px_0_var(--color-dark)] hover:bg-maroon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                  >
-                    <ExternalLink className="w-4 h-4" /> Live
-                  </a>
-                )}
+                ))}
+              </div>
+              <div className="mt-2">
+                {socialChips(mergedSocials(detail))}
               </div>
             </div>
           </div>
@@ -486,24 +581,58 @@ export default function KaryaPage() {
                     placeholder="https://..."
                   />
                 </div>
-                <div>
-                  <label className="font-mono text-xs font-bold uppercase text-dark">Link Repo</label>
-                  <input
-                    value={form.repo_url}
-                    onChange={(e) => setForm({ ...form, repo_url: e.target.value })}
-                    className="mt-1 w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                    placeholder="https://github.com/..."
-                  />
+              </div>
+
+              {/* Link fleksibel — sesuai jenis karya, maks 6 */}
+              <div>
+                <label className="font-mono text-xs font-bold uppercase text-dark">
+                  Link Karya ({formLinks.filter((l) => l.url.trim()).length}/{MAX_LINKS})
+                </label>
+                <div className="mt-1 space-y-2">
+                  {formLinks.map((l, i) => (
+                    <div key={i} className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={l.link_type}
+                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, link_type: e.target.value } : x)))}
+                        className="border-2 border-dark bg-white px-2 py-2 font-mono text-xs font-bold"
+                      >
+                        {LINK_TYPES.map(([v, lbl]) => (
+                          <option key={v} value={v}>{lbl}</option>
+                        ))}
+                      </select>
+                      <input
+                        value={l.url}
+                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                        className="min-w-0 flex-1 border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
+                        placeholder="https://..."
+                      />
+                      <input
+                        value={l.label}
+                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                        className="w-28 border-2 border-dark px-2 py-2 font-mono text-xs focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
+                        placeholder="Label (opsional)"
+                      />
+                      {formLinks.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setFormLinks(formLinks.filter((_, j) => j !== i))}
+                          className="border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                          title="Hapus link"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                <div>
-                  <label className="font-mono text-xs font-bold uppercase text-dark">Link Live</label>
-                  <input
-                    value={form.live_url}
-                    onChange={(e) => setForm({ ...form, live_url: e.target.value })}
-                    className="mt-1 w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                    placeholder="https://..."
-                  />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormLinks([...formLinks, emptyLink()])}
+                  disabled={formLinks.length >= MAX_LINKS}
+                  className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-paper px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Link
+                </button>
               </div>
 
               {/* Tipe karya */}
