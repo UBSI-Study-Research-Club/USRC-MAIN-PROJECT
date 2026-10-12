@@ -366,26 +366,19 @@ export default function KaryaPage() {
               )}
               <div className="mt-5 flex flex-wrap items-center gap-2">
                 {starBtn(detail, true)}
-                {detail.repo_url && (
+                {detail.links && detail.links.map((link) => (
                   <a
-                    href={detail.repo_url}
+                    key={link.id}
+                    href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                    title={link.label || link.type}
                   >
-                    <Code2 className="w-4 h-4" /> Repo
+                    <ExternalLink className="w-4 h-4" />
+                    {link.label || link.type}
                   </a>
-                )}
-                {detail.live_url && (
-                  <a
-                    href={detail.live_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 border-2 border-dark bg-dark px-3 py-1.5 font-mono text-xs font-bold text-white shadow-[2px_2px_0_var(--color-dark)] hover:bg-maroon active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                  >
-                    <ExternalLink className="w-4 h-4" /> Live
-                  </a>
-                )}
+                ))}
               </div>
             </div>
           </div>
