@@ -59,6 +59,15 @@ function SekretarisDashboardContent() {
   const [activeTab, setActiveTab] = useState<'absen' | 'registrations' | 'members'>('absen')
   const [animatingTab, setAnimatingTab] = useState<'absen' | 'registrations' | 'members' | null>(null)
   const reduceMotion = useReducedMotion()
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsMobile(mq.matches)
+    update()
+    mq.addEventListener('change', update)
+    return () => mq.removeEventListener('change', update)
+  }, [])
 
   const handleTabChange = (newTab: 'absen' | 'registrations' | 'members') => {
     if (newTab === activeTab) return
@@ -523,7 +532,13 @@ function SekretarisDashboardContent() {
               <motion.div
                 key={`shuffle-${animatingTab}`}
                 initial={{ x: 0, y: 0, rotate: 0, zIndex: 40, opacity: 1 }}
-                animate={{
+                animate={isMobile ? {
+                  x: [0, 24, 8],
+                  y: [0, -12, 8],
+                  rotate: [0, 4, -0.9],
+                  zIndex: [40, 40, 1],
+                  opacity: [1, 1, 0],
+                } : {
                   x: [0, 75, 16],
                   y: [0, -32, 16],
                   rotate: [0, 5, -0.9],
