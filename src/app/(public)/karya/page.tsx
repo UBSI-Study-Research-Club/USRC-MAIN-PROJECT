@@ -197,7 +197,12 @@ export default function KaryaPage() {
         const { error: memErr } = await supabase.from('project_members').insert(
           Array.from(pickedMembers).map((uid) => ({ project_id: inserted.id, user_id: uid }))
         )
-        if (memErr) throw memErr
+        if (memErr) {
+          // Rollback: jangan sisain karya yatim tanpa anggota — batalkan insert
+          // karyanya biar user coba lagi bersih (RLS: owner boleh hapus karyanya).
+          await supabase.from('projects').delete().eq('id', inserted.id)
+          throw new Error('Gagal menyimpan anggota kelompok — karya dibatalkan. Coba lagi.')
+        }
       }
 
       setForm(emptyForm)
