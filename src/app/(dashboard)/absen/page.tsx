@@ -26,13 +26,14 @@ function SesiAktifContent() {
       if (!user) return
       setUserId(user.id)
 
-      // Cek profil — kalau gak ada, pendaftarannya belum di-approve (akun hantu)
+      // Cek profil — kalau gak ada, pendaftarannya belum di-approve (akun hantu).
+      // Nonaktif (dijeda admin) diperlakukan sama (Gelombang C).
       const { data: myProfile } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, status')
         .eq('id', user.id)
         .maybeSingle()
-      if (!myProfile) {
+      if (!myProfile || myProfile.status !== 'aktif') {
         setGhost(true)
         setLoading(false)
         return
