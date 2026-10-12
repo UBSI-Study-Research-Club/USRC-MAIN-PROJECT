@@ -141,12 +141,29 @@ function AdminDashboardContent() {
         setLoadingProjects(true)
         const { data, error } = await supabase
           .from('projects')
-          .select('id, user_id, title, description, image_url, repo_url, live_url, category, status, created_at, profiles(full_name, nim)')
+          .select('id, user_id, title, description, image_url, repo_url, live_url, category, status, created_at')
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
 
         if (error) throw error
-        setProjects((data as unknown as Project[]) || [])
+        
+        // Fetch pembuat names secara terpisah untuk hindari ambiguitas relasi
+        const userIds = [...new Set((data || []).map(p => p.user_id))]
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name, nim')
+            .in('id', userIds)
+          
+          const profileMap = new Map((profiles || []).map(p => [p.id, p]))
+          const enriched = (data || []).map(p => ({
+            ...p,
+            profiles: profileMap.get(p.user_id)
+          }))
+          setProjects((enriched as unknown as Project[]) || [])
+        } else {
+          setProjects([])
+        }
       } catch (err: any) {
         setError(err.message || 'Gagal memuat data karya.')
       } finally {
