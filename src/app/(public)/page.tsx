@@ -245,11 +245,21 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
 
   return (
     <div
-      className={`flex flex-col border-2 border-dark bg-white shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:rotate-0 ${tilt}`}
+      className={`group flex flex-col border-2 border-dark bg-white shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:shadow-[5px_5px_0_var(--color-maroon)] overflow-hidden ${tilt}`}
     >
+      {/* Header badge */}
+      {project.category && (
+        <div className="flex items-center justify-between bg-[#FFF3C4] border-b-2 border-dark px-3 py-2">
+          <span className={`${FONT_MONO} text-[10px] font-bold uppercase text-dark`}>
+            {project.category}
+          </span>
+          <span className={`${FONT_MONO} text-[9px] text-dark/50`}>// karya</span>
+        </div>
+      )}
+
       {/* Image */}
       {project.image_url ? (
-        <div className="relative h-40 w-full overflow-hidden bg-paper">
+        <div className="relative h-48 w-full overflow-hidden bg-paper">
           <img
             src={project.image_url}
             alt={project.title}
@@ -257,63 +267,62 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           />
         </div>
       ) : (
-        <div className="flex h-40 w-full items-center justify-center bg-paper">
-          <span className={`${FONT_MONO} text-sm text-dark/40`}>
+        <div className="flex h-48 w-full items-center justify-center bg-paper">
+          <span className={`${FONT_MONO} text-sm text-dark/20`}>
             no image
           </span>
         </div>
       )}
 
       {/* Content */}
-      <div className="flex flex-1 flex-col gap-2 p-4">
-        {project.category && (
-          <span
-            className={`${FONT_MONO} w-fit border-[1px] border-dark bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-dark`}
-          >
-            {project.category}
-          </span>
-        )}
+      <div className="flex flex-1 flex-col gap-3 p-4">
         <h3
-          className={`${FONT_DISPLAY} text-lg font-black uppercase leading-tight tracking-wide text-dark line-clamp-2`}
+          className={`${FONT_DISPLAY} text-lg font-black uppercase leading-tight text-dark line-clamp-2`}
         >
           {project.title}
         </h3>
+
         {project.description && (
-          <p className="line-clamp-2 text-sm text-dark/70">
+          <p className="text-xs text-dark/60 line-clamp-2 italic">
             {project.description}
           </p>
         )}
 
         {/* Star count */}
-        <div className="flex items-center gap-1">
-          <Star className="h-4 w-4 fill-maroon text-maroon" strokeWidth={1.5} />
-          <span className={`${FONT_MONO} text-sm font-bold text-dark`}>
-            {project.star_count || 0}
+        <div className="flex items-center gap-1.5">
+          <Star className="h-4 w-4 fill-[#E8A100] text-[#E8A100]" strokeWidth={1.5} />
+          <span className={`${FONT_MONO} text-xs font-bold text-dark`}>
+            {project.star_count || 0} bintang
           </span>
         </div>
 
-        {/* Links */}
-        <div className="mt-auto flex gap-2 pt-3">
-          {project.repo_url && (
-            <a
-              href={project.repo_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
-            >
-              Repo
-            </a>
-          )}
-          {project.live_url && (
-            <a
-              href={project.live_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
-            >
-              Live
-            </a>
-          )}
+        {/* Footer */}
+        <div className="mt-auto pt-2 flex items-center justify-between">
+          <div className="flex gap-1.5">
+            {project.repo_url && (
+              <a
+                href={project.repo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${FONT_MONO} inline-flex items-center border-[1px] border-dark bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
+              >
+                Repo
+              </a>
+            )}
+            {project.live_url && (
+              <a
+                href={project.live_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${FONT_MONO} inline-flex items-center border-[1px] border-dark bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
+              >
+                Live
+              </a>
+            )}
+          </div>
+          <span className={`${FONT_MONO} text-[9px] text-dark/40 group-hover:text-dark/60 transition-colors`}>
+            klik →
+          </span>
         </div>
       </div>
     </div>
