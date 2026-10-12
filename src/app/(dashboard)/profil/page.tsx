@@ -10,7 +10,19 @@ interface Profile {
   nim: string;
   prodi: string;
   role: string;
+  instagram: string;
+  github: string;
+  behance: string;
+  linkedin: string;
 }
+
+// Sosmed pembuat (Gelombang B) — tampil sebagai chip di detail karya.
+const SOCIAL_FIELDS: { key: keyof Pick<Profile, "instagram" | "github" | "behance" | "linkedin">; label: string; placeholder: string }[] = [
+  { key: "instagram", label: "Instagram", placeholder: "instagram.com/username" },
+  { key: "github", label: "GitHub", placeholder: "github.com/username" },
+  { key: "behance", label: "Behance", placeholder: "behance.net/username" },
+  { key: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/username" },
+];
 
 const PRODI_OPTIONS = ["Informatika", "Sistem Informasi", "SI Akuntansi"];
 
@@ -38,11 +50,14 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, nim, prodi, role")
+        .select("full_name, nim, prodi, role, instagram, github, behance, linkedin")
         .eq("id", user.id)
         .single();
       setProfile(
-        data || { full_name: "", nim: "-", prodi: "Informatika", role: "anggota" }
+        data || {
+          full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
+          instagram: "", github: "", behance: "", linkedin: "",
+        }
       );
       setLoading(false);
     }
@@ -68,6 +83,10 @@ export default function ProfilPage() {
       .update({
         full_name: profile.full_name.trim(),
         prodi: profile.prodi,
+        instagram: profile.instagram.trim() || null,
+        github: profile.github.trim() || null,
+        behance: profile.behance.trim() || null,
+        linkedin: profile.linkedin.trim() || null,
       })
       .eq("id", user!.id);
     setSaving(false);
@@ -178,6 +197,33 @@ export default function ProfilPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className={`${FONT_DISPLAY} mb-1.5 block text-sm font-bold uppercase text-dark`}>
+                Sosmed
+              </label>
+              <p className={`${FONT_MONO} mb-3 text-[11px] text-dark/50`}>
+                // ikut tampil di karya yang kamu buat — opsional
+              </p>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {SOCIAL_FIELDS.map((f) => (
+                  <div key={f.key}>
+                    <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                      {f.label}
+                    </label>
+                    <input
+                      type="text"
+                      value={profile?.[f.key] || ""}
+                      onChange={(e) =>
+                        setProfile((p) => (p ? { ...p, [f.key]: e.target.value } : p))
+                      }
+                      placeholder={f.placeholder}
+                      className="w-full border-2 border-dark bg-white px-4 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:outline-none focus:ring-2 focus:ring-maroon"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="flex items-center justify-between border-t-2 border-dashed border-dark/30 pt-5">
