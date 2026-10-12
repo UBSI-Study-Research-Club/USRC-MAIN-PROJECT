@@ -41,7 +41,7 @@ export default function KaryaPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [myStars, setMyStars] = useState<Set<string>>(new Set())
 
-  const [detail, setDetail] = useState<Karya | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [isKelompok, setIsKelompok] = useState(false)
   const [pickedMembers, setPickedMembers] = useState<Set<string>>(new Set())
@@ -51,6 +51,10 @@ export default function KaryaPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
 
   const supabase = createClient()
+
+  // Detail popup selalu diturunkan dari karyaList by id — bintang yang baru
+  // diklik ikut ke-update di popup juga (dulu: snapshot objek, angkanya basi).
+  const detail = karyaList.find((k) => k.id === detailId) ?? null
 
   const fetchData = useCallback(async () => {
     try {
@@ -279,7 +283,7 @@ export default function KaryaPage() {
           {karyaList.map((k) => (
             <div
               key={k.id}
-              onClick={() => setDetail(k)}
+              onClick={() => setDetailId(k.id)}
               className="border-[3px] border-dark bg-white neo-shadow hover:-translate-y-1 hover:shadow-[6px_6px_0_var(--color-dark)] transition-all cursor-pointer flex flex-col"
             >
               {k.image_url ? (
@@ -321,7 +325,7 @@ export default function KaryaPage() {
       {detail && (
         <div
           className="fixed inset-0 z-[60] bg-dark/60 flex items-center justify-center p-4"
-          onClick={() => setDetail(null)}
+          onClick={() => setDetailId(null)}
         >
           <div
             className="border-[3px] border-dark bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto neo-shadow"
@@ -332,7 +336,7 @@ export default function KaryaPage() {
                 DETAIL KARYA
               </span>
               <button
-                onClick={() => setDetail(null)}
+                onClick={() => setDetailId(null)}
                 className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
               >
                 <X className="w-4 h-4" />
