@@ -1,9 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Star, Users, ExternalLink, Code2, X, Plus,
+  Star, Users, ExternalLink, Code2, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
 } from 'lucide-react'
 
@@ -13,8 +14,7 @@ type Karya = {
   description: string | null
   image_url: string | null
   category: string | null
-  repo_url: string | null
-  live_url: string | null
+  links: Array<{ id: string; type: string; url: string; label?: string }> | null
   owner_id: string
   owner_name: string
   members: string[] | null
@@ -230,6 +230,10 @@ export default function KaryaPage() {
         <div className="absolute top-0 right-0 bg-maroon text-white font-[family-name:var(--font-ibm-plex-mono)] text-[10px] px-3 py-1 border-l-[3px] border-b-[3px] border-dark">
           // ETALASE KARYA
         </div>
+        <Link href="/" className="inline-flex items-center gap-1.5 border-2 border-dark bg-paper px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all mb-4">
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Kembali
+        </Link>
         <h1 className="text-3xl md:text-4xl font-black uppercase font-[family-name:var(--font-outfit)] tracking-tight text-maroon">
           Karya Anggota
         </h1>
