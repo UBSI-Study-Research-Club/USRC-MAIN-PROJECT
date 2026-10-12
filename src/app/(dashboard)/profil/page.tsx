@@ -54,10 +54,23 @@ export default function ProfilPage() {
         .eq("id", user.id)
         .single();
       setProfile(
-        data || {
-          full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
-          instagram: "", github: "", behance: "", linkedin: "",
-        }
+        data
+          ? {
+              full_name: data.full_name ?? "",
+              nim: data.nim ?? "-",
+              prodi: data.prodi ?? "Informatika",
+              role: data.role ?? "anggota",
+              // Sosmed bisa null di DB — ratakan ke string kosong biar
+              // .trim() di handleSave gak crash (bug tombol Simpan nyangkut).
+              instagram: data.instagram ?? "",
+              github: data.github ?? "",
+              behance: data.behance ?? "",
+              linkedin: data.linkedin ?? "",
+            }
+          : {
+              full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
+              instagram: "", github: "", behance: "", linkedin: "",
+            }
       );
       setLoading(false);
     }
@@ -78,17 +91,23 @@ export default function ProfilPage() {
     setSaving(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setSaving(false);
+      setError("Sesi habis — coba login ulang.");
+      return;
+    }
+    const safe = (v: string | null | undefined) => (v ?? "").trim() || null;
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
         full_name: profile.full_name.trim(),
         prodi: profile.prodi,
-        instagram: profile.instagram.trim() || null,
-        github: profile.github.trim() || null,
-        behance: profile.behance.trim() || null,
-        linkedin: profile.linkedin.trim() || null,
+        instagram: safe(profile.instagram),
+        github: safe(profile.github),
+        behance: safe(profile.behance),
+        linkedin: safe(profile.linkedin),
       })
-      .eq("id", user!.id);
+      .eq("id", user.id);
     setSaving(false);
 
     if (updateError) {
