@@ -19,8 +19,7 @@ type Project = {
   title: string
   description: string
   image_url: string
-  repo_url: string
-  live_url: string
+  project_links: { link_type: string; url: string; label: string | null }[] | null
   category: string
   status: 'pending' | 'approved'
   created_at: string
@@ -141,7 +140,7 @@ function AdminDashboardContent() {
         setLoadingProjects(true)
         const { data, error } = await supabase
           .from('projects')
-          .select('id, user_id, title, description, image_url, repo_url, live_url, category, status, created_at')
+          .select('id, user_id, title, description, image_url, category, status, created_at, project_links(link_type, url, label)')
           .eq('status', 'pending')
           .order('created_at', { ascending: false })
 
@@ -584,28 +583,19 @@ function AdminDashboardContent() {
                               {project.profiles?.full_name || 'Tanpa nama'} ({project.profiles?.nim})
                             </span>
                           </div>
-                          {project.repo_url || project.live_url ? (
-                            <div className="flex gap-2 mt-2 text-xs">
-                              {project.repo_url && (
+                          {(project.project_links || []).length > 0 ? (
+                            <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                              {(project.project_links || []).map((l, i) => (
                                 <a
-                                  href={project.repo_url}
+                                  key={i}
+                                  href={l.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="underline text-blue-600 font-bold"
                                 >
-                                  Repo
+                                  {l.label || l.link_type}
                                 </a>
-                              )}
-                              {project.live_url && (
-                                <a
-                                  href={project.live_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="underline text-blue-600 font-bold"
-                                >
-                                  Live
-                                </a>
-                              )}
+                              ))}
                             </div>
                           ) : null}
                         </div>
