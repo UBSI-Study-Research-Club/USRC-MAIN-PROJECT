@@ -275,41 +275,62 @@ export default function KaryaPage() {
           </p>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {karyaList.map((k) => (
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {karyaList.map((k, idx) => (
             <div
               key={k.id}
               onClick={() => setDetail(k)}
-              className="border-[3px] border-dark bg-white neo-shadow hover:-translate-y-1 hover:shadow-[6px_6px_0_var(--color-dark)] transition-all cursor-pointer flex flex-col"
+              className={`group border-2 border-dark bg-white neo-shadow hover:-translate-y-1 hover:shadow-[5px_5px_0_var(--color-maroon)] transition-all cursor-pointer flex flex-col overflow-hidden ${
+                idx % 2 === 0 ? '-rotate-1' : 'rotate-1'
+              }`}
             >
+              {/* Header badge */}
+              {k.category && (
+                <div className="flex items-center justify-between bg-[#FFF3C4] border-b-2 border-dark px-3 py-2">
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark">
+                    {k.category}
+                  </span>
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[9px] text-dark/50">// karya</span>
+                </div>
+              )}
+              
+              {/* Image */}
               {k.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={k.image_url}
                   alt={k.title}
-                  className="h-44 w-full object-cover border-b-[3px] border-dark"
+                  className="h-48 w-full object-cover border-b-2 border-dark"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               ) : (
-                <div className="h-44 w-full bg-paper border-b-[3px] border-dark flex items-center justify-center">
-                  <Palette className="w-10 h-10 text-dark/30" />
+                <div className="h-48 w-full bg-paper border-b-2 border-dark flex items-center justify-center">
+                  <Palette className="w-12 h-12 text-dark/20" />
                 </div>
               )}
-              <div className="p-4 flex flex-col gap-2 flex-1">
-                {k.category && (
-                  <span className="w-fit font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase bg-[#FFF3C4] border border-dark px-2 py-0.5">
-                    {k.category}
-                  </span>
-                )}
-                <h2 className="font-black uppercase font-[family-name:var(--font-outfit)] text-lg text-dark leading-snug">
+              
+              {/* Content */}
+              <div className="p-4 flex flex-col gap-3 flex-1">
+                <h2 className="font-black uppercase font-[family-name:var(--font-outfit)] text-lg text-dark leading-tight line-clamp-2">
                   {k.title}
                 </h2>
-                <p className="flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/70">
+                
+                <p className="flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/65">
                   <Users className="w-3.5 h-3.5 text-maroon shrink-0 mt-0.5" />
-                  <span>Dibuat oleh {creatorsOf(k)}</span>
+                  <span className="line-clamp-1">{creatorsOf(k)}</span>
                 </p>
-                <div className="mt-auto pt-2">
+                
+                {k.description && (
+                  <p className="text-xs text-dark/60 line-clamp-2 italic">
+                    {k.description}
+                  </p>
+                )}
+                
+                <div className="mt-auto pt-2 flex items-center justify-between">
                   {starBtn(k)}
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[9px] text-dark/40 group-hover:text-dark/60 transition-colors">
+                    klik →
+                  </span>
                 </div>
               </div>
             </div>
