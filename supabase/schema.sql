@@ -285,8 +285,48 @@ grant execute on function public.get_member_directory() to authenticated;
 
 
 -- 5. REALTIME PUBLICATION
-alter publication supabase_realtime add table attendances;
-alter publication supabase_realtime add table registrations;
+-- Idempotent: SQL Editor bisa dijalankan ulang tanpa error "already member".
+do $$
+begin
+  alter publication supabase_realtime add table attendances;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table registrations;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table meetings;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table profiles;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table projects;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table project_members;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table project_stars;
+exception when duplicate_object then null;
+end $$;
 
 -- 6. RPC & TRIGGERS FOR MEMBER REGISTRATION & PROFILE CREATION
 

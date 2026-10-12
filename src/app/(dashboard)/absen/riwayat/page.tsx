@@ -101,6 +101,11 @@ function RiwayatContent() {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meetings' },
+        () => fetchData()
+      )
       .subscribe()
 
     return () => {

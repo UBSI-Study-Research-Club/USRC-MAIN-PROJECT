@@ -430,7 +430,20 @@ export default function LandingPage() {
 
     fetchData();
 
-    return () => subscription.unsubscribe();
+    // Realtime: angka statistik, sesi lampau, dan top-6 karya ikut update tanpa refresh.
+    const landingChannel = supabase
+      .channel('landing-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meetings' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stars' }, () => fetchData())
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(landingChannel);
+    };
   }, []);
 
   return (

@@ -116,6 +116,20 @@ function AdminDashboardContent() {
     }
 
     fetchMembers()
+
+    // Realtime: anggota baru atau role berubah langsung muncul tanpa refresh.
+    const memberChannel = supabase
+      .channel('admin-members-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => fetchMembers()
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(memberChannel)
+    }
   }, [userRole])
 
   // Fetch pending projects

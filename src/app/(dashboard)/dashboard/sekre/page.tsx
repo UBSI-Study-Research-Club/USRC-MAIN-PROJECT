@@ -200,9 +200,14 @@ function SekretarisDashboardContent() {
     fetchRegistrations()
     fetchMembers()
 
-    // Realtime subscriptions for registrations
-    const regChannel = supabase
-      .channel('sekre-registrations-realtime')
+    // Realtime: sesi, pendaftar, dan anggota update tanpa refresh.
+    const dashboardChannel = supabase
+      .channel('sekre-dashboard-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meetings' },
+        () => fetchMeetings()
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'registrations' },
@@ -211,10 +216,15 @@ function SekretarisDashboardContent() {
           fetchMembers()
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'profiles' },
+        () => fetchMembers()
+      )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(regChannel)
+      supabase.removeChannel(dashboardChannel)
     }
   }, [])
 

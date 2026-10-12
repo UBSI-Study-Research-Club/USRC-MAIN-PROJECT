@@ -78,9 +78,11 @@ export default function KaryaPage() {
   useEffect(() => {
     fetchData()
 
-    // Bintang orang lain masuk → jumlah update live
+    // Realtime: karya baru/approved, anggota kelompok, dan bintang berubah → card update tanpa refresh.
     const channel = supabase
       .channel('karya-page-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stars' }, () => fetchData())
       .subscribe()
 
