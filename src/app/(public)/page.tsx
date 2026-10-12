@@ -30,6 +30,16 @@ interface Meeting {
   attendee_count: number;
 }
 
+interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  category: string | null;
+  repo_url: string | null;
+  live_url: string | null;
+}
+
 interface Stats {
   members: number;
   sessions: number;
@@ -228,6 +238,78 @@ function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
   );
 }
 
+function ProjectCard({ project, index }: { project: Project; index: number }) {
+  const tilt = index % 2 === 0 ? "-rotate-1" : "rotate-1";
+
+  return (
+    <div
+      className={`flex flex-col border-2 border-dark bg-white shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:rotate-0 ${tilt}`}
+    >
+      {/* Image */}
+      {project.image_url ? (
+        <div className="relative h-40 w-full overflow-hidden bg-paper">
+          <img
+            src={project.image_url}
+            alt={project.title}
+            className="h-full w-full object-cover"
+          />
+        </div>
+      ) : (
+        <div className="flex h-40 w-full items-center justify-center bg-paper">
+          <span className={`${FONT_MONO} text-sm text-dark/40`}>
+            no image
+          </span>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="flex flex-1 flex-col gap-2 p-4">
+        {project.category && (
+          <span
+            className={`${FONT_MONO} w-fit border-[1px] border-dark bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-dark`}
+          >
+            {project.category}
+          </span>
+        )}
+        <h3
+          className={`${FONT_DISPLAY} text-lg font-black uppercase leading-tight tracking-wide text-dark line-clamp-2`}
+        >
+          {project.title}
+        </h3>
+        {project.description && (
+          <p className="line-clamp-2 text-sm text-dark/70">
+            {project.description}
+          </p>
+        )}
+
+        {/* Links */}
+        <div className="mt-auto flex gap-2 pt-3">
+          {project.repo_url && (
+            <a
+              href={project.repo_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
+            >
+              Repo
+            </a>
+          )}
+          {project.live_url && (
+            <a
+              href={project.live_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
+            >
+              Live
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const prefersReduced = useReducedMotion();
   const heroRef = useRef<HTMLDivElement>(null);
@@ -241,6 +323,7 @@ export default function LandingPage() {
 
   const [stats, setStats] = useState<Stats>({ members: 0, sessions: 0, projects: 0 });
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -299,6 +382,18 @@ export default function LandingPage() {
               attendee_count: countMap[m.id] || 0,
             }))
           );
+        }
+
+        // Fetch approved projects (Fase 2)
+        const { data: approvedProjects } = await supabase
+          .from("projects")
+          .select("id, title, description, image_url, category, repo_url, live_url")
+          .eq("status", "approved")
+          .order("created_at", { ascending: false })
+          .limit(6);
+
+        if (approvedProjects) {
+          setProjects(approvedProjects);
         }
       } catch (err) {
         console.error('Landing stats fetch failed:', err)
@@ -588,6 +683,44 @@ export default function LandingPage() {
               />
             </Reveal>
           </div>
+        </div>
+      </section>
+
+      {/* ── KARYA (Fase 2) ────────────────────────── */}
+      <section className="scroll-mt-24 px-4 py-20">
+        <div className="mx-auto flex max-w-7xl flex-col gap-10">
+          <Reveal>
+            <SectionHead tag="// Hasil karya anggota">
+              Karya <span className="text-maroon">USRC</span>
+            </SectionHead>
+          </Reveal>
+
+          {loading ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex flex-col border-2 border-dark/20 bg-white">
+                  <Skeleton className="h-40 w-full" />
+                  <div className="space-y-2 p-4">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-5 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : projects.length === 0 ? (
+            <p className="text-sm text-dark/50">
+              Belum ada karya yang disetujui. Tambahkan karya di profil kamu!
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {projects.map((p, i) => (
+                <Reveal key={p.id} delay={i * 0.08}>
+                  <ProjectCard project={p} index={i} />
+                </Reveal>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
