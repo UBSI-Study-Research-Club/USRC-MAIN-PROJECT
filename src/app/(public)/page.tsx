@@ -31,16 +31,28 @@ interface Meeting {
   attendee_count: number;
 }
 
+interface KaryaLink {
+  link_type: string;
+  url: string;
+  label: string | null;
+}
+
 interface Project {
   id: string;
   title: string;
   description: string | null;
   image_url: string | null;
   category: string | null;
-  repo_url: string | null;
-  live_url: string | null;
+  links: KaryaLink[] | null;
+  stars: number;
   star_count?: number;
 }
+
+const LINK_LABELS: Record<string, string> = {
+  repo: "Repo", live: "Live", instagram: "Instagram", youtube: "YouTube",
+  behance: "Behance", figma: "Figma", portfolio: "Portofolio",
+  image: "Gambar", other: "Link",
+};
 
 interface Stats {
   members: number;
@@ -293,27 +305,18 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
         </div>
 
         {/* Links */}
-        <div className="mt-auto flex gap-2 pt-3">
-          {project.repo_url && (
+        <div className="mt-auto flex flex-wrap gap-2 pt-3">
+          {(project.links || []).slice(0, 4).map((l, i) => (
             <a
-              href={project.repo_url}
+              key={i}
+              href={l.url}
               target="_blank"
               rel="noopener noreferrer"
               className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
             >
-              Repo
+              {l.label || LINK_LABELS[l.link_type] || "Link"}
             </a>
-          )}
-          {project.live_url && (
-            <a
-              href={project.live_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${FONT_MONO} inline-flex flex-1 items-center justify-center border-[1px] border-dark bg-paper px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
-            >
-              Live
-            </a>
-          )}
+          ))}
         </div>
       </div>
     </div>
@@ -394,30 +397,15 @@ export default function LandingPage() {
           );
         }
 
-        // Fetch top 6 approved projects by star count (Fase 2 revamp)
-        const { data: topProjects } = await supabase
-          .from("projects")
-          .select(`
-            id, 
-            title, 
-            description, 
-            image_url, 
-            category, 
-            repo_url, 
-            live_url,
-            project_stars(count)
-          `)
-          .eq("status", "approved")
-          .order("created_at", { ascending: false })
-          .limit(100); // fetch semua, sort client side by stars
-
-        if (topProjects) {
-          // Sort by star count (descending), take top 6
-          const sorted = (topProjects as any[]).map((p) => ({
-            ...p,
-            star_count: p.project_stars?.[0]?.count || 0,
-          })).sort((a, b) => b.star_count - a.star_count).slice(0, 6);
-          
+        // Top-6 karya via RPC get_public_karya — RLS-safe untuk tamu,
+        // sekalian bawa link fleksibel + sosmed pembuat (Gelombang B).
+        const { data: allKarya, error: karyaError } = await supabase.rpc("get_public_karya");
+        if (karyaError) console.error("karya RPC error:", karyaError);
+        if (allKarya) {
+          const sorted = (allKarya as Project[])
+            .map((p) => ({ ...p, star_count: Number(p.stars ?? 0) }))
+            .sort((a, b) => b.star_count - a.star_count)
+            .slice(0, 6);
           setProjects(sorted);
         }
       } catch (err) {
@@ -438,6 +426,7 @@ export default function LandingPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stars' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_links' }, () => fetchData())
       .subscribe();
 
     return () => {
