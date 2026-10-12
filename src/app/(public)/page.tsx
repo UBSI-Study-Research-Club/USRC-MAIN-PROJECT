@@ -18,6 +18,7 @@ import {
   Calendar,
   UserCheck,
   FolderKanban,
+  Star,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -38,6 +39,7 @@ interface Project {
   category: string | null;
   repo_url: string | null;
   live_url: string | null;
+  star_count?: number;
 }
 
 interface Stats {
@@ -282,6 +284,14 @@ function ProjectCard({ project, index }: { project: Project; index: number }) {
           </p>
         )}
 
+        {/* Star count */}
+        <div className="flex items-center gap-1">
+          <Star className="h-4 w-4 fill-maroon text-maroon" strokeWidth={1.5} />
+          <span className={`${FONT_MONO} text-sm font-bold text-dark`}>
+            {project.star_count || 0}
+          </span>
+        </div>
+
         {/* Links */}
         <div className="mt-auto flex gap-2 pt-3">
           {project.repo_url && (
@@ -384,16 +394,31 @@ export default function LandingPage() {
           );
         }
 
-        // Fetch approved projects (Fase 2)
-        const { data: approvedProjects } = await supabase
+        // Fetch top 6 approved projects by star count (Fase 2 revamp)
+        const { data: topProjects } = await supabase
           .from("projects")
-          .select("id, title, description, image_url, category, repo_url, live_url")
+          .select(`
+            id, 
+            title, 
+            description, 
+            image_url, 
+            category, 
+            repo_url, 
+            live_url,
+            project_stars(count)
+          `)
           .eq("status", "approved")
           .order("created_at", { ascending: false })
-          .limit(6);
+          .limit(100); // fetch semua, sort client side by stars
 
-        if (approvedProjects) {
-          setProjects(approvedProjects);
+        if (topProjects) {
+          // Sort by star count (descending), take top 6
+          const sorted = (topProjects as any[]).map((p) => ({
+            ...p,
+            star_count: p.project_stars?.[0]?.count || 0,
+          })).sort((a, b) => b.star_count - a.star_count).slice(0, 6);
+          
+          setProjects(sorted);
         }
       } catch (err) {
         console.error('Landing stats fetch failed:', err)
@@ -686,14 +711,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── KARYA (Fase 2) ────────────────────────── */}
+      {/* ── KARYA (Top 6 by stars) ────────────────────────── */}
       <section className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
-          <Reveal>
-            <SectionHead tag="// Hasil karya anggota">
-              Karya <span className="text-maroon">USRC</span>
-            </SectionHead>
-          </Reveal>
+          <div className="flex items-end justify-between">
+            <Reveal>
+              <SectionHead tag="// Hasil karya anggota">
+                Karya <span className="text-maroon">Terbaik</span>
+              </SectionHead>
+            </Reveal>
+            <Link
+              href="/karya"
+              className={`${FONT_DISPLAY} inline-flex items-center gap-1 border-2 border-dark bg-paper px-4 py-2 text-sm font-bold uppercase text-dark shadow-[3px_3px_0_var(--color-maroon)] transition-all hover:bg-maroon hover:text-white active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
+            >
+              Lihat Semua
+              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+            </Link>
+          </div>
 
           {loading ? (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -710,7 +744,7 @@ export default function LandingPage() {
             </div>
           ) : projects.length === 0 ? (
             <p className="text-sm text-dark/50">
-              Belum ada karya yang disetujui. Tambahkan karya di profil kamu!
+              Belum ada karya yang disetujui. Segera bagikan karya kamu!
             </p>
           ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
