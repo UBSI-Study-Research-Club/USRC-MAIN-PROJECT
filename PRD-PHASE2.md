@@ -45,19 +45,33 @@ Aturan teknis:
 
 **Selesai bila:** sekre buat sesi → kartu muncul di HP anggota tanpa refresh; absen di SESI AKTIF → badge HADIR muncul di RIWAYAT; 30 sesi riwayat render 10 dulu dan tiap "MUAT LAGI" nambah 10; `npm run build` hijau.
 
-### F2.2 Etalase karya (Chello)
+### F2.2 Etalase Karya — revamp page sendiri (Raken + Chello)
 
-Tabel `projects` + RLS sudah ada sejak Fase 1 (publik baca `approved` saja, owner insert `pending`, admin penuh) tapi belum dipakai UI mana pun. Tidak perlu SQL baru.
+> Keputusan Raken+Chello 12 Okt: karya pindah dari section landing + form profil → **page sendiri `/karya`**, dengan sistem bintang dan karya kelompok. Keputusan final: 1 anggota = 1 bintang per karya (toggle, klik lagi = cabut); dilarang bintang karya sendiri; bagian karya di profil DIHAPUS total; detail karya = popup di page yang sama.
 
-Alur member:
-1. Buka `/profil` → section "KARYA SAYA" + form tambah: judul, deskripsi, kategori, link repo, link live, gambar (URL — bukan upload).
-2. Submit → status `pending`, tampil di list miliknya sebagai "Menunggu persetujuan".
-3. Admin setujui (F2.3) → otomatis tampil publik.
-4. Tamu buka landing → section KARYA: grid kartu karya approved (gambar, judul, kategori, link).
+Alur publik:
+1. Landing → section hasil karya = **6 TERBAIK** (urut jumlah bintang terbanyak, karya approved) + tombol "LIHAT SEMUA KARYA" di sebelah section → `/karya`
+2. `/karya` = grid card semua karya approved: preview gambar, judul, jumlah bintang, "Dibuat oleh A, B, C" (owner + project_members). Tamu bisa lihat
+3. Klik card → **popup detail**: deskripsi, semua pembuat, link repo/live, jumlah bintang
 
-Aturan desain: ikut `design.md` — editorial/neobrutalist, border tebal, maroon/paper. Gambar via URL; storage bucket bukan bagian fase ini.
+Alur anggota:
+4. `/karya` → tombol "BUAT KARYA" → form: judul, deskripsi, kategori, gambar (URL), repo, live + tipe **INDIVIDUAL / KELOMPOK**; kelompok → pilih anggota tambahan (multi-select dari profiles)
+5. Submit → `pending` → approve via panel admin (F2.3, sistem tetap)
+6. Anggota login kasih/cabut bintang ke karya orang lain yang approved — tombol bintang di card/detail; jumlah bintang live
 
-**Selesai bila:** karya pending tidak muncul di landing (diuji dua status); karya approved terlihat oleh tamu tanpa login; pemilik bisa hapus karya pending miliknya; `npm run build` hijau.
+Database (schema.sql, sudah disiapkan Noelle — review Raken):
+- Tabel `project_members` (project_id, user_id) — pembuat tambahan karya kelompok
+- Tabel `project_stars` (project_id, user_id) — PK ganda = 1 bintang per anggota per karya; RLS melarang bintang karya sendiri & karya belum approved
+- RLS: publik baca member+star milik karya approved; anggota insert/delete bintang sendiri; owner atur members
+
+**Bagi tugas:**
+
+| PIC | Area |
+|---|---|
+| **Raken** | Review & jalankan SQL, page `/karya` (grid card, popup detail, form buat individual/kelompok, toggle bintang) |
+| **Chello** | Landing: ganti section karya jadi 6 terbaik + tombol "LIHAT SEMUA KARYA"; hapus total bagian KARYA SAYA dari `/profil` |
+
+**Selesai bila:** landing menampilkan 6 karya berbintang terbanyak; tombol mengarah ke `/karya`; karya kelompok menampilkan semua pembuat; bintang anggota bisa diberi/dicabut dan jumlahnya live; karya sendiri tidak bisa diberi bintang (UI disable + ditolak RLS); profil tidak lagi memiliki bagian karya; `npm run build` hijau.
 
 ### F2.3 Panel admin (Riski)
 

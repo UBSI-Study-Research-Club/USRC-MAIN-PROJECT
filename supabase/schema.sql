@@ -167,6 +167,75 @@ create policy "Owner or Admin update/delete project"
   on projects for all
   using (auth.uid() = user_id or get_my_role() = 'admin');
 
+-- PROJECT MEMBERS (Fase 2 revamp: karya kelompok) — pembuat tambahan selain owner
+create table project_members (
+  project_id uuid not null references projects(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  primary key (project_id, user_id)
+);
+alter table project_members enable row level security;
+
+create policy "Read members of visible projects"
+  on project_members for select
+  using (
+    exists (
+      select 1 from projects p
+      where p.id = project_id
+        and (p.status = 'approved' or p.user_id = auth.uid())
+    )
+    or get_my_role() = 'admin'
+  );
+
+-- Insert: owner karya (pilih anggota kelompok saat buat) atau admin.
+-- Delete: owner, anggota yang keluar sendiri, atau admin (USING saja untuk delete).
+create policy "Owner manages members, member can leave, admin all"
+  on project_members for all
+  using (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or user_id = auth.uid()
+    or get_my_role() = 'admin'
+  )
+  with check (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or get_my_role() = 'admin'
+  );
+
+-- PROJECT STARS (Fase 2 revamp: 1 anggota = 1 bintang per karya, toggle)
+create table project_stars (
+  project_id uuid not null references projects(id) on delete cascade,
+  user_id uuid not null references profiles(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (project_id, user_id)
+);
+alter table project_stars enable row level security;
+
+create policy "Read stars of approved projects (count for landing), own stars always"
+  on project_stars for select
+  using (
+    exists (select 1 from projects p where p.id = project_id and p.status = 'approved')
+    or user_id = auth.uid()
+    or get_my_role() = 'admin'
+  );
+
+-- 1 bintang per anggota per karya (PK), dilarang bintang karya sendiri,
+-- karya harus sudah approved.
+create policy "Member stars others' approved project"
+  on project_stars for insert
+  with check (
+    user_id = auth.uid()
+    and exists (
+      select 1 from projects p
+      where p.id = project_id
+        and p.status = 'approved'
+        and p.user_id <> auth.uid()
+    )
+  );
+
+create policy "Member unstars own star, admin all"
+  on project_stars for delete
+  using (user_id = auth.uid() or get_my_role() = 'admin');
+
+
 -- 5. REALTIME PUBLICATION
 alter publication supabase_realtime add table attendances;
 alter publication supabase_realtime add table registrations;
