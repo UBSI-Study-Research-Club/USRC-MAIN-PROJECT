@@ -64,6 +64,13 @@ export default async function DashboardLayout({
               </NavLink>
             )}
 
+            {role === 'admin' && (
+              <NavLink href="/dashboard/admin" defaultBg="bg-[#D1E7DD]">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Panel Admin</span>
+              </NavLink>
+            )}
+
             <div className="flex items-center gap-2 pl-2 border-l-2 border-[#1A1A1A]">
               <div className="text-right hidden md:block">
                 <p className="text-xs font-bold">{profile?.full_name || user?.email}</p>
