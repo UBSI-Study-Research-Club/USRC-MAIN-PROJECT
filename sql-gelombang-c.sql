@@ -53,6 +53,13 @@ create policy "Owner manages detail points, admin all"
 alter table profiles add column if not exists status text not null default 'aktif'
   check (status in ('aktif', 'nonaktif'));
 
+-- profiles gak punya policy DELETE sama sekali sejak awal → tanpa ini,
+-- tombol "Keluarkan" selalu ditolak RLS walau untuk admin.
+drop policy if exists "Admin delete member" on profiles;
+create policy "Admin delete member"
+  on profiles for delete
+  using (get_my_role() = 'admin');
+
 -- ============ 3. REALTIME PUBLICATION (idempotent) ============
 do $$
 begin
