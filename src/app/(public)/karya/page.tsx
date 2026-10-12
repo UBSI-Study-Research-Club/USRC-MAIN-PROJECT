@@ -23,11 +23,12 @@ type Karya = {
   owner_name: string
   owner_socials: Socials | null
   members: MemberInfo[] | null
+  detail_points: DetailPoint[] | null
   stars: number
   created_at: string
 }
 
-type Directory = { id: string; full_name: string }
+type Directory = { id: string; full_name: string; instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
 
 const LINK_TYPES: [string, string][] = [
   ['repo', 'Repo'], ['live', 'Live'], ['instagram', 'Instagram'],
@@ -41,6 +42,50 @@ const MAX_LINKS = 6
 
 type FormLink = { link_type: string; url: string; label: string }
 const emptyLink = (): FormLink => ({ link_type: 'repo', url: '', label: '' })
+
+// ── Detail poin (Gelombang C): teks / chips / warna / link / tabel ──
+type PointType = 'teks' | 'chips' | 'warna' | 'link' | 'tabel'
+type PointValue = {
+  text?: string; items?: string[]; colors?: string[]
+  url?: string; label?: string; headers?: string[]; rows?: string[][]
+}
+type DetailPoint = { point_type: PointType; title: string | null; value: PointValue }
+
+// Representasi form — tiap tipe punya input sendiri, diratakan jadi satu.
+type FormPoint = {
+  point_type: PointType; title: string; text: string; chips: string
+  colors: string[]; url: string; linkLabel: string; columns: string; rowsText: string
+}
+const emptyPoint = (point_type: PointType = 'teks'): FormPoint => ({
+  point_type, title: '', text: '', chips: '', colors: [], url: '', linkLabel: '', columns: '', rowsText: '',
+})
+const POINT_TYPES: [PointType, string][] = [
+  ['teks', 'Teks'], ['chips', 'Chips'], ['warna', 'Warna'], ['link', 'Link'], ['tabel', 'Tabel'],
+]
+
+// Ubah isi form jadi value jsonb — balikin null kalau kosong/invalid.
+const pointToValue = (p: FormPoint): PointValue | null => {
+  switch (p.point_type) {
+    case 'teks': return p.text.trim() ? { text: p.text.trim() } : null
+    case 'chips': {
+      const items = p.chips.split(',').map((s) => s.trim()).filter(Boolean)
+      return items.length ? { items } : null
+    }
+    case 'warna': {
+      const colors = p.colors.map((c) => c.trim()).filter(Boolean)
+      return colors.length ? { colors } : null
+    }
+    case 'link': {
+      const url = p.url.trim() ? normalizeUrl(p.url) : null
+      return url ? { url, label: p.linkLabel.trim() || undefined } : null
+    }
+    case 'tabel': {
+      const headers = p.columns.split(',').map((s) => s.trim()).filter(Boolean)
+      const rows = p.rowsText.split('\n').map((line) => line.split(',').map((c) => c.trim())).filter((r) => r.some(Boolean))
+      return headers.length && rows.length ? { headers, rows } : null
+    }
+  }
+}
 
 const emptyForm = {
   title: '',
@@ -96,6 +141,71 @@ const mergedSocials = (k: Karya): Socials => {
   return out
 }
 
+// Renderer satu poin detail sesuai tipe (Gelombang C).
+const renderPoint = (pt: DetailPoint) => {
+  const v = pt.value || {}
+  switch (pt.point_type) {
+    case 'teks':
+      return <p className="text-sm text-dark/80 leading-relaxed whitespace-pre-wrap">{v.text}</p>
+    case 'chips':
+      return (
+        <div className="flex flex-wrap gap-1.5">
+          {(v.items || []).map((c, i) => (
+            <span key={i} className="border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 font-mono text-xs font-bold">
+              {c}
+            </span>
+          ))}
+        </div>
+      )
+    case 'warna':
+      return (
+        <div className="flex flex-wrap gap-3">
+          {(v.colors || []).map((c, i) => (
+            <div key={i} className="flex flex-col items-center gap-1">
+              <span className="h-10 w-10 border-2 border-dark" style={{ backgroundColor: c }} />
+              <span className="font-mono text-[9px] text-dark/50">{c}</span>
+            </div>
+          ))}
+        </div>
+      )
+    case 'link':
+      return v.url ? (
+        <a
+          href={v.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          {v.label || v.url}
+        </a>
+      ) : null
+    case 'tabel':
+      return (
+        <div className="overflow-x-auto border-2 border-dark">
+          <table className="w-full text-left font-mono text-xs">
+            <thead>
+              <tr className="border-b-2 border-dark bg-paper">
+                {(v.headers || []).map((h, i) => (
+                  <th key={i} className="px-3 py-2 font-bold uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {(v.rows || []).map((r, i) => (
+                <tr key={i} className="border-b border-dark/10 last:border-0">
+                  {(v.headers || []).map((_, j) => (
+                    <td key={j} className="px-3 py-1.5 text-dark/80">{r[j] ?? ''}</td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )
+  }
+}
+
 export default function KaryaPage() {
   const [karyaList, setKaryaList] = useState<Karya[]>([])
   const [loading, setLoading] = useState(true)
@@ -107,7 +217,8 @@ export default function KaryaPage() {
   const [detailId, setDetailId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [isKelompok, setIsKelompok] = useState(false)
-  const [pickedMembers, setPickedMembers] = useState<Set<string>>(new Set())
+  const [pickedMembers, setPickedMembers] = useState<string[]>([])
+  const [formPoints, setFormPoints] = useState<FormPoint[]>([])
   const [directory, setDirectory] = useState<Directory[] | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [formLinks, setFormLinks] = useState<FormLink[]>([emptyLink()])
@@ -131,10 +242,11 @@ export default function KaryaPage() {
       if (user) {
         const { data: prof } = await supabase
           .from('profiles')
-          .select('id')
+          .select('id, status')
           .eq('id', user.id)
           .maybeSingle()
-        setInactive(!prof)
+        // Nonaktif (dijeda admin) diperlakukan sama dengan belum aktif.
+        setInactive(!prof || prof.status !== 'aktif')
       } else {
         setInactive(false)
       }
@@ -166,6 +278,7 @@ export default function KaryaPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_members' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_links' }, () => fetchData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_detail_points' }, () => fetchData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_stars' }, () => fetchData())
       .subscribe()
 
@@ -292,9 +405,30 @@ export default function KaryaPage() {
         }
       }
 
-      if (isKelompok && pickedMembers.size > 0) {
+      // Detail poin (Gelombang C) — kosong/invalid otomatis dilewati.
+      const points = formPoints
+        .map((p, i) => ({ p, v: pointToValue(p), i }))
+        .filter((x): x is { p: FormPoint; v: PointValue; i: number } => x.v !== null)
+      if (points.length > 0) {
+        const { error: ptsErr } = await supabase.from('project_detail_points').insert(
+          points.map(({ p, v, i }) => ({
+            project_id: inserted.id,
+            point_type: p.point_type,
+            title: p.title.trim() || null,
+            value: v,
+            sort_order: i,
+          }))
+        )
+        if (ptsErr) {
+          // Rollback: gak boleh ada karya setengah keisi.
+          await supabase.from('projects').delete().eq('id', inserted.id)
+          throw new Error('Gagal menyimpan detail karya — karya dibatalkan. Coba lagi.')
+        }
+      }
+
+      if (isKelompok && pickedMembers.filter(Boolean).length > 0) {
         const { error: memErr } = await supabase.from('project_members').insert(
-          Array.from(pickedMembers).map((uid) => ({ project_id: inserted.id, user_id: uid }))
+          pickedMembers.filter(Boolean).map((uid) => ({ project_id: inserted.id, user_id: uid }))
         )
         if (memErr) {
           // Rollback: jangan sisain karya yatim tanpa anggota — batalkan insert
@@ -306,7 +440,8 @@ export default function KaryaPage() {
 
       setForm(emptyForm)
       setFormLinks([emptyLink()])
-      setPickedMembers(new Set())
+      setFormPoints([])
+      setPickedMembers([])
       setIsKelompok(false)
       setShowForm(false)
       setSuccessMsg('Karya terkirim! Menunggu persetujuan admin sebelum tampil publik.')
@@ -527,6 +662,22 @@ export default function KaryaPage() {
                 </p>
               )}
 
+              {/* Detail poin (Gelombang C) */}
+              {(detail.detail_points || []).length > 0 && (
+                <div className="space-y-4">
+                  {(detail.detail_points || []).map((pt, i) => (
+                    <div key={i}>
+                      {pt.title && (
+                        <p className="mb-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark/50">
+                          {'// '}{pt.title}
+                        </p>
+                      )}
+                      {renderPoint(pt)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Sosmed chips pembuat */}
               <div>
                 {socialChips(mergedSocials(detail))}
@@ -664,6 +815,140 @@ export default function KaryaPage() {
                 </button>
               </div>
 
+              {/* Detail poin — Gelombang C */}
+              <div>
+                <label className="font-mono text-xs font-bold uppercase text-dark">
+                  Detail Karya ({formPoints.length} poin)
+                </label>
+                <p className="mt-0.5 font-mono text-[10px] text-dark/50">
+                  // opsional — jelaskan karyamu per poin, formatnya bebas
+                </p>
+                <div className="mt-2 space-y-3">
+                  {formPoints.map((pt, i) => (
+                    <div key={i} className="border-2 border-dark bg-paper/60 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={pt.point_type}
+                          onChange={(e) => {
+                            const next = [...formPoints]
+                            next[i] = emptyPoint(e.target.value as PointType)
+                            setFormPoints(next)
+                          }}
+                          className="border-2 border-dark bg-white px-2 py-1.5 font-mono text-xs font-bold"
+                        >
+                          {POINT_TYPES.map(([v, lbl]) => (
+                            <option key={v} value={v}>{lbl}</option>
+                          ))}
+                        </select>
+                        <input
+                          value={pt.title}
+                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                          className="min-w-0 flex-1 border-2 border-dark px-2 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                          placeholder="Judul poin (mis. Bahasa / Palette / Rilis)"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setFormPoints(formPoints.filter((_, j) => j !== i))}
+                          className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                          title="Hapus poin"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {pt.point_type === 'teks' && (
+                        <textarea
+                          value={pt.text}
+                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+                          rows={3}
+                          className="w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                          placeholder="Penjelasan..."
+                        />
+                      )}
+                      {pt.point_type === 'chips' && (
+                        <input
+                          value={pt.chips}
+                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, chips: e.target.value } : x)))}
+                          className="w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                          placeholder="Python, JavaScript, Figma (pisah dengan koma)"
+                        />
+                      )}
+                      {pt.point_type === 'warna' && (
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-2">
+                            {pt.colors.map((c, ci) => (
+                              <div key={ci} className="flex items-center gap-1">
+                                <input
+                                  type="color"
+                                  value={/^#[0-9a-fA-F]{6}$/.test(c) ? c : '#ffffff'}
+                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.map((cc, cj) => (cj === ci ? e.target.value : cc)) } : x)))}
+                                  className="h-8 w-10 border-2 border-dark bg-white"
+                                />
+                                <span className="font-mono text-[10px] text-dark/60">{c}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.filter((_, cj) => cj !== ci) } : x)))}
+                                  className="text-dark/50 hover:text-maroon"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: [...x.colors, '#7A1B2E'] } : x)))}
+                            className="inline-flex items-center gap-1 border-2 border-dark bg-white px-2 py-1 font-mono text-[10px] font-bold hover:bg-[#FFF3C4]"
+                          >
+                            <Plus className="w-3 h-3" /> Tambah Warna
+                          </button>
+                        </div>
+                      )}
+                      {pt.point_type === 'link' && (
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            value={pt.url}
+                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                            className="min-w-0 flex-1 border-2 border-dark px-3 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                            placeholder="https://..."
+                          />
+                          <input
+                            value={pt.linkLabel}
+                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, linkLabel: e.target.value } : x)))}
+                            className="w-32 border-2 border-dark px-2 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                            placeholder="Label"
+                          />
+                        </div>
+                      )}
+                      {pt.point_type === 'tabel' && (
+                        <div className="space-y-2">
+                          <input
+                            value={pt.columns}
+                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, columns: e.target.value } : x)))}
+                            className="w-full border-2 border-dark px-3 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                            placeholder="Nama kolom, pisah koma: Versi, Tanggal, Catatan"
+                          />
+                          <textarea
+                            value={pt.rowsText}
+                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, rowsText: e.target.value } : x)))}
+                            rows={3}
+                            className="w-full border-2 border-dark px-3 py-2 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                            placeholder={'Satu baris per entri, sel pisah koma:\n1.0, 12 Okt, Rilis pertama'}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormPoints([...formPoints, emptyPoint()])}
+                  className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-paper px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Tambah Poin
+                </button>
+              </div>
+
               {/* Tipe karya */}
               <div>
                 <label className="font-mono text-xs font-bold uppercase text-dark">Tipe</label>
@@ -686,29 +971,59 @@ export default function KaryaPage() {
               {isKelompok && (
                 <div>
                   <label className="font-mono text-xs font-bold uppercase text-dark">
-                    Anggota Kelompok ({pickedMembers.size} dipilih)
+                    Anggota Kelompok ({pickedMembers.filter(Boolean).length} dipilih)
                   </label>
                   {directory == null ? (
                     <p className="mt-1 font-mono text-xs text-dark/50">Memuat daftar anggota...</p>
                   ) : (
-                    <div className="mt-1 max-h-44 overflow-y-auto border-2 border-dark divide-y-2 divide-dark/10">
-                      {directory.map((d) => (
-                        <label key={d.id} className="flex items-center gap-2 px-3 py-2 font-mono text-sm cursor-pointer hover:bg-[#FFF3C4]/50">
-                          <input
-                            type="checkbox"
-                            checked={pickedMembers.has(d.id)}
+                    <div className="mt-1 space-y-2">
+                      {/* Kotak per anggota — kosong = belum dipilih */}
+                      {pickedMembers.map((id, i) => {
+                        const d = directory.find((x) => x.id === id)
+                        return d ? (
+                          <div key={i} className="flex items-center justify-between border-2 border-dark bg-white px-3 py-2">
+                            <div className="flex flex-col gap-1">
+                              <span className="font-mono text-sm font-bold">{d.full_name}</span>
+                              {socialChips(d)}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setPickedMembers(pickedMembers.filter((_, j) => j !== i))}
+                              className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                              title="Keluarkan dari kelompok"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <select
+                            key={i}
+                            value=""
                             onChange={(e) => {
-                              setPickedMembers((prev) => {
-                                const next = new Set(prev)
-                                e.target.checked ? next.add(d.id) : next.delete(d.id)
-                                return next
-                              })
+                              if (!e.target.value) return
+                              const next = [...pickedMembers]
+                              next[i] = e.target.value
+                              setPickedMembers(next)
                             }}
-                            className="accent-[#7A1B2E] w-4 h-4"
-                          />
-                          {d.full_name}
-                        </label>
-                      ))}
+                            className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
+                          >
+                            <option value="">Pilih anggota…</option>
+                            {directory
+                              .filter((x) => !pickedMembers.includes(x.id))
+                              .map((x) => (
+                                <option key={x.id} value={x.id}>{x.full_name}</option>
+                              ))}
+                          </select>
+                        )
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => setPickedMembers([...pickedMembers, ''])}
+                        disabled={directory.filter((x) => !pickedMembers.includes(x.id)).length <= 0}
+                        className="inline-flex items-center gap-1 border-2 border-dark bg-paper px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Orang
+                      </button>
                     </div>
                   )}
                 </div>
