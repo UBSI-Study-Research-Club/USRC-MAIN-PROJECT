@@ -1,5 +1,5 @@
 -- ========================================================
--- USRC Web — Supabase Schema & RLS Setup (SPEC.md v1.1)
+-- USRC Web — Supabase Schema & RLS Setup (SPEC.md v1.2 — Gelombang B)
 -- Project: wagvbmkimpswiidnenwx
 -- ========================================================
 
@@ -16,6 +16,11 @@ create table profiles (
   nim text unique,
   prodi text not null check (prodi in ('Informatika', 'Sistem Informasi', 'SI Akuntansi')),
   role role_t not null default 'anggota',
+  -- Sosmed pembuat (Gelombang B) — URL penuh, opsional, diedit di /profil
+  instagram text,
+  github text,
+  behance text,
+  linkedin text,
   created_at timestamptz default now()
 );
 
@@ -54,17 +59,28 @@ create table attendances (
   unique (meeting_id, user_id)
 );
 
--- PROJECTS (Fase 2)
+-- PROJECTS (Fase 2.1 — link fleksibel pindah ke project_links)
 create table projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
   title text not null,
   description text,
   image_url text,
-  repo_url text,
-  live_url text,
   category text,
   status text not null default 'pending' check (status in ('pending', 'approved')),
+  created_at timestamptz default now()
+);
+
+-- PROJECT_LINKS (Gelombang B — lampiran fleksibel per karya, maks 6 di form)
+create table project_links (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  link_type text not null check (link_type in (
+    'repo', 'live', 'instagram', 'youtube', 'behance',
+    'figma', 'portfolio', 'image', 'other'
+  )),
+  url text not null,
+  label text,
   created_at timestamptz default now()
 );
 
@@ -167,6 +183,29 @@ create policy "Owner or Admin update/delete project"
   on projects for all
   using (auth.uid() = user_id or get_my_role() = 'admin');
 
+-- PROJECT_LINKS POLICIES (Gelombang B)
+create policy "Read links of visible projects"
+  on project_links for select
+  using (
+    exists (
+      select 1 from projects p
+      where p.id = project_id
+        and (p.status = 'approved' or p.user_id = auth.uid())
+    )
+    or get_my_role() = 'admin'
+  );
+
+create policy "Owner manages links, admin all"
+  on project_links for all
+  using (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or get_my_role() = 'admin'
+  )
+  with check (
+    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
+    or get_my_role() = 'admin'
+  );
+
 -- PROJECT MEMBERS (Fase 2 revamp: karya kelompok) — pembuat tambahan selain owner
 create table project_members (
   project_id uuid not null references projects(id) on delete cascade,
@@ -235,10 +274,11 @@ create policy "Member unstars own star, admin all"
   on project_stars for delete
   using (user_id = auth.uid() or get_my_role() = 'admin');
 
--- RPC KARYA (Fase 2 revamp)
+-- RPC KARYA (Fase 2.1 — Gelombang B)
 -- RLS profiles melarang publik baca nama anggota, tapi card karya harus
--- nampilin "Dibuat oleh siapa" ke tamu → security definer, cuma bocorin
--- nama + agregat bintang milik karya APPROVED.
+-- nampilin "Dibuat oleh siapa" + sosmed pembuat ke tamu → security definer,
+-- cuma bocorin nama, sosmed, dan agregat bintang milik karya APPROVED.
+-- links: jsonb [{link_type,url,label}] · members: jsonb [{full_name,sosmed...}]
 create or replace function public.get_public_karya()
 returns table (
   id uuid,
@@ -246,24 +286,33 @@ returns table (
   description text,
   image_url text,
   category text,
-  repo_url text,
-  live_url text,
+  links jsonb,
   owner_id uuid,
   owner_name text,
-  members text[],
+  owner_socials jsonb,
+  members jsonb,
   stars bigint,
   created_at timestamptz
 )
 language sql security definer stable as $$
   select
-    p.id, p.title, p.description, p.image_url, p.category, p.repo_url, p.live_url,
-    p.user_id, o.full_name,
+    p.id, p.title, p.description, p.image_url, p.category,
     coalesce((
-      select array_agg(pr.full_name order by pr.full_name)
+      select jsonb_agg(jsonb_build_object('link_type', pl.link_type, 'url', pl.url, 'label', pl.label) order by pl.created_at)
+      from project_links pl
+      where pl.project_id = p.id
+    ), '[]'::jsonb),
+    p.user_id, o.full_name,
+    jsonb_build_object('instagram', o.instagram, 'github', o.github, 'behance', o.behance, 'linkedin', o.linkedin),
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'full_name', pr.full_name, 'instagram', pr.instagram,
+        'github', pr.github, 'behance', pr.behance, 'linkedin', pr.linkedin
+      ) order by pr.full_name)
       from project_members pm
       join profiles pr on pr.id = pm.user_id
       where pm.project_id = p.id
-    ), '{}'),
+    ), '[]'::jsonb),
     (select count(*) from project_stars ps where ps.project_id = p.id),
     p.created_at
   from projects p
@@ -275,10 +324,11 @@ $$;
 grant execute on function public.get_public_karya() to anon, authenticated;
 
 -- Daftar anggota buat form pilih kelompok (khusus yang login — anon ditolak).
+-- v2: ikut bawa sosmed buat kotak anggota (Gelombang C).
 create or replace function public.get_member_directory()
-returns table (id uuid, full_name text)
+returns table (id uuid, full_name text, instagram text, github text, behance text, linkedin text)
 language sql security definer stable as $$
-  select id, full_name from profiles order by full_name;
+  select id, full_name, instagram, github, behance, linkedin from profiles order by full_name;
 $$;
 
 grant execute on function public.get_member_directory() to authenticated;
@@ -325,6 +375,12 @@ end $$;
 do $$
 begin
   alter publication supabase_realtime add table project_stars;
+exception when duplicate_object then null;
+end $$;
+
+do $$
+begin
+  alter publication supabase_realtime add table project_links;
 exception when duplicate_object then null;
 end $$;
 
