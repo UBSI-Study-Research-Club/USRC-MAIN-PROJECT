@@ -128,6 +128,12 @@ create policy "Update own name or admin update all"
   on profiles for update
   using (auth.uid() = id or get_my_role() = 'admin');
 
+-- Hapus anggota = admin saja (Gelombang C — tombol Keluarkan).
+-- Tanpa policy ini RLS menolak semua delete, bahkan dari admin.
+create policy "Admin delete member"
+  on profiles for delete
+  using (get_my_role() = 'admin');
+
 -- REGISTRATIONS POLICIES
 create policy "Public insert registration"
   on registrations for insert

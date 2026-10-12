@@ -300,7 +300,7 @@ function AdminDashboardContent() {
 
   // Keluarkan anggota — HAPUS permanen, cascade semua datanya (Gelombang C)
   const handleKickMember = async (member: Profile) => {
-    if (!confirm(`PERMANEN: keluarkan ${member.full_name}? SEMUA datanya ikut terhapus — karya, absen, pendaftaran — dan tidak bisa dikembalikan.`)) return
+    if (!confirm(`PERMANEN: keluarkan ${member.full_name}? SEMUA datanya ikut terhapus — karya, absen, bintang, anggotaan kelompok — dan tidak bisa dikembalikan. (Akun login-nya tetap ada di Supabase Auth.)`)) return
     if (!confirm('Yakin 100%? Aksi ini gak ada jalan balik.')) return
     startTransition(async () => {
       try {
