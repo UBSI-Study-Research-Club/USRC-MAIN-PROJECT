@@ -54,25 +54,17 @@ create table attendances (
   unique (meeting_id, user_id)
 );
 
--- PROJECTS (Fase 2 revamp: flexible links)
+-- PROJECTS (Fase 2)
 create table projects (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references profiles(id) on delete cascade,
   title text not null,
   description text,
   image_url text,
+  repo_url text,
+  live_url text,
   category text,
   status text not null default 'pending' check (status in ('pending', 'approved')),
-  created_at timestamptz default now()
-);
-
--- PROJECT_LINKS (flexible: repo, live, instagram, youtube, portfolio, etc)
-create table project_links (
-  id uuid primary key default gen_random_uuid(),
-  project_id uuid not null references projects(id) on delete cascade,
-  link_type text not null check (link_type in ('repository', 'live', 'instagram', 'youtube', 'portfolio', 'behance', 'figma', 'other')),
-  url text not null,
-  label text,
   created_at timestamptz default now()
 );
 
@@ -208,32 +200,6 @@ create policy "Owner manages members, member can leave, admin all"
     or get_my_role() = 'admin'
   );
 
--- PROJECT_LINKS (flexible links)
-alter table project_links enable row level security;
-
-create policy "Read links of visible projects"
-  on project_links for select
-  using (
-    exists (
-      select 1 from projects p
-      where p.id = project_id
-        and (p.status = 'approved' or p.user_id = auth.uid())
-    )
-    or get_my_role() = 'admin'
-  );
-
--- Owner/admin manage links
-create policy "Owner manages links, admin all"
-  on project_links for all
-  using (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
-  )
-  with check (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
-  );
-
 -- PROJECT STARS (Fase 2 revamp: 1 anggota = 1 bintang per karya, toggle)
 create table project_stars (
   project_id uuid not null references projects(id) on delete cascade,
@@ -272,7 +238,7 @@ create policy "Member unstars own star, admin all"
 -- RPC KARYA (Fase 2 revamp)
 -- RLS profiles melarang publik baca nama anggota, tapi card karya harus
 -- nampilin "Dibuat oleh siapa" ke tamu → security definer, cuma bocorin
--- nama + agregat bintang milik karya APPROVED. Links juga di-include.
+-- nama + agregat bintang milik karya APPROVED.
 create or replace function public.get_public_karya()
 returns table (
   id uuid,
@@ -280,16 +246,17 @@ returns table (
   description text,
   image_url text,
   category text,
+  repo_url text,
+  live_url text,
   owner_id uuid,
   owner_name text,
   members text[],
-  links jsonb,
   stars bigint,
   created_at timestamptz
 )
 language sql security definer stable as $$
   select
-    p.id, p.title, p.description, p.image_url, p.category,
+    p.id, p.title, p.description, p.image_url, p.category, p.repo_url, p.live_url,
     p.user_id, o.full_name,
     coalesce((
       select array_agg(pr.full_name order by pr.full_name)
@@ -297,18 +264,12 @@ language sql security definer stable as $$
       join profiles pr on pr.id = pm.user_id
       where pm.project_id = p.id
     ), '{}'),
-    coalesce(
-      jsonb_agg(jsonb_build_object('id', pl.id, 'type', pl.link_type, 'url', pl.url, 'label', pl.label) order by pl.created_at),
-      '[]'::jsonb
-    ),
     (select count(*) from project_stars ps where ps.project_id = p.id),
     p.created_at
   from projects p
   join profiles o on o.id = p.user_id
-  left join project_links pl on pl.project_id = p.id
   where p.status = 'approved'
-  group by p.id, p.title, p.description, p.image_url, p.category, p.user_id, o.full_name
-  order by 10 desc, p.created_at desc;
+  order by 11 desc, p.created_at desc;
 $$;
 
 grant execute on function public.get_public_karya() to anon, authenticated;
@@ -363,7 +324,7 @@ end $$;
 
 do $$
 begin
-  alter publication supabase_realtime add table project_links;
+  alter publication supabase_realtime add table project_stars;
 exception when duplicate_object then null;
 end $$;
 
