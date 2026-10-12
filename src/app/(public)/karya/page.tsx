@@ -21,6 +21,9 @@ type Karya = {
   members: string[] | null
   stars: number
   created_at: string
+  type?: 'code' | 'image' | 'film' | 'journal'  // Raken gelombang B
+  meta?: Record<string, any>  // project_detail_points jsonb, tipe-spesifik
+  links?: Array<{ type: string; url: string; label?: string }>  // project_links
 }
 
 type Directory = { id: string; full_name: string }
@@ -216,6 +219,180 @@ export default function KaryaPage() {
     )
   }
 
+  // ── Detail Renderer per tipe ──
+  const renderDetailContent = (k: Karya) => {
+    const tipe = k.type || 'code'
+    const meta = k.meta || {}
+
+    switch (tipe) {
+      case 'code':
+        return (
+          <div className="space-y-5">
+            <div>
+              <p className="text-sm leading-relaxed text-dark/80">
+                {k.description}
+              </p>
+            </div>
+            {meta.features && Array.isArray(meta.features) && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Fitur
+                </h3>
+                <ul className="space-y-1.5">
+                  {meta.features.map((f: string, i: number) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-dark/80">
+                      <span className="text-maroon font-bold mt-0.5">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {meta.tech && Array.isArray(meta.tech) && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Teknologi
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {meta.tech.map((t: string, i: number) => (
+                    <span key={i} className="border border-dark px-2 py-1 bg-paper text-xs font-mono text-dark">
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      case 'image':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                // Tentang karya
+              </h3>
+              <p className="text-sm text-dark/80">{k.description}</p>
+            </div>
+            {meta.specs && typeof meta.specs === 'object' && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Spesifikasi
+                </h3>
+                <div className="border border-dark divide-y divide-dark/20">
+                  {Object.entries(meta.specs).map(([key, val], i) => (
+                    <div key={i} className="flex justify-between p-2 text-xs">
+                      <span className="text-dark/60 font-mono">{key}</span>
+                      <span className="text-dark font-mono">{String(val)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {meta.palette && Array.isArray(meta.palette) && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Palet warna
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {meta.palette.map((color: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div className="w-6 h-6 border border-dark" style={{ backgroundColor: color }} />
+                      <span className="text-xs font-mono text-dark">{color}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      case 'film':
+        return (
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                // Sinopsis
+              </h3>
+              <p className="text-sm text-dark/80">{k.description}</p>
+            </div>
+            {meta.specs && typeof meta.specs === 'object' && (
+              <div className="border border-dark divide-y divide-dark/20">
+                {Object.entries(meta.specs).map(([key, val], i) => (
+                  <div key={i} className="flex justify-between p-2 text-xs">
+                    <span className="text-dark/60 font-mono">{key}</span>
+                    <span className="text-dark font-mono">{String(val)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {meta.credits && Array.isArray(meta.credits) && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Kru
+                </h3>
+                <div className="space-y-1.5">
+                  {meta.credits.map((c: [string, string], i: number) => (
+                    <div key={i} className="flex justify-between text-xs">
+                      <span className="text-dark/60 font-mono">{c[0]}</span>
+                      <span className="text-dark">{c[1]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      case 'journal':
+        return (
+          <div className="space-y-4">
+            {meta.kind && (
+              <div className="text-[10px] font-mono text-maroon font-bold uppercase">
+                // {meta.kind}
+              </div>
+            )}
+            {meta.affiliation && (
+              <p className="text-xs text-dark/70 italic">{meta.affiliation}</p>
+            )}
+            {meta.specs && typeof meta.specs === 'object' && (
+              <div className="border border-dark divide-y divide-dark/20 text-xs">
+                {Object.entries(meta.specs).map(([key, val], i) => (
+                  <div key={i} className="flex justify-between p-2">
+                    <span className="text-dark/60 font-mono">{key}</span>
+                    <span className="text-dark">{String(val)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div>
+              <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                // Abstrak
+              </h3>
+              <p className="text-sm text-dark/80 leading-relaxed">{k.description}</p>
+            </div>
+            {meta.keywords && Array.isArray(meta.keywords) && (
+              <div>
+                <h3 className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase text-maroon mb-2">
+                  // Kata kunci
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {meta.keywords.map((kw: string, i: number) => (
+                    <span key={i} className="border border-dark px-2 py-1 bg-paper text-xs font-mono text-dark">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )
+
+      default:
+        return <p className="text-sm text-dark/80">{k.description}</p>
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-24">
@@ -350,7 +527,7 @@ export default function KaryaPage() {
           >
             <div className="flex items-center justify-between border-b-[3px] border-dark bg-paper px-4 py-3 sticky top-0">
               <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark/60">
-                DETAIL KARYA
+                // Detail karya · <span className="text-maroon">{detail.type || 'code'}</span>
               </span>
               <button
                 onClick={() => setDetail(null)}
@@ -359,35 +536,49 @@ export default function KaryaPage() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 md:p-6">
+            <div className="p-5 md:p-6 space-y-4">
               {detail.image_url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={detail.image_url}
                   alt={detail.title}
-                  className="w-full max-h-72 object-cover border-2 border-dark mb-4"
+                  className="w-full max-h-72 object-cover border-2 border-dark"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
               )}
-              {detail.category && (
-                <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase bg-[#FFF3C4] border border-dark px-2 py-0.5">
-                  {detail.category}
-                </span>
-              )}
-              <h2 className="mt-2 text-2xl font-black uppercase font-[family-name:var(--font-outfit)] text-maroon">
-                {detail.title}
-              </h2>
-              <p className="mt-1 flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/70">
-                <Users className="w-3.5 h-3.5 text-maroon shrink-0 mt-0.5" />
-                <span>Dibuat oleh {creatorsOf(detail)}</span>
-              </p>
-              {detail.description && (
-                <p className="mt-4 text-sm font-[family-name:var(--font-ibm-plex-mono)] text-dark/80 whitespace-pre-wrap">
-                  {detail.description}
+              
+              <div>
+                {detail.category && (
+                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase bg-[#FFF3C4] border border-dark px-2 py-0.5 inline-block mb-3">
+                    {detail.category}
+                  </span>
+                )}
+                <h2 className="text-2xl font-black uppercase font-[family-name:var(--font-outfit)] text-maroon">
+                  {detail.title}
+                </h2>
+                <p className="mt-2 flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/70">
+                  <Users className="w-3.5 h-3.5 text-maroon shrink-0 mt-0.5" />
+                  <span>Dibuat oleh {creatorsOf(detail)}</span>
                 </p>
-              )}
-              <div className="mt-5 flex flex-wrap items-center gap-2">
+              </div>
+
+              {/* Detail content per tipe */}
+              {renderDetailContent(detail)}
+
+              {/* Link & Action Footer */}
+              <div className="border-t-2 border-dark pt-4 mt-6 flex flex-wrap items-center gap-2">
                 {starBtn(detail, true)}
+                {detail.links && Array.isArray(detail.links) && detail.links.map((link: any, i: number) => (
+                  <a
+                    key={i}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                  >
+                    {link.label || link.type}
+                  </a>
+                ))}
                 {detail.repo_url && (
                   <a
                     href={detail.repo_url}
