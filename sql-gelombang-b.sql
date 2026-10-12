@@ -22,6 +22,13 @@ alter table profiles add column if not exists linkedin  text;
 
 -- ============ 3. TABEL PROJECT_LINKS ============
 -- Lampiran fleksibel per karya — maks 6 divalidasi di form (bukan DB).
+-- ⚠ Kalau tabel ini SUDAH ada dari eksperimen lama (PR #26), create table
+--   if not exists di bawah akan di-skip dan constraint lama ('repository',
+--   tanpa 'image') tetap nempel → form karya gagal insert. Setelah Run,
+--   pastikan constraint-nya versi baru:
+--     alter table project_links drop constraint if exists project_links_link_type_check;
+--     alter table project_links add constraint project_links_link_type_check
+--       check (link_type in ('repo','live','instagram','youtube','behance','figma','portfolio','image','other'));
 create table if not exists project_links (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references projects(id) on delete cascade,
@@ -33,6 +40,15 @@ create table if not exists project_links (
   label text,
   created_at timestamptz default now()
 );
+
+-- Paksa constraint versi baru (idempotent — untuk DB yang tabelnya
+-- kebentuk dari SQL lama PR #26 dengan daftar tipe beda).
+alter table project_links drop constraint if exists project_links_link_type_check;
+alter table project_links add constraint project_links_link_type_check
+  check (link_type in (
+    'repo', 'live', 'instagram', 'youtube', 'behance',
+    'figma', 'portfolio', 'image', 'other'
+  ));
 alter table project_links enable row level security;
 
 drop policy if exists "Read links of visible projects" on project_links;
