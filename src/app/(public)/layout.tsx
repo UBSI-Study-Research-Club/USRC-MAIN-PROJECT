@@ -54,7 +54,7 @@ export default async function PublicLayout({
           {/* CTA */}
           {user ? (
             <Link
-              href="/absen"
+              href="/dashboard/absen"
               className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
             >
               DASHBOARD
