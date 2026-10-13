@@ -49,7 +49,7 @@ function AbsenBanner() {
           </div>
           {active[0].status === null ? (
             <Link
-              href="/absen"
+              href="/dashboard/absen"
               className="text-xs font-mono font-bold bg-white text-[#7A1B2E] border border-white px-2 py-1 hover:bg-[#F5F3EF] transition-colors shrink-0"
             >
               ABSEN SEKARANG →

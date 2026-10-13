@@ -527,7 +527,7 @@ export default function LandingPage() {
               {isLoggedIn ? (
                 <>
                   <Link
-                    href="/absen"
+                    href="/dashboard/absen"
                     className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
                   >
                     Masuk Absen

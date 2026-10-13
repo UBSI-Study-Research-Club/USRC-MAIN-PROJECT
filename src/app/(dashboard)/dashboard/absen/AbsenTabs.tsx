@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const TABS = [
-  { href: '/absen', label: 'Sesi Aktif' },
-  { href: '/absen/riwayat', label: 'Riwayat' },
+  { href: '/dashboard/absen', label: 'Sesi Aktif' },
+  { href: '/dashboard/absen/riwayat', label: 'Riwayat' },
 ]
 
 export function AbsenTabs() {
@@ -14,9 +14,9 @@ export function AbsenTabs() {
     <div className="flex gap-2">
       {TABS.map((tab) => {
         const active =
-          tab.href === '/absen'
-            ? pathname === '/absen'
-            : pathname.startsWith('/absen/riwayat')
+          tab.href === '/dashboard/absen'
+            ? pathname === '/dashboard/absen'
+            : pathname.startsWith('/dashboard/absen/riwayat')
         return (
           <Link
             key={tab.href}
