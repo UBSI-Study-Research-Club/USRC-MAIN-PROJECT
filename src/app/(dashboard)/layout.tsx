@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, ClipboardList, LogOut, Home, User } from 'lucide-react'
+import { Users, ClipboardList, LogOut, Home, User, LayoutDashboard } from 'lucide-react'
 import { NavLink } from './NavLink'
 
 export default async function DashboardLayout({
@@ -31,7 +31,7 @@ export default async function DashboardLayout({
       {/* Top Navigation Bar */}
       <header className="border-b-2 border-[#1A1A1A] bg-white sticky top-0 z-50 px-4 py-3 shadow-[0_2px_0_#1A1A1A]">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/absen" className="flex items-center gap-2 group">
+          <Link href="/dashboard" className="flex items-center gap-2 group">
             <div className="w-9 h-9 bg-[#7A1B2E] border-2 border-[#1A1A1A] shadow-[2px_2px_0_#1A1A1A] flex items-center justify-center text-white font-black text-lg group-hover:translate-x-0.5 group-hover:translate-y-0.5 transition-transform">
               U
             </div>
@@ -45,6 +45,11 @@ export default async function DashboardLayout({
             <NavLink href="/">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
+            </NavLink>
+
+            <NavLink href="/dashboard">
+              <LayoutDashboard className="w-4 h-4" />
+              <span className="hidden sm:inline">Feed</span>
             </NavLink>
 
             <NavLink href="/absen">
