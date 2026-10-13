@@ -35,6 +35,7 @@ create table registrations (
   nim text not null,
   prodi text not null check (prodi in ('Informatika', 'Sistem Informasi', 'SI Akuntansi')),
   reason text,
+  hobbies text[],
   status text not null default 'pending' check (status in ('pending', 'approved', 'rejected')),
   created_at timestamptz default now(),
   constraint registrations_email_nim_key unique (email, nim)
@@ -493,12 +494,13 @@ begin
   if found then
     select id into u_id from auth.users where lower(email) = lower(reg.email) limit 1;
     if u_id is not null then
-      insert into public.profiles (id, full_name, nim, prodi, role)
-      values (u_id, reg.full_name, reg.nim, reg.prodi, 'anggota')
+      insert into public.profiles (id, full_name, nim, prodi, role, hobbies)
+      values (u_id, reg.full_name, reg.nim, reg.prodi, 'anggota', reg.hobbies)
       on conflict (id) do update set
         full_name = EXCLUDED.full_name,
         nim = EXCLUDED.nim,
-        prodi = EXCLUDED.prodi;
+        prodi = EXCLUDED.prodi,
+        hobbies = coalesce(EXCLUDED.hobbies, public.profiles.hobbies);
     end if;
   end if;
 end;
