@@ -103,8 +103,8 @@ export default function LoginPage() {
       return;
     }
 
-    // Success, redirect to member attendance page
-    router.push('/absen');
+    // Success — langsung ke dashboard anggota sesuai PRD Phase 3
+    router.push('/dashboard');
   };
 
   return (
