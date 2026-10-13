@@ -37,12 +37,24 @@ type Project = {
   } | null
 }
 
+type ActivityData = {
+  id: string
+  full_name: string
+  nim: string
+  hobbies?: string[] | null
+  total_sessions: number
+  attended: number
+  absent: number
+  izin: number
+  attendance_rate: number
+}
+
 function AdminDashboardContent() {
   const [userRole, setUserRole] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'anggota' | 'karya' | 'sesi'>('anggota')
-  const [animatingTab, setAnimatingTab] = useState<'anggota' | 'karya' | 'sesi' | null>(null)
+  const [activeTab, setActiveTab] = useState<'anggota' | 'karya' | 'sesi' | 'pendataan'>('anggota')
+  const [animatingTab, setAnimatingTab] = useState<'anggota' | 'karya' | 'sesi' | 'pendataan' | null>(null)
   const reduceMotion = useReducedMotion()
   const [isPending, startTransition] = useTransition()
 
@@ -59,7 +71,11 @@ function AdminDashboardContent() {
   const [meetings, setMeetings] = useState<MeetingRow[]>([])
   const [loadingMeetings, setLoadingMeetings] = useState(true)
 
-  const handleTabChange = (newTab: 'anggota' | 'karya' | 'sesi') => {
+  // PENDATAAN Tab
+  const [activityData, setActivityData] = useState<ActivityData[]>([])
+  const [loadingActivityData, setLoadingActivityData] = useState(true)
+
+  const handleTabChange = (newTab: 'anggota' | 'karya' | 'sesi' | 'pendataan') => {
     if (newTab === activeTab) return
     if (!reduceMotion) setAnimatingTab(activeTab)
     setActiveTab(newTab)
@@ -373,20 +389,94 @@ function AdminDashboardContent() {
     m.nim.includes(searchQuery)
   )
 
+  // Fetch activity data (hobbies + attendance stats)
+  useEffect(() => {
+    if (userRole !== 'admin') return
+
+    const fetchActivity = async () => {
+      try {
+        setLoadingActivityData(true)
+        
+        // Fetch all profiles with hobbies
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, nim, hobbies')
+          .order('full_name', { ascending: true })
+
+        if (profilesError) throw profilesError
+
+        // Fetch all attendance records
+        const { data: attendances, error: attendancesError } = await supabase
+          .from('attendances')
+          .select('profile_id, status')
+
+        if (attendancesError) throw attendancesError
+
+        // Build attendance map: { profile_id -> { attended, absent, izin, total } }
+        const attendanceMap: Record<string, { attended: number; absent: number; izin: number; total: number }> = {}
+        
+        ;(attendances || []).forEach(att => {
+          if (!attendanceMap[att.profile_id]) {
+            attendanceMap[att.profile_id] = { attended: 0, absent: 0, izin: 0, total: 0 }
+          }
+          attendanceMap[att.profile_id].total++
+          if (att.status === 'hadir') attendanceMap[att.profile_id].attended++
+          else if (att.status === 'alpha') attendanceMap[att.profile_id].absent++
+          else if (att.status === 'izin') attendanceMap[att.profile_id].izin++
+        })
+
+        // Build activity data
+        const data: ActivityData[] = (profiles || []).map(p => {
+          const stats = attendanceMap[p.id] || { attended: 0, absent: 0, izin: 0, total: 0 }
+          const rate = stats.total > 0 ? (stats.attended / stats.total) * 100 : 0
+          return {
+            id: p.id,
+            full_name: p.full_name,
+            nim: p.nim,
+            hobbies: p.hobbies || null,
+            total_sessions: stats.total,
+            attended: stats.attended,
+            absent: stats.absent,
+            izin: stats.izin,
+            attendance_rate: Math.round(rate * 100) / 100
+          }
+        })
+
+        setActivityData(data)
+      } catch (err: any) {
+        setError(err.message || 'Gagal memuat data aktivitas.')
+      } finally {
+        setLoadingActivityData(false)
+      }
+    }
+
+    fetchActivity()
+
+    const activityChannel = supabase
+      .channel('admin-activity-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendances' }, () => fetchActivity())
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(activityChannel)
+    }
+  }, [userRole])
+
   // Paper Stack Animation Colors
-  const TAB_COLORS: Record<'anggota' | 'karya' | 'sesi', string> = {
+  const TAB_COLORS: Record<'anggota' | 'karya' | 'sesi' | 'pendataan', string> = {
     anggota: '#FFFFFF',
     karya: '#FFF9DC',
     sesi: '#F8D7DA',
+    pendataan: '#E1F5E1',
   }
 
   // Stack Deck Order
   const stackDeckByTab: Record<
-    'anggota' | 'karya' | 'sesi',
+    'anggota' | 'karya' | 'sesi' | 'pendataan',
     {
-      front: 'anggota' | 'karya' | 'sesi'
-      middle: 'anggota' | 'karya' | 'sesi'
-      back: 'anggota' | 'karya' | 'sesi'
+      front: 'anggota' | 'karya' | 'sesi' | 'pendataan'
+      middle: 'anggota' | 'karya' | 'sesi' | 'pendataan'
+      back: 'anggota' | 'karya' | 'sesi' | 'pendataan'
     }
   > = {
     anggota: {
@@ -396,11 +486,16 @@ function AdminDashboardContent() {
     },
     karya: {
       front: 'karya',
-      middle: 'anggota',
-      back: 'sesi',
+      middle: 'sesi',
+      back: 'pendataan',
     },
     sesi: {
       front: 'sesi',
+      middle: 'pendataan',
+      back: 'anggota',
+    },
+    pendataan: {
+      front: 'pendataan',
       middle: 'anggota',
       back: 'karya',
     },
@@ -518,6 +613,22 @@ function AdminDashboardContent() {
           >
             <CalendarDays className="h-4 w-4 shrink-0" />
             <span>Sesi Absen</span>
+          </button>
+
+          {/* Tab 3: Pendataan Aktif (Gelombang C) */}
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'pendataan'}
+            onClick={() => handleTabChange('pendataan')}
+            className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              activeTab === 'pendataan'
+                ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
+                : 'z-[7] bg-[#E1F5E1] text-[#1A1A1A] hover:-translate-y-1 shadow-[2px_0_0_#1A1A1A]'
+            }`}
+          >
+            <Users className="h-4 w-4 shrink-0" />
+            <span>Pendataan Aktif</span>
           </button>
         </div>
 
@@ -859,6 +970,97 @@ function AdminDashboardContent() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab Content: Pendataan Aktif (Gelombang C) */}
+        {activeTab === 'pendataan' && (
+          <div className="space-y-4">
+            <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
+              <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
+                <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                  Rekap Aktivitas Anggota ({activityData.length})
+                </h3>
+                <span className="font-mono text-[10px] bg-[#E1F5E1] border border-[#1A1A1A] px-2 py-0.5 font-bold">
+                  Hobi + Kehadiran
+                </span>
+              </div>
+
+              {loadingActivityData ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
+                </div>
+              ) : activityData.length === 0 ? (
+                <div className="p-8 text-center font-mono text-xs text-gray-500">
+                  Belum ada data aktivitas anggota.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">Nama</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A]">Hobi/Minat</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Total</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Hadir</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Alpha</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Izin</th>
+                        <th className="p-3 text-center">Tingkat %</th>
+                      </tr>
+                    </thead>
+                    <tbody className="font-['Work_Sans'] text-sm">
+                      {activityData.map((member) => (
+                        <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
+                          <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
+                            {member.full_name}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
+                            {member.nim}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-xs max-w-xs">
+                            {member.hobbies && member.hobbies.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {member.hobbies.map((hobby, idx) => (
+                                  <span key={idx} className="bg-[#E1F5E1] border border-[#1A1A1A] px-2 py-0.5 font-mono text-[10px] font-bold inline-block">
+                                    {hobby}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">-</span>
+                            )}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-center font-bold">
+                            {member.total_sessions}
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-center">
+                            <span className="bg-[#D1E7DD] border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block">
+                              {member.attended}
+                            </span>
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-center">
+                            <span className="bg-[#F8D7DA] border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block text-[#7A1B2E]">
+                              {member.absent}
+                            </span>
+                          </td>
+                          <td className="p-3 border-r-2 border-[#1A1A1A] text-center">
+                            <span className="bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block">
+                              {member.izin}
+                            </span>
+                          </td>
+                          <td className="p-3 text-center font-bold">
+                            <span className={`border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block ${member.attendance_rate >= 80 ? 'bg-[#D1E7DD]' : member.attendance_rate >= 60 ? 'bg-[#FFF3C4]' : 'bg-[#F8D7DA]'}`}>
+                              {member.attendance_rate}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
