@@ -44,8 +44,7 @@ type ActivityData = {
   hobbies?: string[] | null
   total_sessions: number
   attended: number
-  absent: number
-  izin: number
+  pending: number
   attendance_rate: number
 }
 
@@ -405,29 +404,29 @@ function AdminDashboardContent() {
 
         if (profilesError) throw profilesError
 
-        // Fetch all attendance records
+        // Fetch all attendance records — kolom asli: user_id, status enum ('pending'|'approved')
         const { data: attendances, error: attendancesError } = await supabase
           .from('attendances')
-          .select('profile_id, status')
+          .select('user_id, status')
 
         if (attendancesError) throw attendancesError
 
-        // Build attendance map: { profile_id -> { attended, absent, izin, total } }
-        const attendanceMap: Record<string, { attended: number; absent: number; izin: number; total: number }> = {}
-        
+        // Build attendance map: { user_id -> { attended, pending, total } }
+        const attendanceMap: Record<string, { attended: number; pending: number; total: number }> = {}
+
         ;(attendances || []).forEach(att => {
-          if (!attendanceMap[att.profile_id]) {
-            attendanceMap[att.profile_id] = { attended: 0, absent: 0, izin: 0, total: 0 }
+          if (!attendanceMap[att.user_id]) {
+            attendanceMap[att.user_id] = { attended: 0, pending: 0, total: 0 }
           }
-          attendanceMap[att.profile_id].total++
-          if (att.status === 'hadir') attendanceMap[att.profile_id].attended++
-          else if (att.status === 'alpha') attendanceMap[att.profile_id].absent++
-          else if (att.status === 'izin') attendanceMap[att.profile_id].izin++
+          attendanceMap[att.user_id].total++
+          // DB cuma kenal 'approved' (hadir, disetujui sekre) dan 'pending' (menunggu)
+          if (att.status === 'approved') attendanceMap[att.user_id].attended++
+          else if (att.status === 'pending') attendanceMap[att.user_id].pending++
         })
 
         // Build activity data
         const data: ActivityData[] = (profiles || []).map(p => {
-          const stats = attendanceMap[p.id] || { attended: 0, absent: 0, izin: 0, total: 0 }
+          const stats = attendanceMap[p.id] || { attended: 0, pending: 0, total: 0 }
           const rate = stats.total > 0 ? (stats.attended / stats.total) * 100 : 0
           return {
             id: p.id,
@@ -436,8 +435,7 @@ function AdminDashboardContent() {
             hobbies: p.hobbies || null,
             total_sessions: stats.total,
             attended: stats.attended,
-            absent: stats.absent,
-            izin: stats.izin,
+            pending: stats.pending,
             attendance_rate: Math.round(rate * 100) / 100
           }
         })
@@ -1007,8 +1005,7 @@ function AdminDashboardContent() {
                         <th className="p-3 border-r-2 border-[#1A1A1A]">Hobi/Minat</th>
                         <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Total</th>
                         <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Hadir</th>
-                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Alpha</th>
-                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Izin</th>
+                        <th className="p-3 border-r-2 border-[#1A1A1A] text-center">Pending</th>
                         <th className="p-3 text-center">Tingkat %</th>
                       </tr>
                     </thead>
@@ -1044,12 +1041,7 @@ function AdminDashboardContent() {
                           </td>
                           <td className="p-3 border-r-2 border-[#1A1A1A] text-center">
                             <span className="bg-[#F8D7DA] border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block text-[#7A1B2E]">
-                              {member.absent}
-                            </span>
-                          </td>
-                          <td className="p-3 border-r-2 border-[#1A1A1A] text-center">
-                            <span className="bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-mono text-xs font-bold inline-block">
-                              {member.izin}
+                              {member.pending}
                             </span>
                           </td>
                           <td className="p-3 text-center font-bold">
