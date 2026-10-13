@@ -61,7 +61,7 @@ export function PixelStoryContainer() {
           pixel_accessories: member.pixel_accessories && member.pixel_accessories !== 'none'
             ? (ACCESSORY_MAP[member.pixel_accessories] || pref('aksesori', member.pixel_accessories))
             : undefined,
-          chat_status: member.chat_status || '',
+          chat_status: member.chat_status || null,
         }));
 
         setMembers(mappedData);
@@ -160,7 +160,11 @@ export function PixelStoryContainer() {
                 </span>
               </div>
               <p className="font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/80 leading-relaxed italic">
-                &ldquo;{selectedMember.chat_status || "Lagi ngoding santai & siap ikutan sesi USRC! 🚀"}&rdquo;
+                {selectedMember.chat_status ? (
+                  <>&ldquo;{selectedMember.chat_status}&rdquo;</>
+                ) : (
+                  <span className="text-dark/40 not-italic">// Belum memasang status chat.</span>
+                )}
               </p>
             </div>
           </div>
