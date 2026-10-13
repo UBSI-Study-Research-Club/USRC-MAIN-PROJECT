@@ -15,8 +15,12 @@ interface Profile {
   github: string;
   behance: string;
   linkedin: string;
-  pixel_config?: PixelCharacterConfig;
 }
+
+// Kolom pixel asli di tabel profiles (sql-phase3-final.sql)
+const PIXEL_COLUMNS = "pixel_body, pixel_hair, pixel_hair_color, pixel_face, pixel_clothing, pixel_accessories, pixel_updated_at";
+
+const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 1 minggu — ganti karakter max seminggu sekali
 
 // Sosmed pembuat (Gelombang B) — tampil sebagai chip di detail karya.
 const SOCIAL_FIELDS: { key: keyof Pick<Profile, "instagram" | "github" | "behance" | "linkedin">; label: string; placeholder: string }[] = [
@@ -36,6 +40,8 @@ export default function ProfilPage() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState("");
   const [pixelConfig, setPixelConfig] = useState<PixelCharacterConfig>({});
+  const [loadedPixelJson, setLoadedPixelJson] = useState("{}");
+  const [pixelUpdatedAt, setPixelUpdatedAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -53,7 +59,7 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, nim, prodi, role, instagram, github, behance, linkedin, pixel_config")
+        .select(`full_name, nim, prodi, role, instagram, github, behance, linkedin, ${PIXEL_COLUMNS}`)
         .eq("id", user.id)
         .single();
       setProfile(
@@ -67,16 +73,26 @@ export default function ProfilPage() {
               github: data.github ?? "",
               behance: data.behance ?? "",
               linkedin: data.linkedin ?? "",
-              pixel_config: data.pixel_config ?? {},
             }
           : {
               full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
-              pixel_config: {},
             }
       );
-      if (data?.pixel_config) {
-        setPixelConfig(data.pixel_config);
+      if (data) {
+        // Kolom flat DB -> bentuk config komponen PixelCharacter
+        const cfg: PixelCharacterConfig = {
+          skin: (data.pixel_body as PixelCharacterConfig["skin"]) || "medium",
+          hair: {
+            style: (data.pixel_hair as any) || "short",
+            color: (data.pixel_hair_color as any) || "black",
+          },
+          clothing: (data.pixel_clothing as PixelCharacterConfig["clothing"]) || "hoodie",
+          accessory: (data.pixel_accessories as PixelCharacterConfig["accessory"]) || "none",
+        };
+        setPixelConfig(cfg);
+        setLoadedPixelJson(JSON.stringify(cfg));
+        setPixelUpdatedAt(data.pixel_updated_at ?? null);
       }
       setLoading(false);
     }
@@ -103,6 +119,18 @@ export default function ProfilPage() {
       return;
     }
     const safe = (v: string | null | undefined) => (v ?? "").trim() || null;
+    // Cooldown 1 minggu: pixel_updated_at cuma di-reset kalau konfigurasi pixel benar2 berubah
+    const pixelChanged = JSON.stringify(pixelConfig) !== loadedPixelJson;
+    const pixelUpdate: Record<string, unknown> = pixelChanged
+      ? {
+          pixel_body: pixelConfig.skin || "medium",
+          pixel_hair: pixelConfig.hair?.style || "short",
+          pixel_hair_color: pixelConfig.hair?.color || "black",
+          pixel_clothing: pixelConfig.clothing || "hoodie",
+          pixel_accessories: pixelConfig.accessory || "none",
+          pixel_updated_at: new Date().toISOString(),
+        }
+      : {};
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
@@ -112,7 +140,7 @@ export default function ProfilPage() {
         github: safe(profile.github),
         behance: safe(profile.behance),
         linkedin: safe(profile.linkedin),
-        pixel_config: pixelConfig,
+        ...pixelUpdate,
       })
       .eq("id", user.id);
     setSaving(false);
@@ -162,8 +190,11 @@ export default function ProfilPage() {
               <PixelCharacter config={pixelConfig} />
             </div>
 
-            {/* Customizer */}
-            <div className="flex-1 space-y-3">
+            {/* Customizer — terkunci 1x per minggu sesuai spek */}
+            <fieldset
+              disabled={pixelUpdatedAt ? Date.now() - new Date(pixelUpdatedAt).getTime() < COOLDOWN_MS : false}
+              className="flex-1 space-y-3 disabled:opacity-60"
+            >
               <div>
                 <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
                   Warna Kulit
@@ -251,9 +282,13 @@ export default function ProfilPage() {
               </div>
 
               <p className={`${FONT_MONO} text-[10px] text-dark/50`}>
-                // Ubah 1x per minggu
+                {pixelUpdatedAt && Date.now() - new Date(pixelUpdatedAt).getTime() < COOLDOWN_MS
+                  ? `// Karakter terkunci — bisa ganti lagi ${new Date(
+                      new Date(pixelUpdatedAt).getTime() + COOLDOWN_MS
+                    ).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}`
+                  : "// Ubah 1x per minggu"}
               </p>
-            </div>
+            </fieldset>
           </div>
         </div>
 
