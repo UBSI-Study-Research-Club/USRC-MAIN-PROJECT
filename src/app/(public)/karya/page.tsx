@@ -254,7 +254,15 @@ export default function KaryaPage() {
 
       const { data, error: rpcErr } = await supabase.rpc('get_public_karya')
       if (rpcErr) throw rpcErr
-      setKaryaList((data as unknown as Karya[]) || [])
+      const loadedKarya = (data as unknown as Karya[]) || []
+      setKaryaList(loadedKarya)
+      // Auto-open detail popup jika ada hash di URL (dari /karya#id di feed)
+      if (typeof window !== 'undefined' && window.location.hash) {
+        const targetId = window.location.hash.replace('#', '')
+        if (loadedKarya.some((k) => k.id === targetId)) {
+          setDetailId(targetId)
+        }
+      }
 
       if (user) {
         const { data: mine } = await supabase

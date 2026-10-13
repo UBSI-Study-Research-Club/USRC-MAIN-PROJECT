@@ -110,16 +110,35 @@ export function useFeed() {
             : p
         )
       );
-      if (currentlyStar) {
-        await supabase
-          .from("project_stars")
-          .delete()
-          .eq("project_id", projectId)
-          .eq("user_id", userId);
-      } else {
-        await supabase
-          .from("project_stars")
-          .insert({ project_id: projectId, user_id: userId });
+      try {
+        if (currentlyStar) {
+          const { error } = await supabase
+            .from("project_stars")
+            .delete()
+            .eq("project_id", projectId)
+            .eq("user_id", userId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("project_stars")
+            .insert({ project_id: projectId, user_id: userId });
+          if (error) throw error;
+        }
+      } catch (err) {
+        console.error("Star toggle failed, rolling back:", err);
+        // Rollback state
+        setItems((prev) =>
+          prev.map((p) =>
+            p.id === projectId
+              ? {
+                  ...p,
+                  my_star: currentlyStar,
+                  star_count: p.star_count + (currentlyStar ? 1 : -1),
+                }
+              : p
+          )
+        );
+        alert("Gagal memperbarui bintang. Periksa koneksi internetmu.");
       }
     },
     [userId, supabase]
