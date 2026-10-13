@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { withHttps } from '@/lib/url'
 import {
   Star, Users, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
@@ -114,7 +115,7 @@ const socialChips = (s: Socials | null) => {
     s[key] ? (
       <a
         key={key}
-        href={s[key] as string}
+        href={withHttps(s[key] as string)}
         target="_blank"
         rel="noopener noreferrer"
         className="border border-dark bg-paper px-1.5 py-0.5 font-mono text-[10px] font-bold hover:bg-[#FFF3C4]"
@@ -171,7 +172,7 @@ const renderPoint = (pt: DetailPoint) => {
     case 'link':
       return v.url ? (
         <a
-          href={v.url}
+          href={withHttps(v.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
@@ -689,7 +690,7 @@ export default function KaryaPage() {
                 {(detail.links || []).map((l, i) => (
                   <a
                     key={i}
-                    href={l.url}
+                    href={withHttps(l.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
