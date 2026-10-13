@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Story Demo - USRC</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 1rem;
+        }
+        
+        .pixel-story-container {
+            margin-bottom: 3rem;
+        }
+        
+        .pixel-story-header {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            color: #666;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+        
+        .pixel-story-scroll {
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .character-item {
+            cursor: pointer;
+            text-align: center;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+            flex: 0 0 auto;
+        }
+        
+        .character-item.active {
+            opacity: 1;
+        }
+        
+        .character-ring {
+            padding: 3px;
+            border-radius: 50%;
+            background: #ddd;
+            margin-bottom: 0.5rem;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .character-item.active .character-ring {
+            background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+        }
+        
+        .character-name {
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+            color: #333;
+        }
+        
+        .chat-box {
+            background-color: #fff;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            max-width: 280px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .chat-box-message {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #333;
+            line-height: 1.4;
+        }
+        
+        .chat-box-name {
+            margin: 0.5rem 0 0 0;
+            font-size: 0.65rem;
+            color: #999;
+            font-style: italic;
+        }
+        
+        .chat-box-pointer {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-top: 10px solid #fff;
+            z-index: 2;
+        }
+        
+        .chat-box-pointer-border {
+            position: absolute;
+            bottom: -14px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 12px solid #333;
+            z-index: 1;
+        }
+        
+        svg {
+            image-rendering: pixelated;
+            display: block;
+        }
+        
+        .info-section {
+            background: #f9f9f9;
+            border-left: 4px solid #0d9bda;
+            padding: 1rem;
+            margin-top: 2rem;
+            border-radius: 4px;
+        }
+        
+        .info-section h3 {
+            color: #0d9bda;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .info-section p {
+            color: #666;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 Pixel Story Demo - USRC</h1>
+        <div class="subtitle">Prototype interaktif Pixel Story Chat Box untuk Dashboard Anggota</div>
+        
+        <div class="pixel-story-container">
+            <div class="pixel-story-header">🎭 Pixel Story</div>
+            
+            <div class="pixel-story-scroll" id="storyScroll">
+            </div>
+            
+            <div style="text-align: center;">
+                <div class="chat-box" id="chatBox">
+                    <div class="chat-box-pointer-border"></div>
+                    <div class="chat-box-pointer"></div>
+                    <p class="chat-box-message" id="chatMessage">Klik karakter untuk melihat pesan</p>
+                    <p class="chat-box-name" id="chatName"></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <h3>ℹ️ Cara Kerja:</h3>
+            <p>
+                1. Setiap karakter pixel adalah kombinasi 4 layer: Body (Chello), Hair (Raken), Face (Iwan), Accessories (Yoga) ✅<br>
+                2. Klik karakter untuk melihat chat box berubah<br>
+                3. Karakter yang dipilih punya ring berwarna (seperti Instagram Story)<br>
+                4. Pada aplikasi nyata, data dari Database Supabase
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        const characters = [
+            {
+                id: '1',
+                name: 'Yoga',
+                message: 'Lagi coding aksesori 💻'
+            },
+            {
+                id: '2',
+                name: 'Raken',
+                message: 'Ngabsen sesi pagi ini'
+            },
+            {
+                id: '3',
+                name: 'Chello',
+                message: 'Upload karya baru! 🎨'
+            },
+            {
+                id: '4',
+                name: 'Iwan',
+                message: 'Gaming time! 🎮'
+            }
+        ];
+        
+        function renderCharacters() {
+            const storyScroll = document.getElementById('storyScroll');
+            storyScroll.innerHTML = characters.map((char, idx) => `
+                <div class="character-item ${idx === 0 ? 'active' : ''}" onclick="selectCharacter('${char.id}', event)">
+                    <div class="character-ring">
+                        <div style="width: 48px; height: 48px; background: #ddd; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            ${idx === 0 ? '👓' : idx === 1 ? '🧢' : idx === 2 ? '🎤' : '🎮'}
+                        </div>
+                    </div>
+                    <p class="character-name">${char.name}</p>
+                </div>
+            `).join('');
+        }
+        
+        function selectCharacter(characterId, event) {
+            const character = characters.find(c => c.id === characterId);
+            
+            document.querySelectorAll('.character-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('chatMessage').textContent = character.message;
+            document.getElementById('chatName').textContent = '— ' + character.name;
+        }
+        
+        renderCharacters();
+    </script>
+</body>
+</html>

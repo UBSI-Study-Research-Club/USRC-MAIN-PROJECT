@@ -15,9 +15,15 @@ export interface PixelCharacterConfig {
   size?: number; // Display size in pixels (default 96)
 }
 
-interface PixelLayerProps extends PixelCharacterConfig {
+interface PixelLayerProps extends Partial<PixelCharacterConfig> {
   animated?: boolean;
   className?: string;
+  bodyColor?: string;
+  hairStyle?: string;
+  hairColor?: string;
+  faceExpression?: string;
+  clothingType?: string;
+  size?: number;
 }
 
 /**
