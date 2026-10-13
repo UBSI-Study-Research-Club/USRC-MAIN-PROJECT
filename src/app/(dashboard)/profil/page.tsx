@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { User, Save, BadgeCheck } from "lucide-react";
+import { PixelCharacter, type PixelCharacterConfig } from "@/components/pixel/PixelCharacter";
 
 interface Profile {
   full_name: string;
@@ -14,6 +15,7 @@ interface Profile {
   github: string;
   behance: string;
   linkedin: string;
+  pixel_config?: PixelCharacterConfig;
 }
 
 // Sosmed pembuat (Gelombang B) — tampil sebagai chip di detail karya.
@@ -33,6 +35,7 @@ export default function ProfilPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [email, setEmail] = useState("");
+  const [pixelConfig, setPixelConfig] = useState<PixelCharacterConfig>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,7 +53,7 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, nim, prodi, role, instagram, github, behance, linkedin")
+        .select("full_name, nim, prodi, role, instagram, github, behance, linkedin, pixel_config")
         .eq("id", user.id)
         .single();
       setProfile(
@@ -60,18 +63,21 @@ export default function ProfilPage() {
               nim: data.nim ?? "-",
               prodi: data.prodi ?? "Informatika",
               role: data.role ?? "anggota",
-              // Sosmed bisa null di DB — ratakan ke string kosong biar
-              // .trim() di handleSave gak crash (bug tombol Simpan nyangkut).
               instagram: data.instagram ?? "",
               github: data.github ?? "",
               behance: data.behance ?? "",
               linkedin: data.linkedin ?? "",
+              pixel_config: data.pixel_config ?? {},
             }
           : {
               full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
+              pixel_config: {},
             }
       );
+      if (data?.pixel_config) {
+        setPixelConfig(data.pixel_config);
+      }
       setLoading(false);
     }
     load();
@@ -106,16 +112,15 @@ export default function ProfilPage() {
         github: safe(profile.github),
         behance: safe(profile.behance),
         linkedin: safe(profile.linkedin),
+        pixel_config: pixelConfig,
       })
       .eq("id", user.id);
     setSaving(false);
-
     if (updateError) {
-      setError("Gagal menyimpan. Coba lagi.");
-      return;
+      setError(updateError.message || "Gagal menyimpan profil.");
+    } else {
+      setMessage("Profil berhasil disimpan! ✓");
     }
-    setMessage("Profil berhasil disimpan.");
-    router.refresh();
   }
 
   if (loading) {
@@ -143,6 +148,112 @@ export default function ProfilPage() {
             <p className={`${FONT_MONO} text-xs uppercase tracking-wider text-dark/60`}>
               // data keanggotaan
             </p>
+          </div>
+        </div>
+
+        {/* Pixel Character Avatar */}
+        <div className="mb-8 rounded border-2 border-dark bg-white p-6 shadow-[4px_4px_0_var(--color-maroon)]">
+          <h2 className={`${FONT_DISPLAY} mb-4 text-lg font-black uppercase text-dark`}>
+            Avatar Pixel Saya
+          </h2>
+          <div className="flex flex-col gap-6 md:flex-row md:items-center">
+            {/* Preview */}
+            <div className="flex items-center justify-center">
+              <PixelCharacter config={pixelConfig} />
+            </div>
+
+            {/* Customizer */}
+            <div className="flex-1 space-y-3">
+              <div>
+                <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                  Warna Kulit
+                </label>
+                <select
+                  value={pixelConfig.skin || "medium"}
+                  onChange={(e) => setPixelConfig({ ...pixelConfig, skin: e.target.value as any })}
+                  className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-xs text-dark focus:outline-none focus:ring-2 focus:ring-maroon"
+                >
+                  <option value="light">Terang</option>
+                  <option value="medium">Sawo Matang</option>
+                  <option value="dark">Gelap</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                  Gaya Rambut
+                </label>
+                <select
+                  value={pixelConfig.hair?.style || "short"}
+                  onChange={(e) => setPixelConfig({
+                    ...pixelConfig,
+                    hair: { style: e.target.value as any, color: pixelConfig.hair?.color || 'black' }
+                  })}
+                  className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-xs text-dark focus:outline-none focus:ring-2 focus:ring-maroon"
+                >
+                  <option value="short">Pendek</option>
+                  <option value="long">Panjang</option>
+                  <option value="curly">Curly</option>
+                  <option value="bob">Bob</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                  Warna Rambut
+                </label>
+                <select
+                  value={pixelConfig.hair?.color || "black"}
+                  onChange={(e) => setPixelConfig({
+                    ...pixelConfig,
+                    hair: { style: pixelConfig.hair?.style || 'short', color: e.target.value as any }
+                  })}
+                  className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-xs text-dark focus:outline-none focus:ring-2 focus:ring-maroon"
+                >
+                  <option value="black">Hitam</option>
+                  <option value="brown">Coklat</option>
+                  <option value="blonde">Blonde</option>
+                  <option value="red">Merah</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                  Baju
+                </label>
+                <select
+                  value={pixelConfig.clothing || "hoodie"}
+                  onChange={(e) => setPixelConfig({ ...pixelConfig, clothing: e.target.value as any })}
+                  className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-xs text-dark focus:outline-none focus:ring-2 focus:ring-maroon"
+                >
+                  <option value="hoodie">Hoodie USRC</option>
+                  <option value="casual">Casual</option>
+                  <option value="tshirt">T-Shirt</option>
+                  <option value="jacket">Jacket</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`${FONT_MONO} mb-1 block text-[11px] uppercase tracking-wider text-dark/60`}>
+                  Aksesoris
+                </label>
+                <select
+                  value={pixelConfig.accessory || "none"}
+                  onChange={(e) => setPixelConfig({ ...pixelConfig, accessory: e.target.value as any })}
+                  className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-xs text-dark focus:outline-none focus:ring-2 focus:ring-maroon"
+                >
+                  <option value="none">Tidak Ada</option>
+                  <option value="cap">Topi</option>
+                  <option value="glasses">Kacamata</option>
+                  <option value="headset">Headset</option>
+                  <option value="headband">Headband</option>
+                </select>
+              </div>
+
+              <p className={`${FONT_MONO} text-[10px] text-dark/50`}>
+                // Ubah 1x per minggu
+              </p>
+            </div>
           </div>
         </div>
 
