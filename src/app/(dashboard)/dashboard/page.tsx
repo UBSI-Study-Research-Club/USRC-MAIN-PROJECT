@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, AlertCircle, Calendar, CheckCircle2, Clock, ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus } from "@/hooks/useAbsenStatus";
 import { FeedCard } from "@/components/FeedCard";
+import { PixelStoryContainer } from "@/components/pixel/PixelStoryContainer";
+import { GhostScreen } from "../absen/shared";
 
 // ── Absen Banner ────────────────────────────────────────────
 function AbsenBanner() {
@@ -159,8 +162,57 @@ function FeedTimeline() {
 
 // ── Page ─────────────────────────────────────────────────
 export default function DashboardPage() {
+  const router = useRouter();
+  const [gate, setGate] = useState<"checking" | "ok" | "blocked">("checking");
+
+  // Guard akun: pending/rejected/kicked tetap bisa OTP-login (auth.users ada),
+  // tapi tanpa profile aktif dashboard ditutup — sama aturan dengan /absen.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!alive) return;
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (!alive) return;
+      setGate(profile && profile.status === "aktif" ? "ok" : "blocked");
+    })();
+    return () => { alive = false; };
+  }, [router]);
+
+  if (gate === "checking") {
+    return (
+      <div className="flex justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-[#7A1B2E]" />
+      </div>
+    );
+  }
+
+  if (gate === "blocked") {
+    return <GhostScreen />;
+  }
+
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-8">
+      {/* Pixel Story — identitas anggota di atas feed (PRD Phase 3) */}
+      <section aria-label="Pixel Story">
+        <PixelStoryContainer />
+      </section>
+
+      <hr className="border-t-2 border-[#1A1A1A]" />
+
       {/* Absen Banner */}
       <section aria-label="Status Absen">
         <div className="flex items-center justify-between mb-3">
@@ -168,7 +220,7 @@ export default function DashboardPage() {
             // Absen
           </h2>
           <Link
-            href="/absen"
+            href="/dashboard/absen/riwayat"
             className="text-xs font-mono text-[#888] hover:text-[#1A1A1A] underline underline-offset-2"
           >
             Lihat riwayat →
