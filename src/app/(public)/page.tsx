@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -362,6 +363,16 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Kunci scroll background saat modal karya terbuka (QA #4)
+  useEffect(() => {
+    if (!selectedProject) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [selectedProject]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -823,12 +834,13 @@ export default function LandingPage() {
         </button>
       )}
 
-      {/* ── PROJECT DETAIL MODAL ───────────────────── */}
-      {selectedProject && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4"
-          onClick={() => setSelectedProject(null)}
-        >
+      {/* ── PROJECT DETAIL MODAL (portal + scroll-lock) ── */}
+      {selectedProject &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4"
+            onClick={() => setSelectedProject(null)}
+          >
           <div
             className="relative w-full max-w-lg border-[3px] border-dark bg-white shadow-[8px_8px_0px_var(--color-maroon)] max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -909,8 +921,9 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
     </div>
   );
 }
