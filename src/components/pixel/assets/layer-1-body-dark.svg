@@ -1,0 +1,29 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer 1: Body & Skin (Dark) - Grid 24x24 -->
+  <!-- Skin color: #8B5A2B (gelap/coklat tua) -->
+  <defs>
+    <style>
+      .px-dark { fill: #8B5A2B; }
+    </style>
+  </defs>
+
+  <!-- Head -->
+  <rect class="px-dark" x="8" y="4" width="8" height="8" />
+  <!-- Neck -->
+  <rect class="px-dark" x="10" y="12" width="4" height="2" />
+  <!-- Body (Torso) -->
+  <rect class="px-dark" x="8" y="14" width="8" height="6" />
+  <!-- Left Arm -->
+  <rect class="px-dark" x="4" y="14" width="4" height="6" />
+  <!-- Right Arm -->
+  <rect class="px-dark" x="16" y="14" width="4" height="6" />
+  <!-- Left Leg -->
+  <rect class="px-dark" x="8" y="20" width="3" height="4" />
+  <!-- Right Leg -->
+  <rect class="px-dark" x="13" y="20" width="3" height="4" />
+
+  <!-- Layer definition -->
+  <g id="layer-body" style="display: block;">
+    <!-- Container for this layer -->
+  </g>
+</svg>
