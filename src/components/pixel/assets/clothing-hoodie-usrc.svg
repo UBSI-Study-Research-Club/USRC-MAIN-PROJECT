@@ -1,0 +1,41 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer 4: Hoodie USRC (Maroon) with brand colors -->
+  <defs>
+    <style>
+      .pixel-rect { shape-rendering: crispEdges; }
+    </style>
+  </defs>
+  
+  <!-- Main Hoodie Body (Maroon #7A1B2E) -->
+  <rect class="pixel-rect" x="4" y="8" width="16" height="12" fill="#7A1B2E"/>
+  
+  <!-- Hood/Hoodie Top (Maroon) -->
+  <rect class="pixel-rect" x="5" y="6" width="4" height="2" fill="#7A1B2E"/>
+  <rect class="pixel-rect" x="15" y="6" width="4" height="2" fill="#7A1B2E"/>
+  <rect class="pixel-rect" x="6" y="5" width="2" height="1" fill="#7A1B2E"/>
+  <rect class="pixel-rect" x="16" y="5" width="2" height="1" fill="#7A1B2E"/>
+  
+  <!-- Hood Interior Accent (lighter maroon) -->
+  <rect class="pixel-rect" x="7" y="7" width="2" height="1" fill="#A62147"/>
+  <rect class="pixel-rect" x="15" y="7" width="2" height="1" fill="#A62147"/>
+  
+  <!-- Sleeves (Maroon) -->
+  <rect class="pixel-rect" x="2" y="10" width="2" height="6" fill="#7A1B2E"/>
+  <rect class="pixel-rect" x="20" y="10" width="2" height="6" fill="#7A1B2E"/>
+  
+  <!-- USRC Brand Logo Area (white stripe on chest) -->
+  <rect class="pixel-rect" x="8" y="10" width="8" height="2" fill="#FFFFFF"/>
+  
+  <!-- Logo Detail (small accent) -->
+  <rect class="pixel-rect" x="9" y="11" width="2" height="1" fill="#7A1B2E"/>
+  <rect class="pixel-rect" x="13" y="11" width="2" height="1" fill="#7A1B2E"/>
+  
+  <!-- Pocket Left -->
+  <rect class="pixel-rect" x="6" y="14" width="3" height="3" fill="#5A1420"/>
+  
+  <!-- Pocket Right -->
+  <rect class="pixel-rect" x="15" y="14" width="3" height="3" fill="#5A1420"/>
+  
+  <!-- Hem Detail (bottom edge) -->
+  <rect class="pixel-rect" x="4" y="20" width="16" height="1" fill="#5A1420"/>
+</svg>
