@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import PixelCharacterLayer from '../PixelCharacterLayer';
+import { PixelCharacterLayer } from '../PixelCharacterLayer';
 
 interface MemberPixelData {
   id: string;
@@ -130,8 +130,8 @@ export function PixelStoryContainer() {
                 bodyColor={member.pixel_body_color as any}
                 hairStyle={member.pixel_hair_style as any}
                 faceExpression={member.pixel_face_expression as any}
-                clothing={member.pixel_clothing as any}
-                accessories={member.pixel_accessories as any}
+                clothingType={member.pixel_clothing as any}
+                accessoryHead={member.pixel_accessories as any}
                 size={48}
               />
             </div>
