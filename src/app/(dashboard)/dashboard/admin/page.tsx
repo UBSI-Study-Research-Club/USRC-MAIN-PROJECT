@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
+import { withHttps } from '@/lib/url'
 import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock, Trash2, CalendarDays, Ban, RotateCcw } from 'lucide-react'
 
 type Profile = {
@@ -871,7 +872,7 @@ function AdminDashboardContent() {
                               {(project.project_links || []).map((l, i) => (
                                 <a
                                   key={i}
-                                  href={l.url}
+                                  href={withHttps(l.url)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="underline text-blue-600 font-bold"

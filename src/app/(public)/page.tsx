@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { withHttps } from "@/lib/url";
 
 interface Meeting {
   id: string;
@@ -318,7 +319,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
             {(project.links || []).slice(0, 2).map((l, i) => (
               <a
                 key={i}
-                href={l.url}
+                href={withHttps(l.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${FONT_MONO} inline-flex items-center border-[1px] border-dark bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
@@ -887,7 +888,7 @@ export default function LandingPage() {
                   {selectedProject.links.map((l, i) => (
                     <a
                       key={i}
-                      href={l.url}
+                      href={withHttps(l.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-paper px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
