@@ -17,85 +17,96 @@ function formatDate(iso: string) {
   });
 }
 
+const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
+const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
+
 export function FeedCard({ project, currentUserId, onToggleStar }: FeedCardProps) {
   const ownProject = currentUserId === project.owner?.id;
   const canStar = !!currentUserId && !ownProject;
 
   return (
-    <article className="bg-white border-2 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
-      {/* Gambar */}
-      {project.image_url && (
-        <div className="border-b-2 border-[#1A1A1A] aspect-video overflow-hidden bg-[#F5F3EF]">
-          <img
-            src={project.image_url}
-            alt={project.title}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+    <article className="border-[3px] border-dark bg-white shadow-[6px_6px_0px_var(--color-dark)] overflow-hidden transition-all hover:-translate-y-1">
+      {/* Header category badge */}
+      {project.category && (
+        <div className="flex items-center justify-between bg-[#FFF3C4] border-b-[3px] border-dark px-4 py-2">
+          <span className={`${FONT_MONO} text-xs font-bold uppercase tracking-wider text-dark`}>
+            {project.category}
+          </span>
+          <span className={`${FONT_MONO} text-[10px] uppercase text-dark/50`}>
+            // USRC FEED
+          </span>
         </div>
       )}
 
-      <div className="p-4 flex flex-col gap-3">
-        {/* Header: nama + kategori */}
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h3 className="font-extrabold text-base leading-tight font-['Outfit']">
-              {project.title}
-            </h3>
-            {project.category && (
-              <span className="inline-block mt-1 text-[10px] font-mono border border-[#1A1A1A] px-1.5 py-0.5 bg-[#F5F3EF] uppercase tracking-widest">
-                {project.category}
-              </span>
-            )}
-          </div>
+      {/* Image Preview */}
+      {project.image_url ? (
+        <div className="relative aspect-video w-full overflow-hidden bg-paper border-b-[3px] border-dark">
+          <img
+            src={project.image_url}
+            alt={project.title}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        </div>
+      ) : (
+        <div className="flex h-36 w-full items-center justify-center bg-paper border-b-[3px] border-dark">
+          <span className={`${FONT_MONO} text-xs text-dark/30`}>// no preview</span>
+        </div>
+      )}
+
+      {/* Content Body */}
+      <div className="p-5 flex flex-col gap-4">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-tight text-dark leading-snug`}>
+            {project.title}
+          </h3>
           {project.owner && (
-            <div className="flex items-center gap-1 text-xs text-[#666] shrink-0">
-              <User className="w-3 h-3" />
-              <span className="font-mono">{project.owner.full_name}</span>
+            <div className="flex items-center gap-1.5 border-2 border-dark bg-paper px-2.5 py-1 shrink-0 shadow-[2px_2px_0_var(--color-dark)]">
+              <User className="w-3.5 h-3.5 text-maroon" strokeWidth={2.5} />
+              <span className={`${FONT_MONO} text-xs font-bold text-dark`}>
+                {project.owner.full_name}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Deskripsi */}
         {project.description && (
-          <p className="text-sm text-[#444] leading-relaxed line-clamp-3">
+          <p className="text-sm text-dark/80 leading-relaxed font-[family-name:var(--font-work-sans)]">
             {project.description}
           </p>
         )}
 
-        {/* Footer: tanggal + star + link */}
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-[11px] font-mono text-[#888]">
+        {/* Footer Actions */}
+        <div className="mt-2 pt-4 border-t-2 border-dashed border-dark/30 flex items-center justify-between">
+          <span className={`${FONT_MONO} text-xs text-dark/50`}>
             {formatDate(project.created_at)}
           </span>
 
           <div className="flex items-center gap-3">
-            {/* Star */}
+            {/* Star button */}
             <button
               onClick={() => canStar && onToggleStar(project.id, project.my_star)}
               disabled={!canStar}
               className={[
-                "flex items-center gap-1 text-xs font-mono border border-[#1A1A1A] px-2 py-1 transition-colors",
+                "flex items-center gap-1.5 border-2 border-dark px-3 py-1.5 font-mono text-xs font-bold transition-all shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none",
                 project.my_star
-                  ? "bg-[#7A1B2E] text-white"
-                  : "bg-white text-[#1A1A1A] hover:bg-[#F5F3EF]",
-                !canStar ? "opacity-40 cursor-default" : "cursor-pointer",
+                  ? "bg-maroon text-white"
+                  : "bg-white text-dark hover:bg-[#FFF3C4]",
+                !canStar ? "opacity-50 cursor-default" : "cursor-pointer",
               ].join(" ")}
-              title={ownProject ? "Tidak bisa bintang karya sendiri" : undefined}
-              aria-label={`${project.my_star ? "Hapus bintang" : "Beri bintang"} pada ${project.title}`}
+              title={ownProject ? "Tidak bisa memberi bintang pada karya sendiri" : undefined}
             >
-              <Star className="w-3 h-3" fill={project.my_star ? "currentColor" : "none"} />
-              <span>{project.star_count}</span>
+              <Star className="w-4 h-4" fill={project.my_star ? "currentColor" : "none"} strokeWidth={2} />
+              <span>{project.star_count} Bintang</span>
             </button>
 
-            {/* Link ke /karya detail — placeholder, Yoga/Chello handle modal */}
+            {/* Detail Link */}
             <a
               href={`/karya#${project.id}`}
-              className="flex items-center gap-1 text-xs font-mono border border-[#1A1A1A] px-2 py-1 hover:bg-[#F5F3EF] transition-colors"
-              aria-label={`Lihat detail ${project.title}`}
+              className={`${FONT_DISPLAY} inline-flex items-center gap-1 border-2 border-dark bg-paper px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-colors`}
             >
-              <ExternalLink className="w-3 h-3" />
-              Detail
+              <span>Detail</span>
+              <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.5} />
             </a>
           </div>
         </div>
