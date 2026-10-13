@@ -15,3 +15,7 @@ export const HAIR_COLORS: Record<string, string> = {
 };
 
 export type HairColor = keyof typeof HAIR_COLORS;
+
+// Layer 3: Wajah, Mata & Ekspresi — by Iwan
+export { FACE_STYLES, EYE_COLORS } from "../PixelFace";
+export type { FaceStyle, EyeColor } from "../PixelFace";
