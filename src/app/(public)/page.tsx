@@ -11,6 +11,7 @@ import {
 } from "framer-motion";
 import {
   ArrowRight,
+  ArrowUp,
   BookOpen,
   FlaskConical,
   Hammer,
@@ -19,6 +20,8 @@ import {
   UserCheck,
   FolderKanban,
   Star,
+  X,
+  ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -252,12 +255,13 @@ function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
   );
 }
 
-function ProjectCard({ project, index }: { project: Project; index: number }) {
+function ProjectCard({ project, index, onClick }: { project: Project; index: number; onClick: () => void }) {
   const tilt = index % 2 === 0 ? "-rotate-1" : "rotate-1";
 
   return (
     <div
-      className={`group flex flex-col border-2 border-dark bg-white shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:shadow-[5px_5px_0_var(--color-maroon)] overflow-hidden ${tilt}`}
+      onClick={onClick}
+      className={`group flex flex-col border-2 border-dark bg-white shadow-[5px_5px_0px_var(--color-maroon)] transition-all hover:-translate-y-1 hover:shadow-[5px_5px_0_var(--color-maroon)] overflow-hidden cursor-pointer ${tilt}`}
     >
       {/* Header badge */}
       {project.category && (
@@ -348,6 +352,16 @@ export default function LandingPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  useEffect(() => {
+    function handleScroll() {
+      setShowBackToTop(window.scrollY > 400);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const supabase = createClient();
@@ -532,10 +546,10 @@ export default function LandingPage() {
                 </>
               )}
               <a
-                href="#sesi"
+                href="#karya"
                 className={`${FONT_DISPLAY} inline-flex min-h-12 items-center border-2 border-dark bg-paper px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-all active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
               >
-                Lihat sesi
+                Lihat Karya
               </a>
             </div>
           </div>
@@ -592,7 +606,7 @@ export default function LandingPage() {
       </div>
 
       {/* ── 4 CORE VALUES ────────────────────────── */}
-      <section id="project" className="scroll-mt-24 px-4 py-20">
+      <section id="pilar" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <Reveal>
             <SectionHead tag="// Fondasi kami">
@@ -723,7 +737,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── KARYA (Top 6 by stars) ────────────────────────── */}
-      <section className="scroll-mt-24 px-4 py-20">
+      <section id="karya" className="scroll-mt-24 px-4 py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <div className="flex items-end justify-between">
             <Reveal>
@@ -761,7 +775,7 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {projects.map((p, i) => (
                 <Reveal key={p.id} delay={i * 0.08}>
-                  <ProjectCard project={p} index={i} />
+                  <ProjectCard project={p} index={i} onClick={() => setSelectedProject(p)} />
                 </Reveal>
               ))}
             </div>
@@ -797,6 +811,106 @@ export default function LandingPage() {
           </div>
         </Reveal>
       </section>
+
+      {/* ── BACK TO TOP ────────────────────────────── */}
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="Kembali ke atas"
+          className={`fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center border-2 border-dark bg-maroon text-white shadow-[3px_3px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-hot active:translate-y-0 active:shadow-none`}
+        >
+          <ArrowUp className="h-5 w-5" strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* ── PROJECT DETAIL MODAL ───────────────────── */}
+      {selectedProject && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4"
+          onClick={() => setSelectedProject(null)}
+        >
+          <div
+            className="relative w-full max-w-lg border-[3px] border-dark bg-white shadow-[8px_8px_0px_var(--color-maroon)] max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close */}
+            <button
+              onClick={() => setSelectedProject(null)}
+              className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center border-2 border-dark bg-paper transition-colors hover:bg-maroon hover:text-white"
+              aria-label="Tutup"
+            >
+              <X className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+
+            {/* Image */}
+            {selectedProject.image_url ? (
+              <div className="relative h-56 w-full overflow-hidden bg-paper border-b-2 border-dark">
+                <img
+                  src={selectedProject.image_url}
+                  alt={selectedProject.title}
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex h-40 w-full items-center justify-center bg-paper border-b-2 border-dark">
+                <span className={`${FONT_MONO} text-sm text-dark/20`}>no image</span>
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="flex flex-col gap-4 p-6">
+              {selectedProject.category && (
+                <span className={`${FONT_MONO} w-fit border-[1.5px] border-dark bg-[#FFF3C4] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark`}>
+                  {selectedProject.category}
+                </span>
+              )}
+              <h3 className={`${FONT_DISPLAY} text-2xl font-black uppercase leading-tight text-dark`}>
+                {selectedProject.title}
+              </h3>
+              {selectedProject.description && (
+                <p className="text-sm leading-relaxed text-dark/70">
+                  {selectedProject.description}
+                </p>
+              )}
+
+              {/* Stars */}
+              <div className="flex items-center gap-1.5">
+                <Star className="h-5 w-5 fill-[#E8A100] text-[#E8A100]" strokeWidth={1.5} />
+                <span className={`${FONT_MONO} text-sm font-bold text-dark`}>
+                  {selectedProject.star_count || 0} bintang
+                </span>
+              </div>
+
+              {/* Links */}
+              {selectedProject.links && selectedProject.links.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {selectedProject.links.map((l, i) => (
+                    <a
+                      key={i}
+                      href={l.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-paper px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      {l.label || LINK_LABELS[l.link_type] || "Link"}
+                    </a>
+                  ))}
+                </div>
+              )}
+
+              {/* Go to full page */}
+              <Link
+                href="/karya"
+                className={`${FONT_DISPLAY} mt-2 inline-flex items-center gap-2 border-2 border-dark bg-maroon px-5 py-2.5 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
+              >
+                Lihat Semua Karya
+                <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
