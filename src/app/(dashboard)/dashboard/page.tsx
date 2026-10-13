@@ -9,7 +9,7 @@ import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus } from "@/hooks/useAbsenStatus";
 import { FeedCard } from "@/components/FeedCard";
 import { PixelStoryContainer } from "@/components/pixel/PixelStoryContainer";
-import { GhostScreen } from "../absen/shared";
+import { GhostScreen } from "./absen/shared";
 
 // ── Absen Banner ────────────────────────────────────────────
 function AbsenBanner() {
