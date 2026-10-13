@@ -1,0 +1,50 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer 4: Casual Shirt (Light Blue - kemeja kasual) -->
+  <defs>
+    <style>
+      .pixel-rect { shape-rendering: crispEdges; }
+    </style>
+  </defs>
+  
+  <!-- Main Shirt Body (Light Blue #4B9FD1) -->
+  <rect class="pixel-rect" x="4" y="8" width="16" height="12" fill="#4B9FD1"/>
+  
+  <!-- Collar Left -->
+  <rect class="pixel-rect" x="5" y="7" width="3" height="2" fill="#4B9FD1"/>
+  <rect class="pixel-rect" x="5" y="6" width="2" height="1" fill="#4B9FD1"/>
+  
+  <!-- Collar Right -->
+  <rect class="pixel-rect" x="16" y="7" width="3" height="2" fill="#4B9FD1"/>
+  <rect class="pixel-rect" x="17" y="6" width="2" height="1" fill="#4B9FD1"/>
+  
+  <!-- Collar Detail (white inner) -->
+  <rect class="pixel-rect" x="6" y="8" width="1" height="1" fill="#FFFFFF"/>
+  <rect class="pixel-rect" x="17" y="8" width="1" height="1" fill="#FFFFFF"/>
+  
+  <!-- Sleeves -->
+  <rect class="pixel-rect" x="2" y="10" width="2" height="6" fill="#4B9FD1"/>
+  <rect class="pixel-rect" x="20" y="10" width="2" height="6" fill="#4B9FD1"/>
+  
+  <!-- Sleeve Cuffs (darker blue) -->
+  <rect class="pixel-rect" x="2" y="15" width="2" height="1" fill="#2E6A8F"/>
+  <rect class="pixel-rect" x="20" y="15" width="2" height="1" fill="#2E6A8F"/>
+  
+  <!-- Front Button Line -->
+  <rect class="pixel-rect" x="11" y="9" width="1" height="10" fill="#FFFFFF"/>
+  
+  <!-- Buttons (3) -->
+  <rect class="pixel-rect" x="10" y="10" width="1" height="1" fill="#2E6A8F"/>
+  <rect class="pixel-rect" x="12" y="10" width="1" height="1" fill="#2E6A8F"/>
+  
+  <rect class="pixel-rect" x="10" y="14" width="1" height="1" fill="#2E6A8F"/>
+  <rect class="pixel-rect" x="12" y="14" width="1" height="1" fill="#2E6A8F"/>
+  
+  <rect class="pixel-rect" x="10" y="17" width="1" height="1" fill="#2E6A8F"/>
+  <rect class="pixel-rect" x="12" y="17" width="1" height="1" fill="#2E6A8F"/>
+  
+  <!-- Chest Pocket Left -->
+  <rect class="pixel-rect" x="7" y="11" width="2" height="2" fill="#2E6A8F"/>
+  
+  <!-- Hem Detail -->
+  <rect class="pixel-rect" x="4" y="20" width="16" height="1" fill="#2E6A8F"/>
+</svg>

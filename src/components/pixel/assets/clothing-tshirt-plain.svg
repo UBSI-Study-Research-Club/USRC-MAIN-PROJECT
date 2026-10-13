@@ -1,0 +1,35 @@
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <!-- Layer 4: Plain T-Shirt (Gray #808080) -->
+  <defs>
+    <style>
+      .pixel-rect { shape-rendering: crispEdges; }
+    </style>
+  </defs>
+  
+  <!-- Main T-Shirt Body (Gray) -->
+  <rect class="pixel-rect" x="4" y="8" width="16" height="12" fill="#808080"/>
+  
+  <!-- Neckline -->
+  <rect class="pixel-rect" x="8" y="7" width="8" height="1" fill="#808080"/>
+  <rect class="pixel-rect" x="7" y="6" width="10" height="1" fill="#808080"/>
+  
+  <!-- Neck Opening (white) -->
+  <rect class="pixel-rect" x="10" y="8" width="4" height="1" fill="#FFFFFF"/>
+  
+  <!-- Sleeves (short) -->
+  <rect class="pixel-rect" x="2" y="9" width="2" height="5" fill="#808080"/>
+  <rect class="pixel-rect" x="20" y="9" width="2" height="5" fill="#808080"/>
+  
+  <!-- Sleeve Cuffs (darker gray) -->
+  <rect class="pixel-rect" x="2" y="13" width="2" height="1" fill="#505050"/>
+  <rect class="pixel-rect" x="20" y="13" width="2" height="1" fill="#505050"/>
+  
+  <!-- Simple Design: Chest Area (subtle stripe) -->
+  <rect class="pixel-rect" x="8" y="11" width="8" height="1" fill="#505050"/>
+  
+  <!-- Hem Detail -->
+  <rect class="pixel-rect" x="4" y="20" width="16" height="1" fill="#505050"/>
+  
+  <!-- Simple minimalist look - clean and plain -->
+  <rect class="pixel-rect" x="12" y="16" width="1" height="2" fill="#505050"/>
+</svg>
