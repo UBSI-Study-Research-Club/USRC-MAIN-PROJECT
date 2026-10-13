@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { User, Save, BadgeCheck } from "lucide-react";
 import { PixelCharacter, type PixelCharacterConfig } from "@/components/pixel/PixelCharacter";
+import { HOBI_OPTIONS } from "@/lib/hobi";
 
 interface Profile {
   full_name: string;
@@ -15,6 +16,8 @@ interface Profile {
   github: string;
   behance: string;
   linkedin: string;
+  hobbies: string[];
+  chat_status: string;
 }
 
 // Kolom pixel asli di tabel profiles (sql-phase3-final.sql)
@@ -59,7 +62,7 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select(`full_name, nim, prodi, role, instagram, github, behance, linkedin, ${PIXEL_COLUMNS}`)
+        .select(`full_name, nim, prodi, role, instagram, github, behance, linkedin, ${PIXEL_COLUMNS}, hobbies, chat_status`)
         .eq("id", user.id)
         .single();
       setProfile(
@@ -73,10 +76,13 @@ export default function ProfilPage() {
               github: data.github ?? "",
               behance: data.behance ?? "",
               linkedin: data.linkedin ?? "",
+              hobbies: data.hobbies ?? [],
+              chat_status: data.chat_status ?? "",
             }
           : {
               full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
+              hobbies: [], chat_status: "",
             }
       );
       if (data) {
@@ -140,6 +146,8 @@ export default function ProfilPage() {
         github: safe(profile.github),
         behance: safe(profile.behance),
         linkedin: safe(profile.linkedin),
+        hobbies: profile.hobbies.length > 0 ? profile.hobbies : null,
+        chat_status: safe(profile.chat_status),
         ...pixelUpdate,
       })
       .eq("id", user.id);
@@ -389,6 +397,69 @@ export default function ProfilPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* Hobi & Status Chat */}
+            <div>
+              <label className={`${FONT_DISPLAY} mb-1.5 block text-sm font-bold uppercase text-dark`}>
+                Hobi &amp; Minat
+              </label>
+              <p className={`${FONT_MONO} mb-3 text-[11px] text-dark/50`}>
+                // tampil di tab pendataan admin — pilih satu atau lebih
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {HOBI_OPTIONS.map((h) => {
+                  const on = profile?.hobbies.includes(h) ?? false;
+                  return (
+                    <button
+                      key={h}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() =>
+                        setProfile((p) =>
+                          p
+                            ? {
+                                ...p,
+                                hobbies: on
+                                  ? p.hobbies.filter((x) => x !== h)
+                                  : [...p.hobbies, h],
+                              }
+                            : p
+                        )
+                      }
+                      className={`border-2 px-3 py-1.5 ${FONT_MONO} text-xs font-bold transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                        on
+                          ? "border-dark bg-maroon text-white shadow-[2px_2px_0px_var(--color-dark)]"
+                          : "border-dark bg-white text-dark shadow-[2px_2px_0px_var(--color-dark)] hover:bg-[#FFF3C4]"
+                      }`}
+                    >
+                      {h}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className={`${FONT_DISPLAY} mb-1.5 block text-sm font-bold uppercase text-dark`}>
+                Status Chat <span className="text-dark/40">(Pixel Story)</span>
+              </label>
+              <p className={`${FONT_MONO} mb-3 text-[11px] text-dark/50`}>
+                // muncul di balon chat karakter pixel kamu di dashboard
+              </p>
+              <input
+                type="text"
+                value={profile?.chat_status || ""}
+                maxLength={80}
+                onChange={(e) =>
+                  setProfile((p) => (p ? { ...p, chat_status: e.target.value } : p))
+                }
+                placeholder="Contoh: Lagi pusing debugging Next.js"
+                className="w-full border-2 border-dark bg-white px-4 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:outline-none focus:ring-2 focus:ring-maroon"
+              />
+              <p className={`${FONT_MONO} mt-1 text-[10px] text-dark/50`}>
+                {(profile?.chat_status || "").length}/80
+              </p>
             </div>
 
             <div className="flex items-center justify-between border-t-2 border-dashed border-dark/30 pt-5">
