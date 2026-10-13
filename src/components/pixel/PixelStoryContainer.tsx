@@ -7,14 +7,30 @@ import { PixelCharacterLayer } from '../PixelCharacterLayer';
 interface MemberPixelData {
   id: string;
   name: string;
-  avatar_url?: string;
-  pixel_body_color?: string;
-  pixel_hair_style?: string;
-  pixel_face_expression?: string;
+  pixel_body?: string;
+  pixel_hair?: string;
+  pixel_face?: string;
   pixel_clothing?: string;
   pixel_accessories?: string;
-  pixel_status_message?: string;
+  chat_status?: string;
 }
+
+// Pemetaan nilai customizer profil (PixelCharacter) -> nama file aset di /pixel/assets
+const CLOTHING_MAP: Record<string, string> = {
+  hoodie: 'clothing-hoodie-usrc',
+  casual: 'clothing-shirt-casual',
+  tshirt: 'clothing-tshirt-plain',
+  jacket: 'clothing-jacket-bomber',
+};
+const ACCESSORY_MAP: Record<string, string> = {
+  cap: 'aksesori-1-beanie',
+  glasses: 'aksesori-2-sunglasses',
+  headband: 'aksesori-3-headband',
+  headset: 'aksesori-4-headset',
+};
+const FACE_FALLBACK: Record<string, string> = { neutral: 'normal', wink: 'smile' };
+
+const pref = (prefix: string, v?: string) => (v && v.includes(prefix) ? v : `${prefix}-${v}`);
 
 export function PixelStoryContainer() {
   const [members, setMembers] = useState<MemberPixelData[]>([]);
@@ -31,7 +47,8 @@ export function PixelStoryContainer() {
         setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, pixel_body_color, pixel_hair_style, pixel_face_expression, pixel_clothing, pixel_accessories, pixel_status_message')
+          .select('id, full_name, pixel_body, pixel_hair, pixel_face, pixel_clothing, pixel_accessories, chat_status')
+          .eq('status', 'aktif')
           .limit(10);
 
         if (error) throw error;
@@ -39,13 +56,14 @@ export function PixelStoryContainer() {
         const mappedData = (data || []).map(member => ({
           id: member.id,
           name: member.full_name || 'Anonymous',
-          avatar_url: member.avatar_url,
-          pixel_body_color: member.pixel_body_color || 'light',
-          pixel_hair_style: member.pixel_hair_style || 'short',
-          pixel_face_expression: member.pixel_face_expression || 'neutral',
-          pixel_clothing: member.pixel_clothing || 'tshirt-plain',
-          pixel_accessories: member.pixel_accessories || 'beanie',
-          pixel_status_message: member.pixel_status_message || 'Aktif! 🎉',
+          pixel_body: member.pixel_body || 'medium',
+          pixel_hair: pref('hair', member.pixel_hair || 'short'),
+          pixel_face: pref('face', FACE_FALLBACK[member.pixel_face || ''] || member.pixel_face || 'normal'),
+          pixel_clothing: CLOTHING_MAP[member.pixel_clothing || ''] || pref('clothing', member.pixel_clothing || 'hoodie'),
+          pixel_accessories: member.pixel_accessories && member.pixel_accessories !== 'none'
+            ? (ACCESSORY_MAP[member.pixel_accessories] || pref('aksesori', member.pixel_accessories))
+            : undefined,
+          chat_status: member.chat_status || '',
         }));
 
         setMembers(mappedData);
@@ -127,11 +145,11 @@ export function PixelStoryContainer() {
               }}
             >
               <PixelCharacterLayer
-                bodyColor={member.pixel_body_color as any}
-                hairStyle={member.pixel_hair_style as any}
-                faceExpression={member.pixel_face_expression as any}
-                clothingType={member.pixel_clothing as any}
-                accessoryHead={member.pixel_accessories as any}
+                bodyColor={member.pixel_body}
+                hairStyle={member.pixel_hair}
+                faceExpression={member.pixel_face}
+                clothingType={member.pixel_clothing}
+                accessoryHead={member.pixel_accessories}
                 size={48}
               />
             </div>
@@ -198,7 +216,7 @@ export function PixelStoryContainer() {
               lineHeight: '1.4',
             }}
           >
-            {selectedMember.pixel_status_message}
+            {selectedMember.chat_status || 'Halo, ini karakter aku! ✦'}
           </p>
 
           {/* Name */}

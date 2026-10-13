@@ -63,15 +63,21 @@ export function PixelCharacterLayer({
 }: PixelLayerProps) {
   const svgPath = `/pixel/assets`;
 
-  // Construct file paths for each layer
-  const layers = [
-    { id: 'body', file: `${svgPath}/body-${bodyColor}.svg`, order: 1 },
-    { id: 'hair', file: `${svgPath}/${hairStyle}.svg`, order: 2 },
-    { id: 'face', file: `${svgPath}/${faceExpression}.svg`, order: 3 },
-    { id: 'clothes', file: `${svgPath}/${clothingType}.svg`, order: 4 },
-    ...(accessoryHead ? [{ id: 'accessory-head', file: `${svgPath}/${accessoryHead}.svg`, order: 5 }] : []),
-    ...(accessoryBody ? [{ id: 'accessory-body', file: `${svgPath}/${accessoryBody}.svg`, order: 5 }] : []),
-  ];
+  // Normalisasi nama file: terima 'short' maupun 'hair-short'
+  const asset = (prefix: string, value?: string, fallback = "") => {
+    if (!value || value === "none") return fallback ? `${svgPath}/${fallback}.svg` : "";
+    return `${svgPath}/${value.includes(prefix) ? value : `${prefix}-${value}`}.svg`;
+  };
+
+  // Stacked <img> — SVG transparan, aman ditumpuk, tidak tergantung fragment <use>
+  const layerFiles = [
+    asset("body", bodyColor, "body-medium"),
+    asset("hair", hairStyle, "hair-short"),
+    asset("face", faceExpression, "face-normal"),
+    asset("clothing", clothingType, "clothing-hoodie-usrc"),
+    ...(accessoryHead ? [asset("aksesori", accessoryHead)] : []),
+    ...(accessoryBody ? [asset("aksesori", accessoryBody)] : []),
+  ].filter(Boolean);
 
   return (
     <div
@@ -81,45 +87,18 @@ export function PixelCharacterLayer({
         height: size,
       }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width={size}
-        height={size}
-        className={`drop-shadow-sm ${animated ? 'animate-pulse' : ''}`}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Layer 1: Body Base */}
-        <g id="layer-body">
-          <use href={`${layers[0].file}#layer-body`} />
-        </g>
-
-        {/* Layer 2: Hair */}
-        <g id="layer-hair">
-          <use href={`${layers[1].file}#layer-hair`} />
-        </g>
-
-        {/* Layer 3: Face */}
-        <g id="layer-face">
-          <use href={`${layers[2].file}#layer-face`} />
-        </g>
-
-        {/* Layer 4: Clothing */}
-        <g id="layer-clothes">
-          <use href={`${layers[3].file}#layer-clothes`} />
-        </g>
-
-        {/* Layer 5: Accessories */}
-        {accessoryHead && (
-          <g id="layer-accessories-head">
-            <use href={accessoryHead} />
-          </g>
-        )}
-        {accessoryBody && (
-          <g id="layer-accessories-body">
-            <use href={accessoryBody} />
-          </g>
-        )}
-      </svg>
+      {layerFiles.map((file, i) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={i}
+          src={file}
+          alt=""
+          width={size}
+          height={size}
+          className="absolute inset-0 h-full w-full"
+          style={{ imageRendering: "pixelated" }}
+        />
+      ))}
     </div>
   );
 }
