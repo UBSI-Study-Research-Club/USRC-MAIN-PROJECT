@@ -43,11 +43,11 @@ export default async function PublicLayout({
               <span>Sesi</span>
             </Link>
             <Link
-              href="/#project"
+              href="/#karya"
               className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-[#FFF3C4] hover:shadow-[4px_4px_0px_var(--color-dark)]"
             >
               <span className="font-black text-maroon">03</span>
-              <span>Project</span>
+              <span>Karya</span>
             </Link>
           </div>
 
@@ -60,12 +60,20 @@ export default async function PublicLayout({
               DASHBOARD
             </Link>
           ) : (
-            <Link
-              href="/daftar"
-              className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-            >
-              DAFTAR
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/login"
+                className="border-[3px] border-dark bg-white px-5 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-dark neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+              >
+                LOGIN
+              </Link>
+              <Link
+                href="/daftar"
+                className="border-[3px] border-dark bg-maroon px-5 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+              >
+                DAFTAR
+              </Link>
+            </div>
           )}
         </nav>
       </header>
