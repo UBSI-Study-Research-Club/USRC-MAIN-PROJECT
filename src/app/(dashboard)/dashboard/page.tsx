@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { Loader2, AlertCircle, Calendar, CheckCircle2, Clock, ChevronDown } from "lucide-react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus } from "@/hooks/useAbsenStatus";
@@ -42,7 +43,7 @@ function AbsenBanner() {
   return (
     <div className="flex flex-col gap-2">
       {active.length > 0 && (
-        <div className="bg-[#7A1B2E] text-white border-2 border-[#1A1A1A] shadow-[3px_3px_0_#1A1A1A] px-3 py-2 flex items-center justify-between gap-3">
+        <div className="bg-maroon text-white border-2 border-dark shadow-[4px_4px_0px_var(--color-dark)] px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm font-bold font-mono">
             <Calendar className="w-4 h-4 shrink-0" />
             <span>SESI AKTIF: {active[0].title}</span>
@@ -50,7 +51,7 @@ function AbsenBanner() {
           {active[0].status === null ? (
             <Link
               href="/absen"
-              className="text-xs font-mono font-bold bg-white text-[#7A1B2E] border border-white px-2 py-1 hover:bg-[#F5F3EF] transition-colors shrink-0"
+              className="text-xs font-mono font-bold bg-white text-maroon border-2 border-white px-3 py-1.5 hover:bg-paper transition-all shrink-0 shadow-[2px_2px_0px_var(--color-dark)]"
             >
               ABSEN SEKARANG →
             </Link>
@@ -70,11 +71,11 @@ function AbsenBanner() {
         .map((m) => (
           <div
             key={m.meetingId}
-            className="flex items-center gap-2 text-xs font-mono text-[#666] border border-[#DDD] px-3 py-1.5 bg-[#FAFAF8]"
+            className="flex items-center gap-2 text-xs font-mono text-dark border-2 border-dark px-3 py-1.5 bg-paper shadow-[2px_2px_0px_var(--color-dark)]"
           >
             <Clock className="w-3 h-3 shrink-0" />
             <span className="truncate">{m.title}</span>
-            <span className="ml-auto shrink-0 text-[#999]">
+            <span className="ml-auto shrink-0 text-dark/60">
               {new Date(m.starts_at).toLocaleDateString("id-ID", {
                 day: "numeric",
                 month: "short",
@@ -85,6 +86,30 @@ function AbsenBanner() {
           </div>
         ))}
     </div>
+  );
+}
+
+/* Scroll-reveal: fade + rise, sekali jalan, hormat reduced-motion */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduced ? false : { opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease: "easeOut", delay }}
+    >
+      {children}
+    </motion.div>
   );
 }
 
@@ -127,31 +152,36 @@ function FeedTimeline() {
 
   return (
     <div className="flex flex-col gap-6">
-      {items.map((project) => (
-        <FeedCard
-          key={project.id}
-          project={project}
-          currentUserId={currentUserId}
-          onToggleStar={(id, starred) =>
-            startTransition(() => toggleStar(id, starred))
-          }
-        />
+      {items.map((project, idx) => (
+        <Reveal key={project.id} delay={idx * 0.1}>
+          <div className="border-2 border-dark bg-white shadow-[4px_4px_0px_var(--color-dark)] hover:shadow-[6px_6px_0px_var(--color-maroon)] transition-all hover:-translate-y-1">
+            <FeedCard
+              project={project}
+              currentUserId={currentUserId}
+              onToggleStar={(id, starred) =>
+                startTransition(() => toggleStar(id, starred))
+              }
+            />
+          </div>
+        </Reveal>
       ))}
 
       {hasMore && (
-        <button
-          onClick={loadMore}
-          disabled={loading}
-          className="w-full border-2 border-[#1A1A1A] py-3 font-mono text-sm flex items-center justify-center gap-2 hover:bg-[#F5F3EF] transition-colors disabled:opacity-50"
-        >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <ChevronDown className="w-4 h-4" /> Muat lebih banyak
-            </>
-          )}
-        </button>
+        <Reveal>
+          <button
+            onClick={loadMore}
+            disabled={loading}
+            className="w-full border-2 border-dark bg-paper py-3 font-mono text-sm flex items-center justify-center gap-2 hover:bg-maroon hover:text-white transition-all disabled:opacity-50 shadow-[3px_3px_0px_var(--color-dark)] hover:shadow-[5px_5px_0px_var(--color-maroon)]"
+          >
+            {loading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <>
+                <ChevronDown className="w-4 h-4" /> Muat lebih banyak
+              </>
+            )}
+          </button>
+        </Reveal>
       )}
     </div>
   );
@@ -159,14 +189,32 @@ function FeedTimeline() {
 
 // ── Page ─────────────────────────────────────────────────
 export default function DashboardPage() {
+  const prefersReduced = useReducedMotion();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  const headerY = useTransform(scrollYProgress, [0, 1], [0, -30]);
+  const headerRotate = useTransform(scrollYProgress, [0, 1], [2, 0]);
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-8">
+    <div ref={sectionRef} className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-8">
       {/* Absen Banner */}
       <section aria-label="Status Absen">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-extrabold text-sm uppercase tracking-widest font-mono text-[#7A1B2E]">
-            // Absen
-          </h2>
+          <motion.div
+            style={prefersReduced ? {} : { y: headerY, rotate: headerRotate }}
+            className="flex items-center gap-3"
+          >
+            <div className="h-6 w-6 border-2 border-dark bg-maroon flex items-center justify-center">
+              <Calendar className="w-3 h-3 text-white" />
+            </div>
+            <h2 className="font-extrabold text-sm uppercase tracking-widest font-mono text-[#7A1B2E]">
+              // Absen
+            </h2>
+          </motion.div>
           <Link
             href="/absen"
             className="text-xs font-mono text-[#888] hover:text-[#1A1A1A] underline underline-offset-2"
@@ -182,9 +230,16 @@ export default function DashboardPage() {
       {/* Feed Timeline */}
       <section aria-label="Feed Karya Anggota">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-extrabold text-sm uppercase tracking-widest font-mono text-[#1A1A1A]">
-            // Timeline Karya
-          </h2>
+          <div className="flex items-center gap-3">
+            <div className="h-6 w-6 border-2 border-dark bg-dark flex items-center justify-center">
+              <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L9 12 2 19l10-3 10 3-7-7-3-10z" />
+              </svg>
+            </div>
+            <h2 className="font-extrabold text-sm uppercase tracking-widest font-mono text-[#1A1A1A]">
+              // Timeline Karya
+            </h2>
+          </div>
           <Link
             href="/karya"
             className="text-xs font-mono text-[#888] hover:text-[#1A1A1A] underline underline-offset-2"
