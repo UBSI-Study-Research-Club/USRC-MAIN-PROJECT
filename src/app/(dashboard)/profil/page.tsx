@@ -18,6 +18,7 @@ interface Profile {
   linkedin: string;
   hobbies: string[];
   chat_status: string;
+  about: string;
 }
 
 // Kolom pixel asli di tabel profiles (sql-phase3-final.sql)
@@ -62,7 +63,7 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select(`full_name, nim, prodi, role, instagram, github, behance, linkedin, ${PIXEL_COLUMNS}, hobbies, chat_status`)
+        .select(`full_name, nim, prodi, role, instagram, github, behance, linkedin, ${PIXEL_COLUMNS}, hobbies, chat_status, about`)
         .eq("id", user.id)
         .single();
       setProfile(
@@ -78,11 +79,12 @@ export default function ProfilPage() {
               linkedin: data.linkedin ?? "",
               hobbies: data.hobbies ?? [],
               chat_status: data.chat_status ?? "",
+              about: data.about ?? "",
             }
           : {
               full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
-              hobbies: [], chat_status: "",
+              hobbies: [], chat_status: "", about: "",
             }
       );
       if (data) {
@@ -148,6 +150,7 @@ export default function ProfilPage() {
         linkedin: safe(profile.linkedin),
         hobbies: profile.hobbies.length > 0 ? profile.hobbies : null,
         chat_status: safe(profile.chat_status),
+        about: safe(profile.about),
         ...pixelUpdate,
       })
       .eq("id", user.id);
@@ -442,23 +445,23 @@ export default function ProfilPage() {
 
             <div>
               <label className={`${FONT_DISPLAY} mb-1.5 block text-sm font-bold uppercase text-dark`}>
-                Status Chat <span className="text-dark/40">(Pixel Story)</span>
+                About Me / Bio <span className="text-dark/40">(Member Card)</span>
               </label>
               <p className={`${FONT_MONO} mb-3 text-[11px] text-dark/50`}>
-                // muncul di balon chat karakter pixel kamu di dashboard
+                // Teks perkenalan singkat yang tampil di Kartu Member kamu saat diklik orang lain
               </p>
-              <input
-                type="text"
-                value={profile?.chat_status || ""}
-                maxLength={80}
+              <textarea
+                value={profile?.about || ""}
+                maxLength={250}
+                rows={3}
                 onChange={(e) =>
-                  setProfile((p) => (p ? { ...p, chat_status: e.target.value } : p))
+                  setProfile((p) => (p ? { ...p, about: e.target.value } : p))
                 }
-                placeholder="Contoh: Lagi pusing debugging Next.js"
-                className="w-full border-2 border-dark bg-white px-4 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:outline-none focus:ring-2 focus:ring-maroon"
+                placeholder="Ceritakan sedikit tentang dirimu, minat, atau kesibukanmu saat ini..."
+                className="w-full border-2 border-dark bg-white px-4 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:outline-none focus:ring-2 focus:ring-maroon resize-none"
               />
               <p className={`${FONT_MONO} mt-1 text-[10px] text-dark/50`}>
-                {(profile?.chat_status || "").length}/80
+                {(profile?.about || "").length}/250
               </p>
             </div>
 
