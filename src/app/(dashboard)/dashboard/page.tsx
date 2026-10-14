@@ -3,17 +3,83 @@
 import { useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, AlertCircle, Calendar, CheckCircle2, Clock, Sparkles, ArrowRight, FolderKanban } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Sparkles, ArrowRight, FolderKanban } from "lucide-react";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useFeed } from "@/hooks/useFeed";
-import { useAbsenStatus } from "@/hooks/useAbsenStatus";
+import { useAbsenStatus, type AbsenStatusItem } from "@/hooks/useAbsenStatus";
 import { FeedCard } from "@/components/FeedCard";
 import { PixelStoryContainer } from "@/components/pixel/PixelStoryContainer";
 import { GhostScreen } from "./absen/shared";
 
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
+
+// ── Tiket Sesi (prototype Raken → polish web) ─────────────────
+function ticketDate(s: string) {
+  const d = new Date(s);
+  return {
+    mon: d.toLocaleDateString("id-ID", { month: "short" }).replace(".", "").toUpperCase(),
+    day: d.getDate(),
+    wd: d.toLocaleDateString("id-ID", { weekday: "short" }).replace(".", "").toUpperCase(),
+    when: `${d.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short" })}, ${d.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`,
+  };
+}
+
+function SessionTicket({ m, state }: { m: AbsenStatusItem; state: "live" | "soon" }) {
+  const t = ticketDate(m.starts_at);
+  const attended = m.status !== null;
+  return (
+    <div className={`archive-stack${state === "soon" ? " rot2" : ""}`}>
+      <i className="archive-lay c" />
+      <i className="archive-lay b" />
+      <i className="archive-lay a" />
+      <article className={`archive-sheet ticket${state === "live" ? " live" : ""}`}>
+        <span className="archive-tape" aria-hidden="true" />
+        <div className="ticket-tk">
+          <div className="ticket-stub" aria-hidden="true">
+            <span>{t.mon}</span>
+            <b>{t.day}</b>
+            <span>{t.wd}</span>
+          </div>
+          <div className="ticket-body">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className={`${FONT_MONO} text-[12px] font-medium uppercase tracking-[.08em] text-maroon`}>
+                // {state === "live" ? "sesi berlangsung" : "sesi mendatang"}
+              </span>
+              <span className="ticket-status">{state === "live" ? "Live" : "Mendatang"}</span>
+            </div>
+            <h3 className={`${FONT_DISPLAY} mt-2 mb-0.5 text-2xl font-black uppercase leading-[1.1] text-dark`}>
+              {m.title}
+            </h3>
+            <p className={`${FONT_MONO} m-0 text-xs text-dark/80`}>Mulai: {t.when}</p>
+          </div>
+        </div>
+        <div className="ticket-foot">
+          <span className={`${FONT_MONO} text-xs text-dark/75`}>
+            {state === "live" ? "Absen terbuka sampai sesi berakhir." : "Absen dibuka saat sesi dimulai."}
+          </span>
+          {state === "live" && !attended && (
+            <Link href="/dashboard/absen" className="ticket-abs">
+              Absen Sekarang
+            </Link>
+          )}
+          {state === "live" && attended && (
+            <span className={`${FONT_MONO} inline-flex items-center gap-2 border-2 border-dark bg-[#D1E7DD] px-3 py-1.5 text-xs font-bold text-dark`}>
+              <CheckCircle2 className="w-4 h-4 text-green-700" />
+              {m.status === "approved" ? "Hadir (Approved)" : "Menunggu Approval"}
+            </span>
+          )}
+          {state === "soon" && (
+            <button type="button" className="ticket-abs" disabled>
+              Absen belum dibuka
+            </button>
+          )}
+        </div>
+      </article>
+    </div>
+  );
+}
 
 // ── Absen Banner (Ticket Card Style) ──────────────────────────
 function AbsenBanner() {
@@ -33,88 +99,65 @@ function AbsenBanner() {
       </div>
     );
   }
+
+  const now = Date.now();
+  const live = items.filter(
+    (m) => new Date(m.starts_at).getTime() <= now && new Date(m.ends_at).getTime() >= now
+  );
+  const upcoming = items
+    .filter((m) => new Date(m.starts_at).getTime() > now)
+    .slice(0, 2);
+
   if (!items.length) {
     return (
-      <div className="border-2 border-dark bg-white p-5 shadow-[4px_4px_0_#1A1A1A] flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#FFF3C4] border-2 border-dark flex items-center justify-center font-black text-maroon">
-            0
+      <div className="archive-stack">
+        <i className="archive-lay c" />
+        <i className="archive-lay b" />
+        <i className="archive-lay a" />
+        <article className="archive-sheet ticket">
+          <span className="archive-tape" aria-hidden="true" />
+          <div className="ticket-tk">
+            <div className="ticket-stub" aria-hidden="true">
+              <span>—</span>
+              <b>0</b>
+              <span>—</span>
+            </div>
+            <div className="ticket-body">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className={`${FONT_MONO} text-[12px] font-medium uppercase tracking-[.08em] text-maroon`}>
+                  // belum ada sesi
+                </span>
+                <span className="ticket-status">Kosong</span>
+              </div>
+              <h3 className={`${FONT_DISPLAY} mt-2 mb-0.5 text-2xl font-black uppercase leading-[1.1] text-dark`}>
+                Belum Ada Sesi Aktif
+              </h3>
+              <p className={`${FONT_MONO} m-0 text-xs text-dark/80`}>
+                Nantikan pengumuman sesi berikutnya dari sekretaris.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className={`${FONT_DISPLAY} font-black uppercase text-dark text-sm`}>Belum Ada Sesi Aktif</h3>
-            <p className={`${FONT_MONO} text-[11px] text-dark/60`}>Nantikan pengumuman sesi berikutnya dari sekretaris.</p>
+          <div className="ticket-foot">
+            <span className={`${FONT_MONO} text-xs text-dark/75`}>
+              Pengumuman sesi lewat dashboard &amp; grup kelas.
+            </span>
+            <button type="button" className="ticket-abs" disabled>
+              Absen belum dibuka
+            </button>
           </div>
-        </div>
+        </article>
       </div>
     );
   }
 
-  const active = items.filter((m) => {
-    const now = Date.now();
-    return new Date(m.starts_at).getTime() <= now && new Date(m.ends_at).getTime() >= now;
-  });
-
   return (
-    <div className="flex flex-col gap-4">
-      {active.length > 0 && (
-        <div className="relative flex border-[3px] border-dark bg-white shadow-[6px_6px_0_var(--color-maroon)] overflow-hidden">
-          {/* Left accent strip */}
-          <div className="w-3 bg-maroon border-r-[3px] border-dark" />
-          
-          <div className="flex-1 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <span className={`${FONT_MONO} inline-block bg-[#FFF3C4] border-2 border-dark px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-dark`}>
-                Sesi Berlangsung Sekarang
-              </span>
-              <h3 className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-tight text-dark`}>
-                {active[0].title}
-              </h3>
-              <p className={`${FONT_MONO} text-xs text-dark/60`}>
-                Absensi kehadiran untuk sesi ini sedang dibuka.
-              </p>
-            </div>
-
-            {active[0].status === null ? (
-              <Link
-                href="/dashboard/absen"
-                className={`${FONT_DISPLAY} inline-flex items-center justify-center gap-2 border-[3px] border-dark bg-maroon px-6 py-3 text-sm font-black uppercase tracking-wider text-white shadow-[3px_3px_0_#1A1A1A] hover:bg-hot transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
-              >
-                <span>Absen Sekarang</span>
-                <ArrowRight className="w-4 h-4" strokeWidth={2.5} />
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2 border-2 border-dark bg-[#D1E7DD] px-4 py-2.5 font-mono text-xs font-bold text-dark">
-                <CheckCircle2 className="w-4 h-4 text-green-700" />
-                <span>Status: {active[0].status === "approved" ? "Hadir (Approved)" : "Menunggu Approval"}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Upcoming sessions preview */}
-      {items
-        .filter((m) => new Date(m.starts_at).getTime() > Date.now())
-        .slice(0, 2)
-        .map((m) => (
-          <div
-            key={m.meetingId}
-            className="flex items-center justify-between border-2 border-dark bg-paper p-4 shadow-[3px_3px_0_#1A1A1A]"
-          >
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-maroon" strokeWidth={2.5} />
-              <div>
-                <h4 className={`${FONT_DISPLAY} font-bold uppercase text-sm text-dark`}>{m.title}</h4>
-                <p className={`${FONT_MONO} text-[11px] text-dark/60`}>
-                  Mulai: {new Date(m.starts_at).toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} WIB
-                </p>
-              </div>
-            </div>
-            <span className={`${FONT_MONO} text-[10px] border border-dark bg-white px-2.5 py-1 font-bold uppercase text-dark`}>
-              Mendatang
-            </span>
-          </div>
-        ))}
+    <div className="flex flex-col gap-9">
+      {live.map((m) => (
+        <SessionTicket key={m.meetingId} m={m} state="live" />
+      ))}
+      {upcoming.map((m) => (
+        <SessionTicket key={m.meetingId} m={m} state="soon" />
+      ))}
     </div>
   );
 }
