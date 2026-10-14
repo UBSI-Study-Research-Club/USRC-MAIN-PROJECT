@@ -972,7 +972,7 @@ export function PixelStoryContainer() {
       {/* ── Modal kartu member ── */}
       {openMember && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
           style={{ background: 'rgba(26,26,26,.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
           onClick={e => { if (e.target === e.currentTarget) closeCard(); }}
         >
@@ -1000,7 +1000,7 @@ export function PixelStoryContainer() {
       {/* ── Composer catatan ── */}
       {composerOpen && selfMember && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
           style={{ background: 'rgba(26,26,26,.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
           onClick={e => { if (e.target === e.currentTarget) setComposerOpen(false); }}
         >

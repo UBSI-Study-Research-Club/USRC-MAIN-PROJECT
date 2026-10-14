@@ -204,10 +204,10 @@ dialog.ps-dialog::backdrop{background:rgba(26,26,26,.55);backdrop-filter:blur(5p
   z-index: 1;
   box-shadow: none;
 }
-.archive-stack.rot {
+.archive-stack.rot > .archive-sheet {
   transform: rotate(-0.8deg);
 }
-.archive-stack.rot2 {
+.archive-stack.rot2 > .archive-sheet {
   transform: rotate(0.4deg);
 }
 .archive-fold::after {
