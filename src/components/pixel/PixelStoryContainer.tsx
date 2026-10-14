@@ -3,18 +3,73 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { PixelCharacter, type PixelCharacterConfig } from './PixelCharacter';
-import { MessageSquare, Sparkles, Loader2, X } from 'lucide-react';
+import { Sparkles, Loader2, X } from 'lucide-react';
+
+interface MemberDirectoryRow {
+  id: string;
+  full_name: string | null;
+  pixel_body?: string | null;
+  pixel_hair?: string | null;
+  pixel_hair_color?: string | null;
+  pixel_face?: string | null;
+  pixel_clothing?: string | null;
+  pixel_accessories?: string | null;
+  chat_status?: string | null;
+}
 
 interface MemberPixelData {
   id: string;
   full_name: string;
-  pixel_config?: PixelCharacterConfig | null;
+  pixel_config: PixelCharacterConfig;
   chat_status?: string | null;
-  created_at?: string;
 }
 
 const COLORS = ['#FFF3C4', '#FCE9ED', '#D1E7DD', '#FFFFFF'];
-const DAY_MS = 24 * 60 * 60 * 1000;
+
+function mapPixelConfig(member: MemberDirectoryRow): PixelCharacterConfig {
+  const hairColorMap: Record<string, NonNullable<PixelCharacterConfig['hair']>['color']> = {
+    hitam: 'black',
+    black: 'black',
+    coklat: 'brown',
+    brown: 'brown',
+    pirang: 'blonde',
+    blonde: 'blonde',
+    merah: 'red',
+    red: 'red',
+  };
+  const faceMap: Record<string, PixelCharacterConfig['face']> = {
+    normal: 'neutral',
+    neutral: 'neutral',
+    smile: 'smile',
+    wink: 'wink',
+    focus: 'focus',
+  };
+  const clothingMap: Record<string, PixelCharacterConfig['clothing']> = {
+    'hoodie-usrc': 'hoodie',
+    hoodie: 'hoodie',
+    casual: 'casual',
+    tshirt: 'tshirt',
+    jacket: 'jacket',
+  };
+  const accessoryMap: Record<string, PixelCharacterConfig['accessory']> = {
+    none: 'none',
+    cap: 'cap',
+    glasses: 'glasses',
+    headset: 'headset',
+    headband: 'headband',
+  };
+
+  return {
+    skin: (member.pixel_body as PixelCharacterConfig['skin']) || 'medium',
+    hair: {
+      style: (member.pixel_hair as any) || 'short',
+      color: hairColorMap[member.pixel_hair_color || ''] || 'black',
+    },
+    face: faceMap[member.pixel_face || ''] || 'neutral',
+    clothing: clothingMap[member.pixel_clothing || ''] || 'hoodie',
+    accessory: accessoryMap[member.pixel_accessories || ''] || 'none',
+  };
+}
 
 export function PixelStoryContainer() {
   const [members, setMembers] = useState<MemberPixelData[]>([]);
@@ -35,21 +90,16 @@ export function PixelStoryContainer() {
         const { data: { user } } = await supabase.auth.getUser();
         setCurrentUserId(user?.id ?? null);
 
-        // Fetch all active members with pixel + chat_status
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, pixel_config, chat_status, created_at')
-          .eq('status', 'aktif')
-          .order('full_name', { ascending: true });
+        // RLS-safe: get all active members via existing RPC
+        const { data, error } = await supabase.rpc('get_member_directory');
 
         if (error) throw error;
 
-        const mapped = (data || []).map(m => ({
+        const mapped = ((data as MemberDirectoryRow[]) || []).map(m => ({
           id: m.id,
           full_name: m.full_name || 'Anggota',
-          pixel_config: m.pixel_config || {},
+          pixel_config: mapPixelConfig(m),
           chat_status: m.chat_status || null,
-          created_at: m.created_at
         }));
 
         setMembers(mapped);
@@ -266,7 +316,7 @@ export function PixelStoryContainer() {
                 />
                 <div className="mt-1 flex justify-between items-center">
                   <span className="font-mono text-[10px] text-dark/50">
-                    Hilang otomatis setelah 24 jam
+                    Catatan tampil di Pixel Story
                   </span>
                   <span className="font-mono text-[10px] text-dark/60">
                     {composerText.length}/60
