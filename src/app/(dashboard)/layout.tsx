@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Users, ClipboardList, LogOut, Home, User, LayoutDashboard } from 'lucide-react'
+import { Users, ClipboardList, LogOut, Home, User, LayoutGrid } from 'lucide-react'
 import { NavLink } from './NavLink'
 
 export default async function DashboardLayout({
@@ -42,17 +42,17 @@ export default async function DashboardLayout({
           </Link>
 
           <nav className="flex items-center gap-3 md:gap-6">
+            <NavLink href="/dashboard">
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Feed</span>
+            </NavLink>
+
             <NavLink href="/">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
             </NavLink>
 
-            <NavLink href="/dashboard">
-              <LayoutDashboard className="w-4 h-4" />
-              <span className="hidden sm:inline">Feed</span>
-            </NavLink>
-
-            <NavLink href="/absen">
+            <NavLink href="/dashboard/absen">
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Absen Anggota</span>
             </NavLink>

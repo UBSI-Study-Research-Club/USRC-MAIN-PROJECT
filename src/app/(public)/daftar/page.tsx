@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { HOBI_OPTIONS } from "@/lib/hobi";
 
 const PRODI_OPTIONS = [
   "Informatika",
@@ -18,11 +19,19 @@ export default function DaftarPage() {
     email: "",
     prodi: "",
     reason: "",
+    website: "", // Honeypot anti-bot
   });
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
+  const [hobi, setHobi] = useState<string[]>([]);
   const [errorMsg, setErrorMsg] = useState("");
+
+  function toggleHobi(h: string) {
+    setHobi((prev) =>
+      prev.includes(h) ? prev.filter((x) => x !== h) : [...prev, h]
+    );
+  }
 
   function handleChange(
     e: React.ChangeEvent<
@@ -34,8 +43,21 @@ export default function DaftarPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setStatus("loading");
     setErrorMsg("");
+
+    if (form.website.trim() !== "") {
+      setStatus("error");
+      setErrorMsg("Aktivitas tidak valid terdeteksi.");
+      return;
+    }
+
+    if (hobi.length === 0) {
+      setStatus("error");
+      setErrorMsg("Pilih minimal satu hobi/minat dulu ya.");
+      return;
+    }
+
+    setStatus("loading");
 
     try {
       const supabase = createClient();
@@ -45,6 +67,7 @@ export default function DaftarPage() {
         email: form.email.trim().toLowerCase(),
         prodi: form.prodi,
         reason: form.reason.trim() || null,
+        hobbies: hobi.length > 0 ? hobi : null,
       });
 
       if (error) {
@@ -130,6 +153,18 @@ export default function DaftarPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          {/* Honeypot field - hidden from real users */}
+          <div className="hidden" aria-hidden="true">
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={form.website}
+              onChange={handleChange}
+            />
+          </div>
+
           {/* Nama */}
           <div>
             <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
@@ -194,6 +229,33 @@ export default function DaftarPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Hobi/Minat */}
+          <div>
+            <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
+              Hobi / Minat * <span className="text-dark/50">(pilih satu atau lebih)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {HOBI_OPTIONS.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => toggleHobi(h)}
+                  aria-pressed={hobi.includes(h)}
+                  className={`border-2 px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold transition-all active:translate-x-[1px] active:translate-y-[1px] ${
+                    hobi.includes(h)
+                      ? "border-dark bg-maroon text-white shadow-[2px_2px_0px_#1A1A1A]"
+                      : "border-dark bg-white text-dark shadow-[2px_2px_0px_#1A1A1A] hover:bg-[#FFF3C4]"
+                  }`}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] uppercase text-dark/50">
+              {hobi.length > 0 ? `${hobi.length} dipilih` : "Wajib pilih minimal satu"}
+            </p>
           </div>
 
           {/* Alasan */}

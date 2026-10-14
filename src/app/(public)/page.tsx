@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -24,6 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { withHttps } from "@/lib/url";
 
 interface Meeting {
   id: string;
@@ -318,7 +320,7 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
             {(project.links || []).slice(0, 2).map((l, i) => (
               <a
                 key={i}
-                href={l.url}
+                href={withHttps(l.url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={`${FONT_MONO} inline-flex items-center border-[1px] border-dark bg-paper px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
@@ -362,6 +364,16 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Kunci scroll background saat modal karya terbuka (QA #4)
+  useEffect(() => {
+    if (!selectedProject) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [selectedProject]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -515,7 +527,7 @@ export default function LandingPage() {
               {isLoggedIn ? (
                 <>
                   <Link
-                    href="/absen"
+                    href="/dashboard/absen"
                     className={`${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`}
                   >
                     Masuk Absen
@@ -823,12 +835,13 @@ export default function LandingPage() {
         </button>
       )}
 
-      {/* ── PROJECT DETAIL MODAL ───────────────────── */}
-      {selectedProject && (
-        <div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4"
-          onClick={() => setSelectedProject(null)}
-        >
+      {/* ── PROJECT DETAIL MODAL (portal + scroll-lock) ── */}
+      {selectedProject &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-dark/60 backdrop-blur-sm p-4"
+            onClick={() => setSelectedProject(null)}
+          >
           <div
             className="relative w-full max-w-lg border-[3px] border-dark bg-white shadow-[8px_8px_0px_var(--color-maroon)] max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -887,7 +900,7 @@ export default function LandingPage() {
                   {selectedProject.links.map((l, i) => (
                     <a
                       key={i}
-                      href={l.url}
+                      href={withHttps(l.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-paper px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-dark transition-all hover:bg-maroon hover:text-white`}
@@ -909,8 +922,9 @@ export default function LandingPage() {
               </Link>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
     </div>
   );
 }
