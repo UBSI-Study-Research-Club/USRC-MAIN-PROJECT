@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { PixelCharacter, type PixelCharacterConfig } from './PixelCharacter';
 import { Sparkles, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -747,6 +748,11 @@ export function PixelStoryContainer() {
   const [orderedList, setOrderedList] = useState<Member[]>([]);
   const [selfId, setSelfId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // modal kartu member
   const [openId, setOpenId] = useState<string | null>(null);
@@ -980,10 +986,10 @@ export function PixelStoryContainer() {
       </section>
 
       {/* ── Modal kartu member ── */}
-      {openMember && (
+      {mounted && openMember && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
-          style={{ background: 'rgba(26,26,26,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3"
+          style={{ background: 'rgba(26,26,26,.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
           onClick={closeCard}
         >
           <div
@@ -1005,14 +1011,15 @@ export function PixelStoryContainer() {
               slideDir={slideDir}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Composer catatan ── */}
-      {composerOpen && selfMember && (
+      {mounted && composerOpen && selfMember && createPortal(
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
-          style={{ background: 'rgba(26,26,26,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-3"
+          style={{ background: 'rgba(26,26,26,.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
           onClick={() => setComposerOpen(false)}
         >
           <div
@@ -1030,7 +1037,8 @@ export function PixelStoryContainer() {
               onClose={() => setComposerOpen(false)}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
