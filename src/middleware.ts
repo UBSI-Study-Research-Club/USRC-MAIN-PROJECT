@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 // In-memory rate limiter store for Edge/Middleware (Anti-spam / Anti-queue surge)
 const ipRequestCounts = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute window
-const MAX_REQUESTS_PER_WINDOW = 15; // Max 15 POST requests per minute per IP
+const MAX_REQUESTS_PER_WINDOW = 3; // Max 3 POST requests per minute per IP
 
 export async function middleware(request: NextRequest) {
   // Rate limiting check for mutating POST requests (registrations, logins, etc.)
@@ -28,13 +28,13 @@ export async function middleware(request: NextRequest) {
       ipRequestCounts.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
     }
 
-    // Cleanup old entries periodically to prevent memory growth
-    if (ipRequestCounts.size > 10000) {
-      for (const [key, val] of ipRequestCounts.entries()) {
+    // Cleanup old entries periodically using forEach (TS-safe)
+    if (ipRequestCounts.size > 5000) {
+      ipRequestCounts.forEach((val, key) => {
         if (now > val.resetTime) {
           ipRequestCounts.delete(key);
         }
-      }
+      });
     }
   }
 
