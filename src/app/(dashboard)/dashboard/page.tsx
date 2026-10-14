@@ -279,39 +279,51 @@ function DashboardContent() {
 
   return (
     <div ref={sectionRef} className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-10">
-      {/* Header Banner */}
-      <motion.div
-        style={prefersReduced ? {} : { y: headerY, rotate: headerRotate }}
-        className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-dark bg-white p-6 shadow-[6px_6px_0_var(--color-dark)]"
-      >
-        <div>
-          <span className={`${FONT_MONO} inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
-            // Ruang Interaksi Anggota
-          </span>
-          <h1 className={`${FONT_DISPLAY} text-3xl font-black uppercase tracking-tight text-dark`}>
-            Dashboard <span className="text-maroon">Anggota</span>
-          </h1>
-          <p className={`${FONT_MONO} text-xs text-dark/70 mt-1`}>
-            Pantau kehadiran, ikuti story rekan setim, dan apresiasi karya terbaru.
-          </p>
-        </div>
-        <Link
-          href="/profil"
-          className={`${FONT_DISPLAY} inline-flex items-center gap-2 border-[3px] border-dark bg-paper px-5 py-3 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-all`}
+      {/* Header Banner — Arsip Kertas Fold */}
+      <div className="archive-stack rot">
+        <i className="archive-lay c"></i>
+        <i className="archive-lay b"></i>
+        <i className="archive-lay a"></i>
+        <motion.div
+          style={prefersReduced ? {} : { y: headerY, rotate: headerRotate }}
+          className="archive-sheet archive-fold flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-dark bg-white p-6"
         >
-          <span>Atur Profil &amp; Pixel</span>
-          <Sparkles className="w-4 h-4" />
-        </Link>
-      </motion.div>
+          <div>
+            <span className={`${FONT_MONO} inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
+              // Ruang Interaksi Anggota
+            </span>
+            <h1 className={`${FONT_DISPLAY} text-3xl font-black uppercase tracking-tight text-dark`}>
+              Dashboard <span className="text-maroon">Anggota</span>
+            </h1>
+            <p className={`${FONT_MONO} text-xs text-dark/70 mt-1`}>
+              Pantau kehadiran, ikuti story rekan setim, dan apresiasi karya terbaru.
+            </p>
+          </div>
+          <Link
+            href="/profil"
+            className={`${FONT_DISPLAY} inline-flex items-center gap-2 border-[3px] border-dark bg-paper px-5 py-3 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-all`}
+          >
+            <span>Atur Profil &amp; Pixel</span>
+            <Sparkles className="w-4 h-4" />
+          </Link>
+        </motion.div>
+      </div>
 
-      {/* Pixel Story — identitas anggota di atas feed */}
+      {/* Pixel Story — identitas anggota di atas feed (Stack Kertas Rot2) */}
       <section aria-label="Pixel Story">
-        <PixelStoryContainer />
+        <div className="archive-stack rot2">
+          <i className="archive-lay c"></i>
+          <i className="archive-lay b"></i>
+          <i className="archive-lay a"></i>
+          <div className="archive-sheet">
+            <PixelStoryContainer />
+          </div>
+        </div>
       </section>
 
       {/* Absen Banner */}
       <section aria-label="Status Absen">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-maroon border-2 border-dark" />
             <h2 className={`${FONT_DISPLAY} text-lg font-black uppercase tracking-wider text-dark`}>
@@ -320,9 +332,10 @@ function DashboardContent() {
           </div>
           <Link
             href="/dashboard/absen/riwayat"
-            className={`${FONT_MONO} text-xs font-bold text-dark hover:text-maroon underline underline-offset-4`}
+            className="inline-flex items-stretch border-2 border-dark bg-[#FFF3C4] shadow-[3px_3px_0_#1A1A1A] no-underline font-display font-extrabold text-[12px] uppercase tracking-[.07em] rotate-[-1deg] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_#7A1B2E] transition-all"
           >
-            Lihat Riwayat Absen →
+            <span className="block px-3 py-1.5">Lihat Riwayat Absen</span>
+            <i className="not-italic grid place-items-center w-8 bg-maroon text-white border-l-2 border-dark text-base">→</i>
           </Link>
         </div>
         <AbsenBanner />
@@ -330,7 +343,7 @@ function DashboardContent() {
 
       {/* Feed Timeline */}
       <section aria-label="Feed Karya Anggota">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-[#E8A100] border-2 border-dark" />
             <h2 className={`${FONT_DISPLAY} text-lg font-black uppercase tracking-wider text-dark`}>
@@ -339,9 +352,10 @@ function DashboardContent() {
           </div>
           <Link
             href="/karya"
-            className={`${FONT_MONO} text-xs font-bold text-dark hover:text-maroon underline underline-offset-4`}
+            className="inline-flex items-stretch border-2 border-dark bg-[#FFF3C4] shadow-[3px_3px_0_#1A1A1A] no-underline font-display font-extrabold text-[12px] uppercase tracking-[.07em] rotate-[1deg] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_#7A1B2E] transition-all"
           >
-            Eksplor Semua Karya →
+            <span className="block px-3 py-1.5">Eksplor Semua Karya</span>
+            <i className="not-italic grid place-items-center w-8 bg-maroon text-white border-l-2 border-dark text-base">→</i>
           </Link>
         </div>
         <FeedTimeline />

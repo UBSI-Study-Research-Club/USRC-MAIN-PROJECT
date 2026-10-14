@@ -175,3 +175,61 @@ dialog.ps-dialog::backdrop{background:rgba(26,26,26,.55);backdrop-filter:blur(5p
   padding: 0 8px;
   margin-left: -8px;
 }
+
+/* ── Arsip Kertas & Stack dari Prototype Raken ── */
+.archive-stack {
+  position: relative;
+}
+.archive-stack > .archive-lay {
+  position: absolute;
+  inset: 0;
+  border: 2px solid #1A1A1A;
+  z-index: 0;
+  pointer-events: none;
+}
+.archive-stack > .archive-lay.c {
+  background: #F8D7DA;
+  transform: translate(14px, 15px) rotate(1.2deg);
+}
+.archive-stack > .archive-lay.b {
+  background: #FFF3C4;
+  transform: translate(9px, 10px) rotate(-0.4deg);
+}
+.archive-stack > .archive-lay.a {
+  background: #7A1B2E;
+  transform: translate(4px, 4px) rotate(0.4deg);
+}
+.archive-stack > .archive-sheet {
+  position: relative;
+  z-index: 1;
+  box-shadow: none;
+}
+.archive-stack.rot {
+  transform: rotate(-0.8deg);
+}
+.archive-stack.rot2 {
+  transform: rotate(0.4deg);
+}
+.archive-fold::after {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 26px;
+  height: 26px;
+  background: linear-gradient(225deg, #F5F3EF 50%, #E6DFD0 50%);
+  border-left: 2px solid #1A1A1A;
+  border-bottom: 2px solid #1A1A1A;
+}
+.archive-tape {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 76px;
+  height: 20px;
+  transform: translateX(-50%) rotate(-3deg);
+  background: rgba(227, 133, 149, 0.65);
+  border-left: 2px dashed rgba(26, 26, 26, 0.3);
+  border-right: 2px dashed rgba(26, 26, 26, 0.3);
+  z-index: 2;
+}
