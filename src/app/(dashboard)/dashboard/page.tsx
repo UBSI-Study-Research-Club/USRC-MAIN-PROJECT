@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, AlertCircle, Calendar, CheckCircle2, Clock, Sparkles, ArrowRight, FolderKanban } from "lucide-react";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus } from "@/hooks/useAbsenStatus";
@@ -118,6 +119,30 @@ function AbsenBanner() {
   );
 }
 
+/* Scroll-reveal: fade + rise, sekali jalan, hormat reduced-motion — Iwan (PR #68) */
+function Reveal({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={reduced ? false : { opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.5, ease: "easeOut", delay }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 // ── Feed Timeline ─────────────────────────────────────────
 function FeedTimeline() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -167,32 +192,35 @@ function FeedTimeline() {
 
   return (
     <div className="flex flex-col gap-6">
-      {items.map((project) => (
-        <FeedCard
-          key={project.id}
-          project={project}
-          currentUserId={currentUserId}
-          onToggleStar={(id, starred) =>
-            startTransition(() => toggleStar(id, starred))
-          }
-        />
+      {items.map((project, idx) => (
+        <Reveal key={project.id} delay={Math.min(idx * 0.1, 0.4)}>
+          <FeedCard
+            project={project}
+            currentUserId={currentUserId}
+            onToggleStar={(id, starred) =>
+              startTransition(() => toggleStar(id, starred))
+            }
+          />
+        </Reveal>
       ))}
 
       {hasMore && (
-        <button
-          onClick={loadMore}
-          disabled={loading}
-          className={`${FONT_DISPLAY} w-full border-[3px] border-dark bg-white py-4 font-black uppercase tracking-wider text-dark shadow-[4px_4px_0_#1A1A1A] flex items-center justify-center gap-2 hover:bg-[#FFF3C4] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50`}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin text-maroon" />
-              <span>Memuat lebih banyak...</span>
-            </>
-          ) : (
-            <span>Muat Karya Lainnya</span>
-          )}
-        </button>
+        <Reveal>
+          <button
+            onClick={loadMore}
+            disabled={loading}
+            className={`${FONT_DISPLAY} w-full border-[3px] border-dark bg-white py-4 font-black uppercase tracking-wider text-dark shadow-[4px_4px_0_#1A1A1A] flex items-center justify-center gap-2 hover:bg-[#FFF3C4] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50`}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin text-maroon" />
+                <span>Memuat lebih banyak...</span>
+              </>
+            ) : (
+              <span>Muat Karya Lainnya</span>
+            )}
+          </button>
+        </Reveal>
       )}
     </div>
   );
@@ -240,10 +268,22 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
+  const prefersReduced = useReducedMotion();
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+  const headerY = useTransform(scrollYProgress, [0, 1], [0, -30]);
+  const headerRotate = useTransform(scrollYProgress, [0, 1], [2, 0]);
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-10">
+    <div ref={sectionRef} className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-10">
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-dark bg-white p-6 shadow-[6px_6px_0_var(--color-dark)]">
+      <motion.div
+        style={prefersReduced ? {} : { y: headerY, rotate: headerRotate }}
+        className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-dark bg-white p-6 shadow-[6px_6px_0_var(--color-dark)]"
+      >
         <div>
           <span className={`${FONT_MONO} inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
             // Ruang Interaksi Anggota
@@ -262,7 +302,7 @@ function DashboardContent() {
           <span>Atur Profil &amp; Pixel</span>
           <Sparkles className="w-4 h-4" />
         </Link>
-      </div>
+      </motion.div>
 
       {/* Pixel Story — identitas anggota di atas feed */}
       <section aria-label="Pixel Story">
