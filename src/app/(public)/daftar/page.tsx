@@ -19,6 +19,7 @@ export default function DaftarPage() {
     email: "",
     prodi: "",
     reason: "",
+    website: "", // Honeypot anti-bot
   });
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -43,6 +44,12 @@ export default function DaftarPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErrorMsg("");
+
+    if (form.website.trim() !== "") {
+      setStatus("error");
+      setErrorMsg("Aktivitas tidak valid terdeteksi.");
+      return;
+    }
 
     if (hobi.length === 0) {
       setStatus("error");
@@ -146,6 +153,18 @@ export default function DaftarPage() {
         </p>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          {/* Honeypot field - hidden from real users */}
+          <div className="hidden" aria-hidden="true">
+            <input
+              type="text"
+              name="website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={form.website}
+              onChange={handleChange}
+            />
+          </div>
+
           {/* Nama */}
           <div>
             <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
