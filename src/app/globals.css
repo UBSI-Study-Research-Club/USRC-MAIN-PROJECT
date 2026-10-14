@@ -233,3 +233,106 @@ dialog.ps-dialog::backdrop{background:rgba(26,26,26,.55);backdrop-filter:blur(5p
   border-right: 2px dashed rgba(26, 26, 26, 0.3);
   z-index: 2;
 }
+
+/* ── Tiket Sesi (prototype Raken, dipolish ke web) ── */
+.ticket {
+  position: relative;
+  background: #FFFDF7;
+  border: 2px solid #1A1A1A;
+}
+.ticket-tk { display: flex; }
+.ticket-stub {
+  flex: none;
+  position: relative;
+  width: 84px;
+  background: #FFF3C4;
+  border-right: 2px dashed #1A1A1A;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.ticket-stub b {
+  font-family: Outfit, system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 38px;
+  line-height: 1;
+  color: #7A1B2E;
+  letter-spacing: 0;
+}
+/* lubang sobekan tiket */
+.ticket-stub::before,
+.ticket-stub::after {
+  content: "";
+  position: absolute;
+  right: -12px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #1A1A1A;
+  background: #F5F3EF;
+  z-index: 1;
+}
+.ticket-stub::before { top: -11px; }
+.ticket-stub::after { bottom: -11px; }
+.ticket-body { flex: 1; min-width: 0; padding: 14px 16px; }
+.ticket-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-top: 2px solid #1A1A1A;
+  background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(26, 26, 26, .04) 8px 16px);
+}
+.ticket-status {
+  display: inline-block;
+  border: 2px solid #1A1A1A;
+  background: #FFF3C4;
+  padding: 2px 10px;
+  font-family: Outfit, system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+  box-shadow: 2px 2px 0 #1A1A1A;
+}
+.ticket.live .ticket-status { background: #D1E7DD; }
+.ticket-abs {
+  display: inline-block;
+  border: 2px dashed rgba(26, 26, 26, .5);
+  background: transparent;
+  color: rgba(26, 26, 26, .6);
+  padding: 6px 12px;
+  font-family: Outfit, system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 12px;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: not-allowed;
+}
+.ticket.live .ticket-abs {
+  border: 2px solid #1A1A1A;
+  background: #D1E7DD;
+  color: #1A1A1A;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 #1A1A1A;
+  transition: transform .08s, box-shadow .08s;
+}
+.ticket.live .ticket-abs:hover { transform: translate(-1px, -1px); }
+.ticket.live .ticket-abs:active { transform: translate(2px, 2px); box-shadow: none; }
+@media (max-width: 480px) {
+  .ticket-stub { width: 64px; }
+  .ticket-stub b { font-size: 30px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ticket.live .ticket-abs { transition: none; }
+}
