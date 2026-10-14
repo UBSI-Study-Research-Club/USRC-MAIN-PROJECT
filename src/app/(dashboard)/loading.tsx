@@ -1,13 +1,12 @@
 export default function DashboardLoading() {
   return (
-    <div className="mx-auto w-full max-w-4xl">
-      <div className="skeleton h-11 w-56" />
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="skeleton h-28 w-full" />
-        <div className="skeleton h-28 w-full" />
-        <div className="skeleton h-28 w-full" />
+    <div className="flex min-h-[60vh] w-full items-center justify-center bg-paper">
+      <div className="flex flex-col items-center gap-3 border-[3px] border-dark bg-white p-6 neo-shadow">
+        <div className="h-8 w-8 animate-spin rounded-none border-[3px] border-dark border-t-maroon" />
+        <span className="font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark">
+          // MEMUAT DASHBOARD...
+        </span>
       </div>
-      <div className="skeleton mt-6 h-64 w-full" />
     </div>
   );
 }
