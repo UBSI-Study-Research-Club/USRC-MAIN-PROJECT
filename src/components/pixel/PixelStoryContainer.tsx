@@ -227,28 +227,30 @@ export function PixelStoryContainer() {
                   type="button"
                   onClick={() => isOwn && openComposer()}
                   disabled={!isOwn}
-                  className={`group flex flex-col items-center shrink-0 focus:outline-none transition-all ${
+                  className={`group flex w-[104px] shrink-0 flex-col items-center focus:outline-none transition-all ${
                     isOwn ? 'cursor-pointer' : 'cursor-default'
                   }`}
                 >
-                  {/* Bubble preview */}
-                  {member.chat_status && (
-                    <div
-                      className="relative mb-2 px-3 py-1.5 rounded-lg border-2 border-dark text-center"
-                      style={{ backgroundColor: bubbleColor }}
-                    >
-                      <p className="font-sans text-[10px] font-medium max-w-[80px] line-clamp-2">
-                        {member.chat_status}
-                      </p>
+                  {/* Bubble preview — fixed slot keeps all avatars aligned */}
+                  <div className="mb-2 flex h-14 w-full items-end justify-center">
+                    {member.chat_status && (
                       <div
-                        className="absolute left-1/2 -bottom-2 w-3 h-3 border-r-2 border-b-2 border-dark"
-                        style={{
-                          transform: 'translateX(-50%) rotate(45deg)',
-                          backgroundColor: bubbleColor
-                        }}
-                      />
-                    </div>
-                  )}
+                        className="relative max-w-[96px] rounded-lg border-2 border-dark px-3 py-1.5 text-center"
+                        style={{ backgroundColor: bubbleColor }}
+                      >
+                        <p className="line-clamp-2 font-sans text-[10px] font-medium leading-tight">
+                          {member.chat_status}
+                        </p>
+                        <div
+                          className="absolute left-1/2 -bottom-2 h-3 w-3 border-b-2 border-r-2 border-dark"
+                          style={{
+                            transform: 'translateX(-50%) rotate(45deg)',
+                            backgroundColor: bubbleColor
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   {/* Avatar */}
                   <div
