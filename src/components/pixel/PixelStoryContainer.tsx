@@ -768,7 +768,17 @@ export function PixelStoryContainer() {
     setFadeR(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
   }, []);
 
-  // fetch data
+  // lock body scroll when modal or composer is open
+  useEffect(() => {
+    if (openId || composerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [openId, composerOpen]);
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -972,13 +982,14 @@ export function PixelStoryContainer() {
       {/* ── Modal kartu member ── */}
       {openMember && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
-          style={{ background: 'rgba(26,26,26,.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
-          onClick={e => { if (e.target === e.currentTarget) closeCard(); }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
+          style={{ background: 'rgba(26,26,26,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          onClick={closeCard}
         >
           <div
-            className="ps-modal-pop flex flex-col bg-white border-2 border-dark overflow-hidden"
-            style={{ width: 'min(620px, calc(100% - 24px))', maxHeight: 'min(92vh, 860px)', boxShadow: '8px 8px 0 #7A1B2E' }}
+            className="ps-modal-pop flex flex-col bg-white border-2 border-dark overflow-hidden w-full max-w-[620px]"
+            style={{ maxHeight: 'min(92vh, 860px)', boxShadow: '8px 8px 0 #7A1B2E' }}
+            onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="ps-card-title"
@@ -1000,13 +1011,14 @@ export function PixelStoryContainer() {
       {/* ── Composer catatan ── */}
       {composerOpen && selfMember && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
-          style={{ background: 'rgba(26,26,26,.55)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)' }}
-          onClick={e => { if (e.target === e.currentTarget) setComposerOpen(false); }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-3"
+          style={{ background: 'rgba(26,26,26,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+          onClick={() => setComposerOpen(false)}
         >
           <div
-            className="flex flex-col bg-white border-2 border-dark"
-            style={{ width: 'min(440px, calc(100% - 24px))', maxHeight: 'min(92vh,700px)', boxShadow: '8px 8px 0 #7A1B2E' }}
+            className="flex flex-col bg-white border-2 border-dark w-full max-w-[440px]"
+            style={{ maxHeight: 'min(92vh,700px)', boxShadow: '8px 8px 0 #7A1B2E' }}
+            onClick={e => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
