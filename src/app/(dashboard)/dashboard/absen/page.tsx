@@ -240,7 +240,7 @@ function SesiAktifContent() {
                 >
                   {/* Stamp Overlay */}
                   {attendance && (
-                    <div className={`absolute right-[190px] top-[38%] z-25 pointer-events-none px-5 py-2 border-4 border-current outline-2 outline-current outline-offset-3 rounded-md font-black uppercase font-['Outfit'] text-2xl md:text-3xl tracking-widest text-center rotate-[-12deg] origin-center opacity-90 mix-blend-multiply ${
+                    <div className={`absolute right-1/2 top-[38%] z-[25] translate-x-1/2 md:right-[190px] md:translate-x-0 pointer-events-none px-5 py-2 border-4 border-current outline-2 outline-current outline-offset-3 rounded-md font-black uppercase font-['Outfit'] text-2xl md:text-3xl tracking-widest text-center rotate-[-12deg] origin-center opacity-90 mix-blend-multiply ${
                       attendance.status === 'approved' ? 'text-[#17543A]' : attendance.status === 'rejected' ? 'text-[#A62639]' : 'text-[#8A5A00]'
                     }`} style={{ filter: 'url(#rough)' }}>
                       {attendance.status === 'approved' ? 'HADIR' : attendance.status === 'rejected' ? 'DITOLAK' : 'PENDING'}
