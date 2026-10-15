@@ -386,3 +386,49 @@ dialog.pf-pick::backdrop {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
+
+/* ── Etalase Karya (prototype Raken) ── */
+.kg-card { transition: transform .15s, box-shadow .15s; }
+.kg-card:nth-child(3n+1) { transform: rotate(-1deg); }
+.kg-card:nth-child(3n+2) { transform: rotate(.8deg); }
+.kg-card:nth-child(3n) { transform: rotate(-.4deg); }
+.kg-card:hover { transform: rotate(0) translate(-3px, -3px); box-shadow: 9px 9px 0 #7A1B2E; }
+@media (prefers-reduced-motion: reduce) {
+  .kg-card, .kg-card:hover { transition: none; transform: none; }
+  .kg-card:hover { box-shadow: 6px 6px 0 #7A1B2E; }
+}
+
+/* cover gradient + tekstur titik */
+.kg-img {
+  position: relative;
+  background: linear-gradient(135deg, var(--g0), var(--g1));
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 14px;
+  overflow: hidden;
+}
+.kg-img::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(0, 0, 0, .2) 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+  pointer-events: none;
+}
+.kg-img > * { position: relative; z-index: 1; }
+
+/* seksi // label dengan garis */
+.kg-lbl {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: #7A1B2E;
+  margin: 0 0 8px;
+}
+.kg-lbl::after { content: ""; flex: 1; height: 2px; background: #1A1A1A; }
