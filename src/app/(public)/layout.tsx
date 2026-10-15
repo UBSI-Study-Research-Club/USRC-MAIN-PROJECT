@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
+import MobileNav from "@/components/MobileNav";
 
 export default async function PublicLayout({
   children,
@@ -14,7 +15,7 @@ export default async function PublicLayout({
     <>
       {/* ── Navbar (Neobrutalist) ────────────────── */}
       <header className="sticky top-0 z-50 p-4 md:p-6 bg-paper/80 backdrop-blur-md">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between border-[3px] border-dark bg-white px-6 py-4 neo-shadow transition-all">
+        <nav className="relative mx-auto flex max-w-7xl items-center justify-between border-[3px] border-dark bg-white px-4 py-3 md:px-6 md:py-4 neo-shadow transition-all">
           
           {/* Logo (Custom graphic matching mockup) */}
           <Link href="/" className="flex items-center gap-3">
@@ -52,29 +53,34 @@ export default async function PublicLayout({
           </div>
 
           {/* CTA */}
-          {user ? (
-            <Link
-              href="/dashboard"
-              className="border-[3px] border-dark bg-maroon px-6 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-            >
-              DASHBOARD
-            </Link>
-          ) : (
-            <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            {user ? (
               <Link
-                href="/login"
-                className="border-[3px] border-dark bg-white px-5 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-dark neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
+                href="/dashboard"
+                className="border-[3px] border-dark bg-maroon px-3 py-2 font-[family-name:var(--font-outfit)] text-sm font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:px-6 md:py-2.5 md:text-base"
               >
-                LOGIN
+                Dashboard
               </Link>
-              <Link
-                href="/daftar"
-                className="border-[3px] border-dark bg-maroon px-5 py-2.5 font-[family-name:var(--font-outfit)] text-base font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none"
-              >
-                DAFTAR
-              </Link>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/login"
+                  className="border-[3px] border-dark bg-white px-3 py-2 font-[family-name:var(--font-outfit)] text-sm font-black uppercase tracking-wider text-dark neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:px-5 md:py-2.5 md:text-base"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/daftar"
+                  className="border-[3px] border-dark bg-maroon px-3 py-2 font-[family-name:var(--font-outfit)] text-sm font-black uppercase tracking-wider text-white neo-shadow transition-transform hover:-translate-y-0.5 active:translate-y-0 active:shadow-none md:px-5 md:py-2.5 md:text-base"
+                >
+                  Daftar
+                </Link>
+              </div>
+            )}
+
+            {/* Hamburger Menu (Mobile only) */}
+            <MobileNav />
+          </div>
         </nav>
       </header>
 
