@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { withHttps } from '@/lib/url'
 import {
-  Star, Users, ExternalLink, X, Plus, ArrowLeft,
+  Star, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
