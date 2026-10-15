@@ -951,8 +951,8 @@ export function PixelStoryContainer() {
         {/* header */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-0">
           <Sparkles className="w-5 h-5 text-maroon flex-none" />
-          <h2 id="ps-title" className="m-0 font-mono text-xs font-bold uppercase tracking-[.14em]">
-            // Pixel story &amp; status anggota
+          <h2 id="ps-title" className="m-0 font-['Outfit'] text-lg font-black uppercase tracking-tight text-dark">
+            Pixel Story <span className="text-maroon">&amp;</span> Status Anggota
           </h2>
           <span className="ml-auto font-mono text-[12px] text-dark/55 hidden sm:block">
             Ketuk avatar buat lihat kartu member
