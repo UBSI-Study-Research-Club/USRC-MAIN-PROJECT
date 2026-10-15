@@ -336,3 +336,43 @@ dialog.ps-dialog::backdrop{background:rgba(26,26,26,.55);backdrop-filter:blur(5p
 @media (prefers-reduced-motion: reduce) {
   .ticket.live .ticket-abs { transition: none; }
 }
+
+/* ── Profil Saya (prototype Raken) ── */
+@keyframes pf-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.pf-band { overflow: hidden; white-space: nowrap; }
+.pf-band > span { display: inline-block; animation: pf-marquee 30s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .pf-band > span { animation: none; } }
+
+/* ring dashed di sekeliling avatar bulat */
+.pf-ring { position: relative; }
+.pf-ring::before {
+  content: "";
+  position: absolute;
+  inset: -14px;
+  border: 2px dashed #7A1B2E;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* lubang sobekan di pembatas form */
+.pf-form { position: relative; }
+.pf-form::before,
+.pf-form::after {
+  content: "";
+  position: absolute;
+  top: -13px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid #1A1A1A;
+  background: #F5F3EF;
+  z-index: 1;
+}
+.pf-form::before { left: -14px; }
+.pf-form::after { right: -14px; }
+
+dialog.pf-pick::backdrop {
+  background:
+    radial-gradient(rgba(245, 243, 239, .16) 1px, transparent 1px) 0 0 / 18px 18px,
+    rgba(26, 26, 26, .76);
+}

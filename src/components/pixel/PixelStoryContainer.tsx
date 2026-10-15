@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import { PixelCharacter, type PixelCharacterConfig } from './PixelCharacter';
+import { PixelAvatar } from './PixelAvatar';
 import { Sparkles, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -30,6 +31,8 @@ interface MemberDirectoryRow {
   sessions_attended?: number | null;
   projects_count?: number | null;
   member_since?: number | null;
+  avatar_id?: string | null;
+  avatar_bg?: string | null;
 }
 
 interface Member {
@@ -49,6 +52,8 @@ interface Member {
   sessions_attended: number;
   projects_count: number;
   member_since: number;
+  avatar_id: string | null;
+  avatar_bg: string | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -114,6 +119,8 @@ function mapMember(row: MemberDirectoryRow): Member {
     sessions_attended: row.sessions_attended ?? 0,
     projects_count: row.projects_count ?? 0,
     member_since: row.member_since ?? new Date().getFullYear(),
+    avatar_id: row.avatar_id || null,
+    avatar_bg: row.avatar_bg || null,
   };
 }
 
@@ -203,6 +210,15 @@ const ARROW_ICON = (
 );
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
+
+/** Avatar anggota: hewan pixel kalau avatar_id ada, fallback ke karakter custom lama */
+function MemberAvatar({ m, sizeClass }: { m: Member; sizeClass: string }) {
+  if (m.avatar_id) {
+    return <PixelAvatar id={m.avatar_id} bg={m.avatar_bg} className={`${sizeClass} overflow-hidden`} />;
+  }
+  return <div className={`${sizeClass} flex items-center justify-center`}><PixelCharacter config={m.pixel_config} /></div>;
+}
+
 
 function BubbleShape({
   text, color, tilt, idx, pop,
@@ -300,7 +316,7 @@ function StoryItem({
             group-hover:-translate-y-0.5
           `}
         >
-          <PixelCharacter config={member.pixel_config} />
+          <MemberAvatar m={member} sizeClass="w-full h-full" />
         </span>
 
         {/* Nama */}
@@ -344,6 +360,7 @@ function MemberCard({
   const color = BUBBLE_COLORS[idx % BUBBLE_COLORS.length];
   const wmText = Array(12).fill(`@${member.full_name.split(' ')[0].toUpperCase()} ✦ `).join('');
   const shirtColor = (() => {
+    if (member.avatar_bg) return member.avatar_bg;
     const c = { hoodie: '#2E5090', casual: '#4A90E2', tshirt: '#FF6B6B', jacket: '#34495E' };
     return c[member.pixel_config.clothing || 'hoodie'];
   })();
@@ -425,7 +442,7 @@ function MemberCard({
           {/* avatar besar — menonjol ke atas hero */}
           <div className="relative z-[3] w-32 h-32 -mt-16">
             <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#FFF3C4] border-4 border-dark shadow-[6px_6px_0_#7A1B2E] transition-transform duration-200 hover:-translate-y-1 hover:-rotate-3">
-              <PixelCharacter config={{ ...member.pixel_config, size: 'xl' }} />
+              <MemberAvatar m={member} sizeClass="w-full h-full" />
               {/* sheen sekali */}
               <span className="absolute inset-0 ps-sheen pointer-events-none" style={{ background: 'linear-gradient(115deg,transparent 35%,rgba(255,255,255,.7) 50%,transparent 65%)', transform: 'translateX(-130%)' }} />
             </div>
@@ -688,7 +705,7 @@ function ComposerModal({
             )}
           </div>
           <div className="w-16 h-16 rounded-full overflow-hidden bg-[#FFF3C4] border-2 border-dark flex items-center justify-center -mt-3">
-            <PixelCharacter config={member.pixel_config} />
+            <MemberAvatar m={member} sizeClass="w-full h-full" />
           </div>
         </div>
 
