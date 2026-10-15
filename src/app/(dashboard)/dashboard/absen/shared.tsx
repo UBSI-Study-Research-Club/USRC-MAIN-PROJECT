@@ -14,7 +14,7 @@ export type Attendance = {
   id: string
   meeting_id: string
   user_id: string
-  status: 'pending' | 'approved'
+  status: 'pending' | 'approved' | 'rejected'
   checked_at: string
 }
 
