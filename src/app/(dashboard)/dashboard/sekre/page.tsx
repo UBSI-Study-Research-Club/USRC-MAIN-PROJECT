@@ -904,42 +904,68 @@ function SekretarisDashboardContent() {
                     {memberSearch ? '// Tidak ada anggota yang cocok dengan pencarian.' : '// Belum ada anggota terdaftar.'}
                   </div>
                 ) : (
-                  <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-x-auto">
-                    <table className="w-full text-left border-collapse min-w-[640px]">
-                      <thead>
-                        <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
-                          <th className="p-3 border-r-2 border-[#1A1A1A]">Nama</th>
-                          <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
-                          <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi/Kelas</th>
-                          <th className="p-3 border-r-2 border-[#1A1A1A]">Role</th>
-                          <th className="p-3">Alasan Masuk USRC</th>
-                        </tr>
-                      </thead>
-                      <tbody className="font-['Work_Sans'] text-sm">
-                        {filteredMembers.map((member) => (
-                          <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50 transition-colors">
-                            <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
+                  <>
+                    {/* Mobile: Card list */}
+                    <div className="flex flex-col gap-3 md:hidden">
+                      {filteredMembers.map((member) => (
+                        <div key={member.id} className="border-2 border-[#1A1A1A] bg-white shadow-[3px_3px_0_#1A1A1A] p-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-bold font-['Work_Sans'] text-[#1A1A1A] leading-tight">
                               {member.full_name}
-                            </td>
-                            <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
-                              {member.nim}
-                            </td>
-                            <td className="p-3 border-r-2 border-[#1A1A1A] text-xs font-bold">
-                              {member.prodi}
-                            </td>
-                            <td className="p-3 border-r-2 border-[#1A1A1A]">
-                              <span className="inline-block font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
-                                {member.role}
-                              </span>
-                            </td>
-                            <td className="p-3 text-xs italic text-gray-700 max-w-md">
-                              {member.reason || 'Belum ada alasan tersimpan.'}
-                            </td>
+                            </p>
+                            <span className="flex-none font-mono text-[10px] px-2 py-0.5 border-2 border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
+                              {member.role}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-[#1A1A1A]/70">
+                            <span>NIM: {member.nim}</span>
+                            <span>{member.prodi}</span>
+                          </div>
+                          <p className="mt-2 border-t border-dashed border-[#1A1A1A]/30 pt-2 font-['Work_Sans'] text-xs italic text-gray-700">
+                            {member.reason || 'Belum ada alasan tersimpan.'}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Desktop: Table */}
+                    <div className="hidden border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-x-auto md:block">
+                      <table className="w-full text-left border-collapse min-w-[640px]">
+                        <thead>
+                          <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
+                            <th className="p-3 border-r-2 border-[#1A1A1A]">Nama</th>
+                            <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
+                            <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi/Kelas</th>
+                            <th className="p-3 border-r-2 border-[#1A1A1A]">Role</th>
+                            <th className="p-3">Alasan Masuk USRC</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody className="font-['Work_Sans'] text-sm">
+                          {filteredMembers.map((member) => (
+                            <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50 transition-colors">
+                              <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
+                                {member.full_name}
+                              </td>
+                              <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
+                                {member.nim}
+                              </td>
+                              <td className="p-3 border-r-2 border-[#1A1A1A] text-xs font-bold">
+                                {member.prodi}
+                              </td>
+                              <td className="p-3 border-r-2 border-[#1A1A1A]">
+                                <span className="inline-block font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
+                                  {member.role}
+                                </span>
+                              </td>
+                              <td className="p-3 text-xs italic text-gray-700 max-w-md">
+                                {member.reason || 'Belum ada alasan tersimpan.'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             )}
