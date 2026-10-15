@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { withHttps } from '@/lib/url'
 import {
-  Star, Users, ExternalLink, X, Plus, ArrowLeft,
+  Star, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
 } from 'lucide-react'
 
@@ -207,6 +207,34 @@ const renderPoint = (pt: DetailPoint) => {
   }
 }
 
+// ── Etalase: warna cover per kategori (deterministik) + inisial ──
+const FONT_D = "font-[family-name:var(--font-outfit)]"
+const FONT_M = "font-[family-name:var(--font-ibm-plex-mono)]"
+const CAT_COLORS: Record<string, [string, string]> = {
+  web: ['#6E9A6B', '#B7D3A8'],
+  design: ['#2B2118', '#C4622D'],
+  foto: ['#E38595', '#F2A31B'],
+  video: ['#1A1A1A', '#7A1B2E'],
+  game: ['#2B4EA2', '#8DB4E8'],
+  riset: ['#2B4EA2', '#8DB4E8'],
+  ui: ['#7A1B2E', '#E38595'],
+}
+const catColor = (c?: string | null): [string, string] => {
+  if (!c) return ['#7A1B2E', '#E38595']
+  const k = c.toLowerCase()
+  if (CAT_COLORS[k]) return CAT_COLORS[k]
+  let h = 0
+  for (const ch of k) h = (h * 31 + ch.charCodeAt(0)) % 360
+  return [`hsl(${h},45%,38%)`, `hsl(${(h + 40) % 360},50%,66%)`]
+}
+const initials = (name: string) =>
+  name.split(' ').slice(0, 2).map((x) => x[0]).join('').toUpperCase()
+const p2 = (n: number) => String(n).padStart(2, '0')
+// Label fallback per tipe poin kalau penulis gak isi judul seksi
+const POINT_FALLBACK: Record<string, string> = {
+  teks: 'catatan', chips: 'gaya', warna: 'palet warna', link: 'tautan', tabel: 'tabel',
+}
+
 export default function KaryaPage() {
   const [karyaList, setKaryaList] = useState<Karya[]>([])
   const [loading, setLoading] = useState(true)
@@ -216,6 +244,7 @@ export default function KaryaPage() {
   const [inactive, setInactive] = useState(false)
 
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [catFilter, setCatFilter] = useState('Semua')
   const [showForm, setShowForm] = useState(false)
   const [isKelompok, setIsKelompok] = useState(false)
   const [pickedMembers, setPickedMembers] = useState<string[]>([])
@@ -231,6 +260,17 @@ export default function KaryaPage() {
   // Detail popup selalu diturunkan dari karyaList by id — bintang yang baru
   // diklik ikut ke-update di popup juga (dulu: snapshot objek, angkanya basi).
   const detail = karyaList.find((k) => k.id === detailId) ?? null
+
+  // Filter kategori + statistik jujur (dataset dimuat utuh via get_public_karya)
+  const cats = ['Semua', ...Array.from(new Set(karyaList.map((k) => k.category).filter(Boolean) as string[]))]
+  const filtered = catFilter === 'Semua' ? karyaList : karyaList.filter((k) => k.category === catFilter)
+  const totalBintang = karyaList.reduce((a, k) => a + k.stars, 0)
+
+  // Kunci scroll halaman saat popup detail/form terbuka
+  useEffect(() => {
+    document.body.style.overflow = detailId || showForm ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [detailId, showForm])
 
   const fetchData = useCallback(async () => {
     try {
@@ -501,35 +541,53 @@ export default function KaryaPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-8 md:py-12">
-      {/* Header */}
-      <div className="border-[3px] border-dark bg-white p-6 md:p-8 neo-shadow relative overflow-hidden">
-        <div className="absolute top-0 right-0 bg-maroon text-white font-[family-name:var(--font-ibm-plex-mono)] text-[10px] px-3 py-1 border-l-[3px] border-b-[3px] border-dark">
-          // ETALASE KARYA
-        </div>
-        <Link href="/" className="inline-flex items-center gap-1.5 border-2 border-dark bg-paper px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all mb-4">
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Kembali
-        </Link>
-        <h1 className="text-3xl md:text-4xl font-black uppercase font-[family-name:var(--font-outfit)] tracking-tight text-maroon">
-          Karya Anggota
-        </h1>
-        <p className="text-sm font-[family-name:var(--font-ibm-plex-mono)] text-dark/70 mt-2 max-w-2xl">
-          Hasil nyata anggota USRC. Kasih bintang buat karya favoritmu — karya terbaik tampil di halaman utama.
-        </p>
-        {userId && !inactive && (
-          <button
-            onClick={openForm}
-            className="mt-4 inline-flex items-center gap-2 border-2 border-dark bg-maroon px-4 py-2 font-[family-name:var(--font-outfit)] text-sm font-bold uppercase text-white shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Buat Karya
-          </button>
-        )}
-        {userId && inactive && (
-          <p className="mt-4 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold">
-            Akun belum aktif — buat karya bisa setelah sekre menyetujui pendaftaranmu.
+      {/* Header — arsip etalase */}
+      <div className="archive-stack mt-2">
+        <i className="archive-lay c" />
+        <i className="archive-lay b" />
+        <i className="archive-lay a" />
+        <div className="archive-sheet relative border-[3px] border-dark bg-[#FFFDF7] p-6 md:p-9">
+          <div className="absolute top-[-3px] right-[-3px] bg-maroon text-white font-mono text-[10px] uppercase tracking-[.1em] px-3 py-1 border-[3px] border-dark">
+            // etalase karya
+          </div>
+          <Link href="/" className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-white px-3 py-1.5 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all">
+            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={3} />
+            Kembali
+          </Link>
+          <h1 className={`${FONT_D} mt-4 text-[clamp(44px,10vw,88px)] font-black uppercase leading-[.88] tracking-tight text-dark`}>
+            Karya<br />
+            <span className="text-maroon [text-shadow:4px_4px_0_#1A1A1A]">Anggota</span>
+          </h1>
+          <p className="mt-4 max-w-[52ch] font-mono text-sm text-dark/80">
+            Hasil nyata anggota USRC. Kasih bintang buat karya favoritmu, karya terbaik tampil di halaman utama.
           </p>
-        )}
+          {userId && !inactive && (
+            <button
+              onClick={openForm}
+              className="mt-5 inline-flex items-center gap-2 border-[3px] border-dark bg-maroon px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            >
+              <Plus className="w-4 h-4" strokeWidth={3} />
+              Buat karya
+            </button>
+          )}
+          {userId && inactive && (
+            <p className="mt-5 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-xs font-bold">
+              Akun belum aktif — buat karya bisa setelah sekre menyetujui pendaftaranmu.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Statistik miring */}
+      <div className="mt-6 flex gap-4" aria-label="Ringkasan">
+        <div className="-rotate-2 border-[3px] border-dark bg-[#FFF3C4] px-4 py-2.5 text-center shadow-[4px_4px_0_#1A1A1A]">
+          <b className={`${FONT_D} block text-[44px] font-black leading-none text-maroon`}>{p2(karyaList.length)}</b>
+          <small className="font-mono text-[10px] uppercase tracking-[.14em] text-dark">karya</small>
+        </div>
+        <div className="rotate-2 border-[3px] border-dark bg-white px-4 py-2.5 text-center shadow-[4px_4px_0_#1A1A1A]">
+          <b className={`${FONT_D} block text-[44px] font-black leading-none text-maroon`}>{p2(totalBintang)}</b>
+          <small className="font-mono text-[10px] uppercase tracking-[.14em] text-dark">bintang</small>
+        </div>
       </div>
 
       {error && (
@@ -546,141 +604,178 @@ export default function KaryaPage() {
         </div>
       )}
 
+      {/* Filter kategori */}
+      <div className="mt-10 mb-6 flex flex-wrap items-center gap-3">
+        <h2 className={`${FONT_D} m-0 flex items-center gap-2.5 text-xl font-black uppercase text-dark`}>
+          <i className="h-[13px] w-[13px] border-2 border-dark bg-maroon" />
+          {catFilter === 'Semua' ? 'Semua karya' : catFilter}
+        </h2>
+        <i className="h-[3px] min-w-5 flex-1 bg-dark" />
+        <div className="flex flex-wrap gap-2.5" role="group" aria-label="Filter kategori">
+          {cats.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-pressed={catFilter === c}
+              onClick={() => setCatFilter(c)}
+              className={`border-2 px-3 py-1.5 font-mono text-xs font-medium uppercase tracking-wide shadow-[3px_3px_0_#1A1A1A] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+                catFilter === c ? 'border-dark bg-maroon text-white' : 'border-dark bg-white text-dark hover:bg-[#FFF3C4]'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Grid */}
       {karyaList.length === 0 ? (
-        <div className="mt-8 border-2 border-dark bg-white p-10 text-center neo-shadow">
-          <Palette className="w-10 h-10 text-maroon mx-auto mb-3" />
-          <p className="font-[family-name:var(--font-ibm-plex-mono)] text-sm text-dark/60">
+        <div className="border-[3px] border-dashed border-dark bg-[#FFFDF7] p-10 text-center">
+          <Palette className="mx-auto mb-3 h-10 w-10 text-maroon" />
+          <p className={`${FONT_M} text-sm text-dark/60`}>
             Belum ada karya yang disetujui. {userId ? 'Jadi yang pertama bikin!' : 'Sebentar lagi terisi.'}
           </p>
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="border-[3px] border-dashed border-dark bg-[#FFFDF7] p-10 text-center">
+          <p className={`${FONT_M} text-sm text-dark/60`}>Belum ada karya di kategori ini.</p>
+        </div>
       ) : (
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {karyaList.map((k, idx) => (
-            <div
-              key={k.id}
-              onClick={() => setDetailId(k.id)}
-              className={`group border-2 border-dark bg-white neo-shadow hover:-translate-y-1 hover:shadow-[5px_5px_0_var(--color-maroon)] transition-all cursor-pointer flex flex-col overflow-hidden ${
-                idx % 2 === 0 ? '-rotate-1' : 'rotate-1'
-              }`}
-            >
-              {/* Header badge */}
-              {k.category && (
-                <div className="flex items-center justify-between bg-[#FFF3C4] border-b-2 border-dark px-3 py-2">
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark">
-                    {k.category}
-                  </span>
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[9px] text-dark/50">// karya</span>
+        <div className="grid grid-cols-1 gap-x-7 gap-y-9 py-2.5 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((k) => {
+            const idx = karyaList.indexOf(k)
+            const [g0, g1] = catColor(k.category)
+            return (
+              <article
+                key={k.id}
+                onClick={() => setDetailId(k.id)}
+                className="kg-card relative flex cursor-pointer flex-col border-[3px] border-dark bg-[#FFFDF7] shadow-[6px_6px_0_#7A1B2E]"
+              >
+                {idx % 2 === 0 && <span className="archive-tape" aria-hidden="true" />}
+
+                {/* strip kategori */}
+                <div className="flex items-center justify-between border-b-[3px] border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[.08em]">
+                  <b className="text-dark">{k.category || 'Lainnya'}</b>
+                  <span className="text-maroon">#{p2(idx + 1)}</span>
                 </div>
-              )}
 
-              {/* Image */}
-              {k.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={k.image_url}
-                  alt={k.title}
-                  className="h-48 w-full object-cover border-b-2 border-dark"
-                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                />
-              ) : (
-                <div className="h-48 w-full bg-paper border-b-2 border-dark flex items-center justify-center">
-                  <Palette className="w-12 h-12 text-dark/20" />
-                </div>
-              )}
-
-              {/* Content */}
-              <div className="p-4 flex flex-col gap-3 flex-1">
-                <h2 className="font-black uppercase font-[family-name:var(--font-outfit)] text-lg text-dark leading-tight line-clamp-2">
-                  {k.title}
-                </h2>
-
-                <p className="flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/65">
-                  <Users className="w-3.5 h-3.5 text-maroon shrink-0 mt-0.5" />
-                  <span className="line-clamp-1">{creatorsOf(k)}</span>
-                </p>
-
-                {k.description && (
-                  <p className="text-xs text-dark/60 line-clamp-2 italic">
-                    {k.description}
-                  </p>
+                {/* cover */}
+                {k.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={k.image_url}
+                    alt={k.title}
+                    className="aspect-[4/3] w-full border-b-[3px] border-dark object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  />
+                ) : (
+                  <div className="kg-img aspect-[4/3] border-b-[3px] border-dark" style={{ '--g0': g0, '--g1': g1 } as React.CSSProperties}>
+                    <span className={`${FONT_D} line-clamp-3 text-[clamp(30px,5vw,42px)] font-black uppercase leading-none text-white [text-shadow:3px_3px_0_#1A1A1A]`}>
+                      {k.title}
+                    </span>
+                  </div>
                 )}
 
-                <div className="mt-auto pt-2 flex items-center justify-between">
-                  {starBtn(k)}
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[9px] text-dark/40 group-hover:text-dark/60 transition-colors">
-                    klik →
-                  </span>
+                {/* isi */}
+                <div className="flex flex-1 flex-col px-4 pb-2 pt-3.5">
+                  <h3 className={`${FONT_D} m-0 text-[22px] font-black uppercase leading-[1.05] text-dark`}>
+                    {k.title}
+                  </h3>
+                  <div className="mt-2.5 mb-1.5 flex items-center gap-2 font-mono text-xs text-dark">
+                    <i className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full border-2 border-dark bg-[#E38595] font-display text-[10px] font-black not-italic text-dark">
+                      {initials(k.owner_name)}
+                    </i>
+                    <span className="line-clamp-1">{creatorsOf(k)}</span>
+                  </div>
+                  {k.description && (
+                    <p className="m-0 line-clamp-2 font-mono text-xs italic text-dark/75">{k.description}</p>
+                  )}
+
+                  <div className="mt-auto flex items-center justify-between gap-2.5 pb-4 pt-3">
+                    {starBtn(k)}
+                    <span className={`${FONT_M} text-xs font-medium uppercase tracking-wide underline decoration-2 underline-offset-4 hover:text-maroon`}>
+                      Lihat karya →
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
+              </article>
+            )
+          })}
         </div>
       )}
 
       {/* ── Detail Popup ── */}
       {detail && (
         <div
-          className="fixed inset-0 z-[60] bg-dark/60 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          style={{ background: 'rgba(26,26,26,.45)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
           onClick={() => setDetailId(null)}
         >
           <div
-            className="border-[3px] border-dark bg-white max-w-2xl w-full max-h-[90vh] overflow-y-auto neo-shadow"
+            className="max-h-[calc(100dvh-40px)] w-full max-w-2xl overflow-y-auto overscroll-contain border-[3px] border-dark bg-[#FFFDF7] shadow-[8px_8px_0_#7A1B2E]"
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
           >
-            <div className="flex items-center justify-between border-b-[3px] border-dark bg-paper px-4 py-3 sticky top-0">
-              <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark/60">
-                // Detail karya
-              </span>
+            {/* sticky header kuning */}
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b-[3px] border-dark bg-[#FFF3C4] py-2 pl-4 pr-3 font-mono text-[11px] font-medium uppercase tracking-[.1em]">
+              <span>// detail karya</span>
               <button
                 onClick={() => setDetailId(null)}
-                className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                aria-label="Tutup"
+                className="h-[38px] w-[38px] border-[3px] border-dark bg-white font-bold shadow-[3px_3px_0_#1A1A1A] transition-colors hover:bg-maroon hover:text-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
               >
-                <X className="w-4 h-4" />
+                ✕
               </button>
             </div>
-            <div className="p-5 md:p-6 space-y-4">
-              {detail.image_url && (
+
+            <div className="p-5 md:p-6">
+              {/* cover besar */}
+              {detail.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={detail.image_url}
                   alt={detail.title}
-                  className="w-full max-h-72 object-cover border-2 border-dark"
+                  className="aspect-video w-full border-[3px] border-dark object-cover shadow-[5px_5px_0_#1A1A1A]"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                 />
+              ) : (
+                (() => {
+                  const [g0, g1] = catColor(detail.category)
+                  return (
+                    <div className="kg-img aspect-video w-full border-[3px] border-dark shadow-[5px_5px_0_#1A1A1A]" style={{ '--g0': g0, '--g1': g1 } as React.CSSProperties}>
+                      <span className={`${FONT_D} text-[clamp(34px,8vw,64px)] font-black uppercase leading-none text-white [text-shadow:3px_3px_0_#1A1A1A]`}>
+                        {detail.title}
+                      </span>
+                    </div>
+                  )
+                })()
               )}
 
-              <div>
-                {detail.category && (
-                  <span className="font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase bg-[#FFF3C4] border border-dark px-2 py-0.5 inline-block mb-3">
-                    {detail.category}
-                  </span>
-                )}
-                <h2 className="text-2xl font-black uppercase font-[family-name:var(--font-outfit)] text-maroon">
-                  {detail.title}
-                </h2>
-                <p className="mt-2 flex items-start gap-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/70">
-                  <Users className="w-3.5 h-3.5 text-maroon shrink-0 mt-0.5" />
-                  <span>{creatorsOf(detail)}</span>
-                </p>
+              <span className="mt-6 inline-block rotate-[-2deg] border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[.08em]">
+                {detail.category || 'Lainnya'}
+              </span>
+              <h2 className={`${FONT_D} mt-2.5 text-[clamp(30px,6vw,46px)] font-black uppercase leading-[.95] text-maroon [text-shadow:3px_3px_0_rgba(26,26,26,.15)]`}>
+                {detail.title}
+              </h2>
+              <div className="mt-2.5 flex items-center gap-2 font-mono text-xs text-dark">
+                <i className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full border-2 border-dark bg-[#E38595] font-display text-[10px] font-black not-italic">
+                  {initials(detail.owner_name)}
+                </i>
+                <span>{creatorsOf(detail)}</span>
               </div>
-
               {detail.description && (
-                <p className="text-sm text-dark/80 leading-relaxed">
-                  {detail.description}
-                </p>
+                <p className="mt-2.5 text-sm leading-relaxed text-dark/85">{detail.description}</p>
               )}
 
-              {/* Detail poin (Gelombang C) */}
+              {/* Detail poin (Gelombang C) — seksi // label bergaris */}
               {(detail.detail_points || []).length > 0 && (
-                <div className="space-y-4">
+                <div className="mt-6 space-y-5">
                   {(detail.detail_points || []).map((pt, i) => (
                     <div key={i}>
-                      {pt.title && (
-                        <p className="mb-1.5 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold uppercase text-dark/50">
-                          {'// '}{pt.title}
-                        </p>
-                      )}
+                      <p className="kg-lbl">
+                        {'// '}{pt.title || POINT_FALLBACK[pt.point_type] || 'detail'}
+                      </p>
                       {renderPoint(pt)}
                     </div>
                   ))}
@@ -688,12 +783,12 @@ export default function KaryaPage() {
               )}
 
               {/* Sosmed chips pembuat */}
-              <div>
+              <div className="mt-6">
                 {socialChips(mergedSocials(detail))}
               </div>
 
-              {/* Link & Action Footer */}
-              <div className="border-t-2 border-dark pt-4 mt-6 flex flex-wrap items-center gap-2">
+              {/* Footer: bintang + tautan */}
+              <div className="mt-7 flex flex-wrap items-center gap-3.5 border-t-[3px] border-dashed border-dark pt-5">
                 {starBtn(detail, true)}
                 {(detail.links || []).map((l, i) => (
                   <a
@@ -701,10 +796,9 @@ export default function KaryaPage() {
                     href={withHttps(l.url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                    className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-white px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    {l.label || LINK_TYPES.find(([v]) => v === l.link_type)?.[1] || 'Link'}
+                    ↗ {l.label || LINK_TYPES.find(([v]) => v === l.link_type)?.[1] || 'Link'}
                   </a>
                 ))}
               </div>
