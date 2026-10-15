@@ -84,7 +84,6 @@ export default function ProfilPage() {
     : false;
 
   // dialog pilih karakter
-  const [pickOpen, setPickOpen] = useState(false);
   const [pickId, setPickId] = useState("kucing");
   const [pickBg, setPickBg] = useState<string>(AVATAR_BG[0]);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -188,11 +187,9 @@ export default function ProfilPage() {
     setPickId(avatarId);
     setPickBg(avatarBg);
     dialogRef.current?.showModal();
-    setPickOpen(true);
   }
   function closePicker() {
     dialogRef.current?.close();
-    setPickOpen(false);
     chgRef.current?.focus();
   }
 
@@ -278,7 +275,7 @@ export default function ProfilPage() {
                   // anggota aktif
                 </span>
                 <h2 className={`${FONT_DISPLAY} mt-3 text-[clamp(30px,6.5vw,50px)] font-black uppercase leading-[.95] text-dark`} style={{ overflowWrap: "anywhere" }}>
-                  <span className="ps-name-hl !bg-none before:hidden" style={{ backgroundImage: "linear-gradient(transparent 60%, #FFF3C4 60%)" }}>
+                  <span className="pf-name-hl">
                     {profile?.full_name || "Nama kamu"}
                   </span>
                 </h2>
@@ -469,9 +466,8 @@ export default function ProfilPage() {
       {/* ── Dialog pilih karakter ── */}
       <dialog
         ref={dialogRef}
-        className="pf-pick m-auto w-[min(760px,calc(100vw-44px))] max-h-[calc(100dvh-28px)] border-0 bg-transparent p-0 text-dark backdrop:bg-transparent"
+        className="pf-pick m-auto w-[min(760px,calc(100vw-44px))] max-h-[calc(100dvh-28px)] border-0 bg-transparent p-0 text-dark"
         onClick={(e) => { if (e.target === dialogRef.current) closePicker(); }}
-        onClose={() => setPickOpen(false)}
       >
         <div className="archive-stack">
           <i className="archive-lay c" />

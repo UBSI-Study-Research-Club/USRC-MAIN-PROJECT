@@ -376,3 +376,13 @@ dialog.pf-pick::backdrop {
     radial-gradient(rgba(245, 243, 239, .16) 1px, transparent 1px) 0 0 / 18px 18px,
     rgba(26, 26, 26, .76);
 }
+
+/* highlight kuning nama di halaman profil (beda dari kartu member yang pink) */
+.pf-name-hl {
+  padding: 0 8px;
+  margin-left: -8px;
+  background-image: linear-gradient(transparent 60%, #FFF3C4 60%);
+  background-repeat: no-repeat;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
