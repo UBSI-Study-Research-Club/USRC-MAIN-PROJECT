@@ -5,9 +5,10 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { withHttps } from '@/lib/url'
 import {
-  Star, ExternalLink, X, Plus, ArrowLeft,
+  Star, Users, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette,
 } from 'lucide-react'
+import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
 
 type KaryaLink = { link_type: string; url: string; label: string | null }
 type Socials = { instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
@@ -603,6 +604,11 @@ export default function KaryaPage() {
           <p className="text-sm font-bold font-[family-name:var(--font-ibm-plex-mono)]">{successMsg}</p>
         </div>
       )}
+
+      {/* Pixel Story Anggota */}
+      <div className="mt-8">
+        <PixelStoryContainer />
+      </div>
 
       {/* Filter kategori */}
       <div className="mt-10 mb-6 flex flex-wrap items-center gap-3">
