@@ -80,41 +80,41 @@ Vercel (auto-deploy dari main) · Domain usrc.my.id
 
 <div align="center">
 
-<img src="https://readme-typing-svg.herokuapp.com?font=Outfit&weight=800&size=18&duration=2500&pause=800&color=A62639&center=true&vCenter=true&width=420&lines=LIMA+ORANG+INI+YANG+MEMBANGUN" alt="Typing SVG" />
+<img src="https://capsule-render.vercel.app/api?type=soft&color=0:7A1B2E,100:E38595&height=90&section=header&text=%E2%9A%94%20LIMA%20ORANG%20INI%20YANG%20MEMBANGUN&fontSize=24&fontColor=F5F3EF&animation=twinkling" width="70%" />
 
 <table>
   <tr>
     <td align="center" width="20%">
       <a href="https://github.com/kabayy-sys">
-        <img src="https://github.com/kabayy-sys.png?size=120" width="100px;" style="border-radius:50%" alt="Raken"/><br />
+        <img src="assets/readme/kabayy-sys.gif" width="110" alt="Raken"/><br />
         <sub><b>RAKEN</b></sub>
       </a><br />
       <sub><b>Backend Lead</b><br />Database · RLS · Auth<br />Audit PR · DevOps · 190+ commits</sub>
     </td>
     <td align="center" width="20%">
       <a href="https://github.com/Greeezzz">
-        <img src="https://github.com/Greeezzz.png?size=120" width="100px;" style="border-radius:50%" alt="Chello"/><br />
+        <img src="assets/readme/Greeezzz.gif" width="110" alt="Chello"/><br />
         <sub><b>CHELLO</b></sub>
       </a><br />
       <sub><b>Frontend Publik</b><br />Landing · Etalase Karya<br />Pixel Story UI · 30 commits</sub>
     </td>
     <td align="center" width="20%">
       <a href="https://github.com/Im-Wann">
-        <img src="https://github.com/Im-Wann.png?size=120" width="100px;" style="border-radius:50%" alt="Iwan"/><br />
+        <img src="assets/readme/Im-Wann.gif" width="110" alt="Iwan"/><br />
         <sub><b>IWAN</b></sub>
       </a><br />
       <sub><b>Frontend Dashboard</b><br />Absen Realtime · Panel Sekre<br />Panel Admin · Navbar · 12 commits</sub>
     </td>
     <td align="center" width="20%">
       <a href="https://github.com/riskiriski-eng">
-        <img src="https://github.com/riskiriski-eng.png?size=120" width="100px;" style="border-radius:50%" alt="Riski"/><br />
+        <img src="assets/readme/riskiriski-eng.gif" width="110" alt="Riski"/><br />
         <sub><b>RISKI</b></sub>
       </a><br />
       <sub><b>Auth & Admin</b><br />Halaman Login OTP<br />Panel Admin · Pixel Clothing</sub>
     </td>
     <td align="center" width="20%">
       <a href="https://github.com/Adityaprayoga15">
-        <img src="https://github.com/Adityaprayoga15.png?size=120" width="100px;" style="border-radius:50%" alt="Adit"/><br />
+        <img src="assets/readme/Adityaprayoga15.gif" width="110" alt="Adit"/><br />
         <sub><b>ADIT</b></sub>
       </a><br />
       <sub><b>Pixel Artist</b><br />6 Aset Avatar Hewan<br />Layer Aksesori · SVG</sub>
