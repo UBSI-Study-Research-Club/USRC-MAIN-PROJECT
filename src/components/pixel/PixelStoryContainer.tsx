@@ -958,7 +958,7 @@ export function PixelStoryContainer() {
             Ketuk avatar buat lihat kartu member
           </span>
           {/* nav panah — desktop only */}
-          <div className="flex gap-2 sm:flex" aria-hidden="true">
+          <div className="hidden gap-2 sm:flex" aria-hidden="true">
             <button
               type="button"
               onClick={() => scrollStrip(-1)}
