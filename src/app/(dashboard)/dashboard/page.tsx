@@ -223,7 +223,7 @@ function FeedTimeline() {
         <h3 className={`${FONT_DISPLAY} text-lg font-black uppercase text-dark`}>Belum Ada Karya</h3>
         <p className={`${FONT_MONO} text-xs text-dark/60 mt-1 mb-4`}>Belum ada karya anggota yang disetujui untuk ditampilkan di feed.</p>
         <Link
-          href="/profil"
+          href="/karya"
           className={`${FONT_DISPLAY} inline-flex items-center gap-2 border-2 border-dark bg-maroon px-5 py-2.5 text-xs font-bold uppercase text-white shadow-[3px_3px_0_#1A1A1A] hover:bg-hot transition-all`}
         >
           <span>Upload Karya Pertama</span>

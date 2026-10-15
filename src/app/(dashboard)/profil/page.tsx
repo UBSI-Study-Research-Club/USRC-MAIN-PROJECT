@@ -443,10 +443,10 @@ export default function ProfilPage() {
                     <button
                       type="submit"
                       disabled={saving}
-                      className="inline-flex min-h-11 items-center gap-2 border-[3px] border-dark bg-maroon px-7 py-3 font-display text-sm font-black uppercase tracking-[.08em] text-white shadow-[5px_5px_0_#1A1A1A] transition-all hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50"
+                      className="inline-flex min-h-11 min-w-[150px] items-center justify-center gap-2 border-[3px] border-dark bg-maroon px-7 py-3 font-display text-sm font-black uppercase tracking-[.08em] text-white shadow-[5px_5px_0_#1A1A1A] transition-all hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50"
                     >
-                      {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-                      Simpan
+                      {saving && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
+                      <span>{saving ? 'Menyimpan...' : 'Simpan'}</span>
                     </button>
                   </div>
                 </div>
