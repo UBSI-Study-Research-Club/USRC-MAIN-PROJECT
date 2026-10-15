@@ -2,8 +2,8 @@
 -- USRC Web — SQL Migration: Avatar Hewan (Pixel Animals)
 -- Jalankan di Supabase SQL Editor.
 -- Sumber: prototype "Profil Saya" — pixel karakter custom
--- diganti avatar hewan pilihan (avatar_id) + warna latar (avatar_bg).
--- Aset visual menyusul via PR Adit/Yoga; grid placeholder di kode.
+-- diganti avatar hewan pilihan (avatar_id: ayam, beruang, gorila, kucing, monyet, rubah) + warna latar (avatar_bg).
+-- Aset visual resmi 6 avatar hewan pixel oleh Adit/Yoga (/pixel/animals/*.webp).
 -- ========================================================
 
 -- 1. Kolom baru
