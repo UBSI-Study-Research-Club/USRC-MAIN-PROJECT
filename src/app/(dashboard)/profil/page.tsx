@@ -36,19 +36,14 @@ const SOCIAL_FIELDS: { key: keyof Pick<Profile, "instagram" | "github" | "behanc
 
 const PRODI_OPTIONS = ["Informatika", "Sistem Informasi", "SI Akuntansi"];
 
-const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // ganti avatar max seminggu sekali
+// const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // dibebaskan, bisa ganti kapan saja
 
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
 
 const BAND_TEXT = "// profil saya // data keanggotaan // usrc ubsi pontianak ";
 
-function fmtUnlockDate(ts: string): string {
-  return new Date(new Date(ts).getTime() + COOLDOWN_MS).toLocaleDateString(
-    "id-ID",
-    { day: "numeric", month: "long", year: "numeric" }
-  );
-}
+// ── Batas cooldown dihapus, bisa diganti kapan saja ──
 
 // ── Judul seksi bernomor (01/02/03/04) ──
 function SectionHead({ no, title }: { no: string; title: string }) {
@@ -79,9 +74,7 @@ export default function ProfilPage() {
   const [avatarBg, setAvatarBg] = useState<string>(AVATAR_BG[0]);
   const [loadedAvatar, setLoadedAvatar] = useState<{ id: string; bg: string }>({ id: "", bg: "" });
   const [pixelUpdatedAt, setPixelUpdatedAt] = useState<string | null>(null);
-  const avatarLocked = pixelUpdatedAt
-    ? Date.now() - new Date(pixelUpdatedAt).getTime() < COOLDOWN_MS
-    : false;
+  const avatarLocked = false;
 
   // dialog pilih karakter
   const [pickId, setPickId] = useState("kucing");
@@ -202,9 +195,7 @@ export default function ProfilPage() {
     );
   }
 
-  const unlockNote = avatarLocked && pixelUpdatedAt
-    ? `// karakter terkunci setelah disimpan, bisa ganti lagi ${fmtUnlockDate(pixelUpdatedAt)}`
-    : null;
+  // ── Bebas ganti kapan saja tanpa cooldown ──
 
   return (
     <div>
@@ -299,11 +290,13 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            {unlockNote && (
-              <p className={`${FONT_MONO} mx-6 mb-6 border-2 border-dashed border-dark/40 px-3 py-2 text-[11px] text-dark/60 md:mx-8`}>
-                {unlockNote}
-              </p>
-            )}
+                {/* 
+                {unlockNote && (
+                  <p className={`${FONT_MONO} mt-1 text-[11px] text-maroon font-medium`}>
+                    {unlockNote}
+                  </p>
+                )}
+                */}
 
             {/* ── Form ── */}
             <form onSubmit={handleSave}>
@@ -551,7 +544,7 @@ export default function ProfilPage() {
             </div>
 
             <p className={`${FONT_MONO} mb-5 mt-5 text-xs text-dark/70`}>
-              {unlockNote ?? "// karakter bisa diganti lagi kapan saja"}
+              { "// karakter bisa diganti kapan saja tanpa batasan waktu" }
             </p>
 
             <div className="flex flex-wrap justify-end gap-3 border-t-[3px] border-dashed border-dark pt-4">
