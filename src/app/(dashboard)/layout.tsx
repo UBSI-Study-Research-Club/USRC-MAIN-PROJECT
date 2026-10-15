@@ -42,14 +42,14 @@ export default async function DashboardLayout({
           </Link>
 
           <nav className="flex items-center gap-3 md:gap-6">
-            <NavLink href="/dashboard">
-              <LayoutGrid className="w-4 h-4" />
-              <span className="hidden sm:inline">Feed</span>
-            </NavLink>
-
             <NavLink href="/">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
+            </NavLink>
+
+            <NavLink href="/dashboard">
+              <LayoutGrid className="w-4 h-4" />
+              <span className="hidden sm:inline">Feed</span>
             </NavLink>
 
             <NavLink href="/dashboard/absen">
