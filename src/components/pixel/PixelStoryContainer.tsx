@@ -945,36 +945,40 @@ export function PixelStoryContainer() {
     <>
       {/* ── Strip ── */}
       <section
-        className="bg-white border-2 border-dark shadow-[5px_5px_0_#1A1A1A]"
+        className="bg-[#FFFDF7] border-[3px] border-dark shadow-[6px_6px_0_#7A1B2E]"
         aria-labelledby="ps-title"
       >
         {/* header */}
-        <div className="flex items-center gap-3 px-5 pt-5 pb-0">
-          <Sparkles className="w-5 h-5 text-maroon flex-none" />
-          <h2 id="ps-title" className="m-0 font-['Outfit'] text-lg font-black uppercase tracking-tight text-dark">
-            Pixel Story <span className="text-maroon">&amp;</span> Status Anggota
-          </h2>
-          <span className="ml-auto font-mono text-[12px] text-dark/55 hidden sm:block">
-            Ketuk avatar buat lihat kartu member
-          </span>
-          {/* nav panah — desktop only */}
-          <div className="hidden gap-2 sm:flex" aria-hidden="true">
-            <button
-              type="button"
-              onClick={() => scrollStrip(-1)}
-              className="w-9 h-9 grid place-items-center border-2 border-dark bg-white shadow-[2px_2px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
-              tabIndex={-1}
-            >
-              <ChevronLeft className="w-4 h-4" strokeWidth={3} />
-            </button>
-            <button
-              type="button"
-              onClick={() => scrollStrip(1)}
-              className="w-9 h-9 grid place-items-center border-2 border-dark bg-white shadow-[2px_2px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
-              tabIndex={-1}
-            >
-              <ChevronRight className="w-4 h-4" strokeWidth={3} />
-            </button>
+        <div className="flex items-center justify-between border-b-[3px] border-dark bg-[#FFF3C4] px-4 py-2 font-mono text-xs font-medium uppercase tracking-[.08em]">
+          <div className="flex items-center gap-2.5">
+            <Sparkles className="w-4 h-4 text-maroon" />
+            <h2 id="ps-title" className="m-0 font-display text-sm font-black text-dark">
+              Pixel Story <span className="text-maroon">&amp;</span> Status Anggota
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-[11px] text-dark/65 hidden sm:block">
+              // ketuk avatar buat lihat kartu member
+            </span>
+            {/* nav panah — desktop only */}
+            <div className="hidden gap-1.5 sm:flex" aria-hidden="true">
+              <button
+                type="button"
+                onClick={() => scrollStrip(-1)}
+                className="w-7 h-7 grid place-items-center border-2 border-dark bg-white shadow-[2px_2px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+                tabIndex={-1}
+              >
+                <ChevronLeft className="w-3.5 h-3.5" strokeWidth={3} />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollStrip(1)}
+                className="w-7 h-7 grid place-items-center border-2 border-dark bg-white shadow-[2px_2px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+                tabIndex={-1}
+              >
+                <ChevronRight className="w-3.5 h-3.5" strokeWidth={3} />
+              </button>
+            </div>
           </div>
         </div>
 
