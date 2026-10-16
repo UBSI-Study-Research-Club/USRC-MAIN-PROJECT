@@ -199,7 +199,14 @@ function AdminDashboardContent() {
 
     fetchProjects()
 
-    // Realtime subscription for projects dengan Chrome Push Notification untuk Karya Baru
+    // Minta izin notification browser jika didukung
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {})
+      }
+    }
+
+    // Realtime subscription for projects dengan kemunculan Chrome Push Notification dengan Chrome Push Notification untuk Karya Baru
     const projectChannel = supabase
       .channel('admin-projects-realtime')
       .on(
