@@ -279,6 +279,7 @@ export default function KaryaPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
 
   const supabase = createClient()
 
@@ -1263,15 +1264,83 @@ export default function KaryaPage() {
                 </div>
               )}
 
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowPreview(true)}
+                  className="flex-1 py-3 border-2 border-dark bg-white font-bold uppercase font-[family-name:var(--font-outfit)] text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2"
+                >
+                  👁️ Lihat Pratinjau
+                </button>
+                <button
+                  onClick={submitKarya}
+                  disabled={submitting}
+                  className="flex-1 py-3 border-2 border-dark bg-maroon font-bold uppercase font-[family-name:var(--font-outfit)] text-white shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  Kirim Karya
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal Pratinjau Karya (F4) ── */}
+      {showPreview && (
+        <div className="fixed inset-0 z-[70] bg-dark/70 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setShowPreview(false)}>
+          <div
+            className="border-[3px] border-dark bg-white max-w-lg w-full max-h-[90vh] overflow-y-auto neo-shadow p-6 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b-2 border-dark pb-3">
+              <span className="font-mono text-xs font-bold uppercase text-maroon">
+                // Pratinjau Tampilan Kartu Karya
+              </span>
               <button
-                onClick={submitKarya}
-                disabled={submitting}
-                className="w-full py-3 border-2 border-dark bg-maroon font-bold uppercase font-[family-name:var(--font-outfit)] text-white shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#A62639] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                type="button"
+                onClick={() => setShowPreview(false)}
+                className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)]"
               >
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                Kirim Karya (Menunggu Persetujuan)
+                <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Simulasi kartu */}
+            <div className="border-[3px] border-dark bg-white p-5 shadow-[6px_6px_0_#1A1A1A]">
+              {form.image_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={form.image_url} alt="Preview" className="w-full h-48 object-cover border-2 border-dark mb-4" />
+              ) : (
+                <div className="w-full h-48 border-2 border-dark bg-paper flex items-center justify-center font-mono text-xs text-dark/40 mb-4">
+                  [ Belum ada gambar diunggah ]
+                </div>
+              )}
+              <div className="flex items-center justify-between">
+                <span className="border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 font-mono text-xs font-bold uppercase">
+                  {form.category || 'Kategori'}
+                </span>
+                <span className="font-mono text-xs text-dark/60">Baru saja</span>
+              </div>
+              <h3 className={`${FONT_D} mt-2 text-2xl font-black uppercase text-dark`}>
+                {form.title.trim() || 'Judul Karya Anda'}
+              </h3>
+              <p className="mt-2 font-['Work_Sans'] text-sm text-dark/80 line-clamp-3">
+                {form.description.trim() || 'Deskripsi atau ringkasan karya akan tampil di sini...'}
+              </p>
+            </div>
+
+            <p className="font-mono text-xs text-dark/70 text-center">
+              Pastikan judul, kategori, dan gambar sudah sesuai sebelum dikirim ke sekre.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowPreview(false)}
+              className="w-full py-2.5 border-2 border-dark bg-paper font-mono text-xs font-bold uppercase hover:bg-[#FFF3C4]"
+            >
+              Kembali Edit Form
+            </button>
           </div>
         </div>
       )}
