@@ -19,6 +19,7 @@ type Karya = {
   title: string
   description: string | null
   image_url: string | null
+  pdf_url: string | null
   category: string | null
   links: KaryaLink[] | null
   owner_id: string
@@ -44,16 +45,30 @@ const SOCIAL_LABELS: [keyof Socials, string][] = [
 ]
 const MAX_LINKS = 6
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
+const MAX_PDF_SIZE = 15 * 1024 * 1024 // 15 MB
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const PDF_TYPES = ['application/pdf']
 
-// Upload gambar ke Supabase Storage — balikin URL publik atau lempar error.
+// Upload gambar ke Supabase Storage
 const uploadKaryaImage = async (file: File): Promise<string> => {
   const supabase = createClient()
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const path = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
   const { error } = await supabase.storage
     .from('karya-images')
     .upload(path, file, { contentType: file.type, cacheControl: '31536000' })
+  if (error) throw error
+  const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
+  return data.publicUrl
+}
+
+// Upload file PDF dokumen makalah / riset ke Supabase Storage
+const uploadKaryaPdf = async (file: File): Promise<string> => {
+  const supabase = createClient()
+  const path = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
+  const { error } = await supabase.storage
+    .from('karya-images')
+    .upload(path, file, { contentType: 'application/pdf', cacheControl: '31536000' })
   if (error) throw error
   const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
   return data.publicUrl
@@ -116,6 +131,7 @@ const emptyForm = {
   description: '',
   category: '',
   image_url: '',
+  pdf_url: '',
 }
 
 // Lengkapi url tanpa skema jadi https:// — biar link sosmed bisa diisi
@@ -278,6 +294,7 @@ export default function KaryaPage() {
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadingPdf, setUploadingPdf] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [hasDraft, setHasDraft] = useState(false)
@@ -501,6 +518,7 @@ export default function KaryaPage() {
           description: form.description.trim() || null,
           category: form.category.trim() || null,
           image_url: form.image_url.trim() || null,
+          pdf_url: form.pdf_url.trim() || null,
           status: 'pending',
         })
         .select('id')
@@ -886,9 +904,19 @@ export default function KaryaPage() {
                 {socialChips(mergedSocials(detail))}
               </div>
 
-              {/* Footer: bintang + tautan */}
+              {/* Footer: bintang + tautan + tombol PDF jika ada */}
               <div className="mt-7 flex flex-wrap items-center gap-3.5 border-t-[3px] border-dashed border-dark pt-5">
                 {starBtn(detail, true)}
+                {detail.pdf_url && (
+                  <a
+                    href={withHttps(detail.pdf_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-[#FFF3C4] px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                  >
+                    📄 Unduh Makalah / Riset (PDF)
+                  </a>
+                )}
                 {(detail.links || []).map((l, i) => (
                   <a
                     key={i}
@@ -1043,6 +1071,79 @@ export default function KaryaPage() {
                     </label>
                   )}
                 </div>
+              </div>
+
+              {/* ── Kotak Upload PDF Tambahan (Makalah / Riset / Artikel) ── */}
+              <div className="mt-4 border-t-2 border-dashed border-dark/30 pt-4">
+                <label className="font-mono text-xs font-bold uppercase text-dark">Dokumen Makalah / Riset / Artikel (Opsional PDF)</label>
+                {form.pdf_url ? (
+                  <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <span className="font-mono text-xs font-bold text-maroon">📄 PDF Terunggah</span>
+                      <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
+                        {form.pdf_url.split('/').pop()}
+                      </a>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, pdf_url: '' })}
+                      className="flex-none border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                      title="Hapus PDF"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className={`mt-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark bg-white px-4 py-6 cursor-pointer transition-colors hover:bg-[#FFF3C4] ${uploadingPdf ? 'opacity-60 cursor-wait' : ''}`}
+                  >
+                    {uploadingPdf ? (
+                      <>
+                        <Loader2 className="w-6 h-6 animate-spin text-maroon" />
+                        <span className="font-mono text-xs font-bold text-dark/70">Mengunggah dokumen PDF...</span>
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="w-6 h-6 text-maroon" />
+                        <span className="font-mono text-xs font-bold text-dark/70">
+                          Klik pilih file PDF — atau seret ke sini
+                        </span>
+                        <span className="font-mono text-[10px] text-dark/50">
+                          Format PDF · maks 15 MB (khusus makalah, riset, artikel)
+                        </span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept={PDF_TYPES.join(',')}
+                      className="hidden"
+                      disabled={uploadingPdf}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        e.target.value = ''
+                        if (!file) return
+                        if (!PDF_TYPES.includes(file.type)) {
+                          setError('Format file harus PDF.')
+                          return
+                        }
+                        if (file.size > MAX_PDF_SIZE) {
+                          setError('Ukuran file PDF maksimal 15 MB.')
+                          return
+                        }
+                        setError(null)
+                        setUploadingPdf(true)
+                        try {
+                          const url = await uploadKaryaPdf(file)
+                          setForm((f) => ({ ...f, pdf_url: url }))
+                        } catch {
+                          setError('Gagal mengunggah PDF. Coba lagi.')
+                        } finally {
+                          setUploadingPdf(false)
+                        }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
 
               {/* ── Tombol Collapse / Bagian Opsional (F3) ── */}
