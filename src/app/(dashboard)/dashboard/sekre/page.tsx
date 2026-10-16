@@ -200,6 +200,13 @@ function SekretarisDashboardContent() {
     fetchRegistrations()
     fetchMembers()
 
+    // Minta izin notification browser jika didukung
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {})
+      }
+    }
+
     // Realtime: sesi, pendaftar, dan anggota update tanpa refresh.
     const dashboardChannel = supabase
       .channel('sekre-dashboard-realtime')
@@ -211,9 +218,15 @@ function SekretarisDashboardContent() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'registrations' },
-        () => {
+        (payload) => {
           fetchRegistrations()
           fetchMembers()
+          if (payload.eventType === 'INSERT' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('USRC // Pendaftar Baru', {
+              body: 'Ada anggota baru yang mendaftar dan menunggu persetujuan sekre!',
+              icon: '/favicon.ico',
+            })
+          }
         }
       )
       .on(

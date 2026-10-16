@@ -199,14 +199,21 @@ function AdminDashboardContent() {
 
     fetchProjects()
 
-    // Realtime subscription for projects
+    // Realtime subscription for projects dengan Chrome Push Notification untuk Karya Baru
     const projectChannel = supabase
       .channel('admin-projects-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'projects' },
-        () => {
+        (payload) => {
           fetchProjects()
+          // Jika ada karya baru di-submit (INSERT dengan status pending), munculkan notifikasi natif Chrome
+          if (payload.eventType === 'INSERT' && (payload.new as any).status === 'pending' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            new Notification('USRC // Permintaan ACC Karya', {
+              body: `Ada karya baru "${(payload.new as any).title || 'Tanpa Judul'}" yang menunggu persetujuan admin!`,
+              icon: '/favicon.ico',
+            })
+          }
         }
       )
       .subscribe()
