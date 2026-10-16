@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { withHttps } from '@/lib/url'
 import {
   Star, ExternalLink, X, Plus, ArrowLeft,
-  Loader2, AlertCircle, CheckCircle2, Palette,
+  Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud,
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
 
@@ -43,6 +43,21 @@ const SOCIAL_LABELS: [keyof Socials, string][] = [
   ['instagram', 'IG'], ['github', 'GitHub'], ['behance', 'Behance'], ['linkedin', 'LinkedIn'],
 ]
 const MAX_LINKS = 6
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+// Upload gambar ke Supabase Storage — balikin URL publik atau lempar error.
+const uploadKaryaImage = async (file: File): Promise<string> => {
+  const supabase = createClient()
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+  const { error } = await supabase.storage
+    .from('karya-images')
+    .upload(path, file, { contentType: file.type, cacheControl: '31536000' })
+  if (error) throw error
+  const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
+  return data.publicUrl
+}
 
 type FormLink = { link_type: string; url: string; label: string }
 const emptyLink = (): FormLink => ({ link_type: 'repo', url: '', label: '' })
@@ -260,6 +275,7 @@ export default function KaryaPage() {
   const [formLinks, setFormLinks] = useState<FormLink[]>([emptyLink()])
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   const supabase = createClient()
 
@@ -870,13 +886,75 @@ export default function KaryaPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="font-mono text-xs font-bold uppercase text-dark">Gambar (URL)</label>
-                  <input
-                    value={form.image_url}
-                    onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                    className="mt-1 w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                    placeholder="https://..."
-                  />
+                  <label className="font-mono text-xs font-bold uppercase text-dark">Gambar Karya</label>
+                  {form.image_url ? (
+                    <div className="relative mt-1">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={form.image_url}
+                        alt="Preview gambar karya"
+                        className="w-full h-40 object-cover border-2 border-dark"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, image_url: '' })}
+                        className="absolute top-2 right-2 border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        title="Hapus gambar"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label
+                      className={`mt-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark bg-white px-4 py-8 cursor-pointer transition-colors hover:bg-[#FFF3C4] ${uploadingImage ? 'opacity-60 cursor-wait' : ''}`}
+                    >
+                      {uploadingImage ? (
+                        <>
+                          <Loader2 className="w-8 h-8 animate-spin text-maroon" />
+                          <span className="font-mono text-xs font-bold text-dark/70">Mengunggah gambar...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-8 h-8 text-maroon" />
+                          <span className="font-mono text-xs font-bold text-dark/70">
+                            Klik pilih gambar — atau seret ke sini
+                          </span>
+                          <span className="font-mono text-[10px] text-dark/50">
+                            JPG / PNG / WEBP · maks 5 MB
+                          </span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept={IMAGE_TYPES.join(',')}
+                        className="hidden"
+                        disabled={uploadingImage}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          e.target.value = ''
+                          if (!file) return
+                          if (!IMAGE_TYPES.includes(file.type)) {
+                            setError('Format gambar harus JPG, PNG, atau WEBP.')
+                            return
+                          }
+                          if (file.size > MAX_IMAGE_SIZE) {
+                            setError('Ukuran gambar maksimal 5 MB.')
+                            return
+                          }
+                          setError(null)
+                          setUploadingImage(true)
+                          try {
+                            const url = await uploadKaryaImage(file)
+                            setForm((f) => ({ ...f, image_url: url }))
+                          } catch {
+                            setError('Gagal mengunggah gambar. Coba lagi.')
+                          } finally {
+                            setUploadingImage(false)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </div>
 
