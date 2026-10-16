@@ -35,7 +35,9 @@ type Directory = { id: string; full_name: string; instagram: string | null; gith
 const LINK_TYPES: [string, string][] = [
   ['repo', 'Repo'], ['live', 'Live'], ['instagram', 'Instagram'],
   ['youtube', 'YouTube'], ['behance', 'Behance'], ['figma', 'Figma'],
-  ['portfolio', 'Portofolio'], ['image', 'Gambar'], ['other', 'Lainnya'],
+  ['portfolio', 'Portofolio'], ['image', 'Gambar'],
+  ['dokumen', 'Artikel / Makalah / Riset (PDF)'], ['sosmed', 'Poster dari Sosmed'],
+  ['tools', 'Project Tools / Aplikasi'], ['other', 'Lainnya'],
 ]
 const SOCIAL_LABELS: [keyof Socials, string][] = [
   ['instagram', 'IG'], ['github', 'GitHub'], ['behance', 'Behance'], ['linkedin', 'LinkedIn'],
@@ -64,6 +66,9 @@ const emptyPoint = (point_type: PointType = 'teks'): FormPoint => ({
 const POINT_TYPES: [PointType, string][] = [
   ['teks', 'Teks'], ['chips', 'Chips'], ['warna', 'Warna'], ['link', 'Link'], ['tabel', 'Tabel'],
 ]
+
+// ── Jenis karya khusus tulisan & media (Artikel, Makalah, Riset, Poster) ──
+const CATEGORY_PLACEHOLDER = 'Web / Riset / UI / Artikel / Makalah / Penelitian / Poster / Tools / Aplikasi'
 
 // Ubah isi form jadi value jsonb — balikin null kalau kosong/invalid.
 const pointToValue = (p: FormPoint): PointValue | null => {
@@ -858,8 +863,11 @@ export default function KaryaPage() {
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                     className="mt-1 w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                    placeholder="Web / Riset / UI"
+                    placeholder={CATEGORY_PLACEHOLDER}
                   />
+                  <p className="mt-1 font-mono text-[10px] text-dark/50">
+                    // Tulisan: Artikel, Makalah, Penelitian, Riset Kecil — Visual: Poster, UI/UX — Teknis: Web, Tools, Aplikasi
+                  </p>
                 </div>
                 <div>
                   <label className="font-mono text-xs font-bold uppercase text-dark">Gambar (URL)</label>
