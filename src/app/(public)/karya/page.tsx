@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { withHttps } from '@/lib/url'
 import {
   Star, ExternalLink, X, Plus, ArrowLeft,
-  Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud,
+  Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
 
@@ -278,6 +278,7 @@ export default function KaryaPage() {
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
 
   const supabase = createClient()
 
@@ -975,190 +976,211 @@ export default function KaryaPage() {
                 </div>
               </div>
 
-              {/* Link fleksibel — sesuai jenis karya, maks 6 */}
-              <div>
-                <label className="font-mono text-xs font-bold uppercase text-dark">
-                  Link Karya ({formLinks.filter((l) => l.url.trim()).length}/{MAX_LINKS})
-                </label>
-                <div className="mt-1 space-y-2">
-                  {formLinks.map((l, i) => (
-                    <div key={i} className="flex flex-wrap items-center gap-2">
-                      <select
-                        value={l.link_type}
-                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, link_type: e.target.value } : x)))}
-                        className="border-2 border-dark bg-white px-2 py-2 font-mono text-xs font-bold"
-                      >
-                        {LINK_TYPES.map(([v, lbl]) => (
-                          <option key={v} value={v}>{lbl}</option>
-                        ))}
-                      </select>
-                      <input
-                        value={l.url}
-                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
-                        className="min-w-0 flex-1 border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                        placeholder="https://..."
-                      />
-                      <input
-                        value={l.label}
-                        onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
-                        className="w-28 border-2 border-dark px-2 py-2 font-mono text-xs focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                        placeholder="Label (opsional)"
-                      />
-                      {formLinks.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setFormLinks(formLinks.filter((_, j) => j !== i))}
-                          className="border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                          title="Hapus link"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              {/* ── Tombol Collapse / Bagian Opsional (F3) ── */}
+              <div className="border-t-2 border-dashed border-dark/30 pt-4">
                 <button
                   type="button"
-                  onClick={() => setFormLinks([...formLinks, emptyLink()])}
-                  disabled={formLinks.length >= MAX_LINKS}
-                  className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-paper px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setShowAdvanced((v) => !v)}
+                  className="flex w-full items-center justify-between border-2 border-dark bg-paper px-4 py-2.5 font-mono text-xs font-bold uppercase text-dark shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Link
+                  <span className="flex items-center gap-2">
+                    <span>⚡ Detail Lanjutan & Tautan</span>
+                    <span className="bg-white border border-dark px-1.5 py-0.2 text-[10px] text-maroon">
+                      {showAdvanced ? 'Tutup' : 'Opsional'}
+                    </span>
+                  </span>
+                  {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </button>
-              </div>
 
-              {/* Detail poin — Gelombang C */}
-              <div>
-                <label className="font-mono text-xs font-bold uppercase text-dark">
-                  Detail Karya ({formPoints.length} poin)
-                </label>
-                <p className="mt-0.5 font-mono text-[10px] text-dark/50">
-                  // opsional — jelaskan karyamu per poin, formatnya bebas
-                </p>
-                <div className="mt-2 space-y-3">
-                  {formPoints.map((pt, i) => (
-                    <div key={i} className="border-2 border-dark bg-paper/60 p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={pt.point_type}
-                          onChange={(e) => {
-                            const next = [...formPoints]
-                            next[i] = emptyPoint(e.target.value as PointType)
-                            setFormPoints(next)
-                          }}
-                          className="border-2 border-dark bg-white px-2 py-1.5 font-mono text-xs font-bold"
-                        >
-                          {POINT_TYPES.map(([v, lbl]) => (
-                            <option key={v} value={v}>{lbl}</option>
-                          ))}
-                        </select>
-                        <input
-                          value={pt.title}
-                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
-                          className="min-w-0 flex-1 border-2 border-dark px-2 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                          placeholder="Judul poin (mis. Bahasa / Palette / Rilis)"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setFormPoints(formPoints.filter((_, j) => j !== i))}
-                          className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                          title="Hapus poin"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                {showAdvanced && (
+                  <div className="mt-4 space-y-4 border-2 border-dark bg-paper/30 p-4">
+                    {/* Link fleksibel — sesuai jenis karya, maks 6 */}
+                    <div>
+                      <label className="font-mono text-xs font-bold uppercase text-dark">
+                        Link Tautan / Repository ({formLinks.filter((l) => l.url.trim()).length}/{MAX_LINKS})
+                      </label>
+                      <div className="mt-1 space-y-2">
+                        {formLinks.map((l, i) => (
+                          <div key={i} className="flex flex-wrap items-center gap-2">
+                            <select
+                              value={l.link_type}
+                              onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, link_type: e.target.value } : x)))}
+                              className="border-2 border-dark bg-white px-2 py-2 font-mono text-xs font-bold"
+                            >
+                              {LINK_TYPES.map(([v, lbl]) => (
+                                <option key={v} value={v}>{lbl}</option>
+                              ))}
+                            </select>
+                            <input
+                              value={l.url}
+                              onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                              className="min-w-0 flex-1 border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
+                              placeholder="https://..."
+                            />
+                            <input
+                              value={l.label}
+                              onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))}
+                              className="w-28 border-2 border-dark px-2 py-2 font-mono text-xs focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
+                              placeholder="Label (opsional)"
+                            />
+                            {formLinks.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setFormLinks(formLinks.filter((_, j) => j !== i))}
+                                className="border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                title="Hapus link"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormLinks([...formLinks, emptyLink()])}
+                        disabled={formLinks.length >= MAX_LINKS}
+                        className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Link
+                      </button>
+                    </div>
 
-                      {pt.point_type === 'teks' && (
-                        <textarea
-                          value={pt.text}
-                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
-                          rows={3}
-                          className="w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                          placeholder="Penjelasan..."
-                        />
-                      )}
-                      {pt.point_type === 'chips' && (
-                        <input
-                          value={pt.chips}
-                          onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, chips: e.target.value } : x)))}
-                          className="w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                          placeholder="Python, JavaScript, Figma (pisah dengan koma)"
-                        />
-                      )}
-                      {pt.point_type === 'warna' && (
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap gap-2">
-                            {pt.colors.map((c, ci) => (
-                              <div key={ci} className="flex items-center gap-1">
-                                <input
-                                  type="color"
-                                  value={/^#[0-9a-fA-F]{6}$/.test(c) ? c : '#ffffff'}
-                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.map((cc, cj) => (cj === ci ? e.target.value : cc)) } : x)))}
-                                  className="h-8 w-10 border-2 border-dark bg-white"
-                                />
-                                <span className="font-mono text-[10px] text-dark/60">{c}</span>
+                    {/* Detail poin — Gelombang C */}
+                    <div>
+                      <label className="font-mono text-xs font-bold uppercase text-dark">
+                        Detail Poin Karya ({formPoints.length} poin)
+                      </label>
+                      <p className="mt-0.5 font-mono text-[10px] text-dark/50">
+                        // opsional — jelaskan karyamu per bagian (teks, chips warna, link, tabel)
+                      </p>
+                      <div className="mt-2 space-y-3">
+                        {formPoints.map((pt, i) => (
+                          <div key={i} className="border-2 border-dark bg-white p-3 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <select
+                                value={pt.point_type}
+                                onChange={(e) => {
+                                  const next = [...formPoints]
+                                  next[i] = emptyPoint(e.target.value as PointType)
+                                  setFormPoints(next)
+                                }}
+                                className="border-2 border-dark bg-paper px-2 py-1.5 font-mono text-xs font-bold"
+                              >
+                                {POINT_TYPES.map(([v, lbl]) => (
+                                  <option key={v} value={v}>{lbl}</option>
+                                ))}
+                              </select>
+                              <input
+                                value={pt.title}
+                                onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+                                className="min-w-0 flex-1 border-2 border-dark px-2.5 py-1.5 font-mono text-xs focus:outline-none"
+                                placeholder="Judul Poin (opsional)"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setFormPoints(formPoints.filter((_, j) => j !== i))}
+                                className="border-2 border-dark bg-white p-1 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                                title="Hapus poin"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+
+                            {/* Render input sesuai point_type */}
+                            {pt.point_type === 'teks' && (
+                              <textarea
+                                value={pt.text}
+                                onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+                                rows={2}
+                                className="w-full border-2 border-dark px-2.5 py-1.5 font-mono text-xs focus:outline-none"
+                                placeholder="Tulis isi paragraf poin..."
+                              />
+                            )}
+                            {pt.point_type === 'chips' && (
+                              <input
+                                value={pt.chips}
+                                onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, chips: e.target.value } : x)))}
+                                className="w-full border-2 border-dark px-2.5 py-1.5 font-mono text-xs focus:outline-none"
+                                placeholder="Chip 1, Chip 2, Chip 3 (pisahkan koma)"
+                              />
+                            )}
+                            {pt.point_type === 'warna' && (
+                              <div className="space-y-1.5">
+                                <div className="flex flex-wrap gap-2">
+                                  {pt.colors.map((c, ci) => (
+                                    <div key={ci} className="flex items-center gap-1 border-2 border-dark bg-paper p-1">
+                                      <input
+                                        type="color"
+                                        value={c}
+                                        onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.map((cc, cj) => (cj === ci ? e.target.value : cc)) } : x)))}
+                                        className="h-6 w-6 border-0 cursor-pointer bg-transparent"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.filter((_, cj) => cj !== ci) } : x)))}
+                                        className="text-xs font-bold text-maroon px-1"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
                                 <button
                                   type="button"
-                                  onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: x.colors.filter((_, cj) => cj !== ci) } : x)))}
-                                  className="text-dark/50 hover:text-maroon"
+                                  onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: [...x.colors, '#7A1B2E'] } : x)))}
+                                  className="border-2 border-dark bg-white px-2 py-1 font-mono text-[10px] font-bold"
                                 >
-                                  <X className="w-3 h-3" />
+                                  + Warna
                                 </button>
                               </div>
-                            ))}
+                            )}
+                            {pt.point_type === 'link' && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <input
+                                  value={pt.url}
+                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+                                  className="border-2 border-dark px-2 py-1 font-mono text-xs"
+                                  placeholder="https://..."
+                                />
+                                <input
+                                  value={pt.linkLabel}
+                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, linkLabel: e.target.value } : x)))}
+                                  className="border-2 border-dark px-2 py-1 font-mono text-xs"
+                                  placeholder="Label Link"
+                                />
+                              </div>
+                            )}
+                            {pt.point_type === 'tabel' && (
+                              <div className="space-y-2">
+                                <input
+                                  value={pt.columns}
+                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, columns: e.target.value } : x)))}
+                                  className="w-full border-2 border-dark px-2 py-1 font-mono text-xs"
+                                  placeholder="Kolom 1, Kolom 2, Kolom 3 (pisahkan koma)"
+                                />
+                                <textarea
+                                  value={pt.rowsText}
+                                  onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, rowsText: e.target.value } : x)))}
+                                  rows={2}
+                                  className="w-full border-2 border-dark px-2 py-1 font-mono text-xs"
+                                  placeholder="Baris 1A, Baris 1B, Baris 1C&#10;Baris 2A, Baris 2B, Baris 2C"
+                                />
+                              </div>
+                            )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, colors: [...x.colors, '#7A1B2E'] } : x)))}
-                            className="inline-flex items-center gap-1 border-2 border-dark bg-white px-2 py-1 font-mono text-[10px] font-bold hover:bg-[#FFF3C4]"
-                          >
-                            <Plus className="w-3 h-3" /> Tambah Warna
-                          </button>
-                        </div>
-                      )}
-                      {pt.point_type === 'link' && (
-                        <div className="flex flex-wrap gap-2">
-                          <input
-                            value={pt.url}
-                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
-                            className="min-w-0 flex-1 border-2 border-dark px-3 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                            placeholder="https://..."
-                          />
-                          <input
-                            value={pt.linkLabel}
-                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, linkLabel: e.target.value } : x)))}
-                            className="w-32 border-2 border-dark px-2 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                            placeholder="Label"
-                          />
-                        </div>
-                      )}
-                      {pt.point_type === 'tabel' && (
-                        <div className="space-y-2">
-                          <input
-                            value={pt.columns}
-                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, columns: e.target.value } : x)))}
-                            className="w-full border-2 border-dark px-3 py-1.5 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                            placeholder="Nama kolom, pisah koma: Versi, Tanggal, Catatan"
-                          />
-                          <textarea
-                            value={pt.rowsText}
-                            onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, rowsText: e.target.value } : x)))}
-                            rows={3}
-                            className="w-full border-2 border-dark px-3 py-2 font-mono text-xs focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                            placeholder={'Satu baris per entri, sel pisah koma:\n1.0, 12 Okt, Rilis pertama'}
-                          />
-                        </div>
-                      )}
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormPoints([...formPoints, emptyPoint()])}
+                        className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Tambah Poin Detail
+                      </button>
                     </div>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFormPoints([...formPoints, emptyPoint()])}
-                  className="mt-2 inline-flex items-center gap-1 border-2 border-dark bg-paper px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Tambah Poin
-                </button>
+                  </div>
+                )}
               </div>
 
               {/* Tipe karya */}
