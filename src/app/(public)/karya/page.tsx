@@ -82,8 +82,10 @@ const POINT_TYPES: [PointType, string][] = [
   ['teks', 'Teks'], ['chips', 'Chips'], ['warna', 'Warna'], ['link', 'Link'], ['tabel', 'Tabel'],
 ]
 
-// ── Jenis karya khusus tulisan & media (Artikel, Makalah, Riset, Poster) ──
-const CATEGORY_PLACEHOLDER = 'Web / Riset / UI / Artikel / Makalah / Penelitian / Poster / Tools / Aplikasi'
+const CATEGORY_OPTIONS = [
+  'Web', 'Aplikasi', 'Artikel / Makalah / Riset', 'Poster / Desain',
+  'UI/UX', 'Tools', 'Game', 'Lainnya',
+]
 
 // Ubah isi form jadi value jsonb — balikin null kalau kosong/invalid.
 const pointToValue = (p: FormPoint): PointValue | null => {
@@ -873,18 +875,33 @@ export default function KaryaPage() {
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-mono text-xs font-bold uppercase text-dark">Kategori</label>
-                  <input
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="mt-1 w-full border-2 border-dark px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[3px_3px_0_var(--color-dark)]"
-                    placeholder={CATEGORY_PLACEHOLDER}
-                  />
-                  <p className="mt-1 font-mono text-[10px] text-dark/50">
-                    // Tulisan: Artikel, Makalah, Penelitian, Riset Kecil — Visual: Poster, UI/UX — Teknis: Web, Tools, Aplikasi
-                  </p>
+              <div>
+                <label className="font-mono text-xs font-bold uppercase text-dark">Kategori *</label>
+                <div className="mt-1.5 flex flex-wrap gap-2">
+                  {CATEGORY_OPTIONS.map((cat) => {
+                    const selected = form.category === cat
+                    return (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setForm({ ...form, category: cat })}
+                        className={`border-2 border-dark px-3.5 py-1.5 font-mono text-xs font-bold uppercase transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+                          selected
+                            ? 'bg-maroon text-white shadow-[3px_3px_0_#1A1A1A]'
+                            : 'bg-white text-dark hover:bg-paper shadow-[2px_2px_0_#1A1A1A]'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    )
+                  })}
                 </div>
+                {!form.category && (
+                  <p className="mt-1 font-mono text-[10px] text-maroon">
+                    // Pilih salah satu kategori di atas.
+                  </p>
+                )}
+              </div>
                 <div>
                   <label className="font-mono text-xs font-bold uppercase text-dark">Gambar Karya</label>
                   {form.image_url ? (
