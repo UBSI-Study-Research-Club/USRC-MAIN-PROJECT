@@ -661,7 +661,7 @@ export default function KaryaPage() {
               {hasDraft && (
                 <div className="flex items-center gap-2 border-2 border-dark bg-[#FFF3C4] px-3 py-2 shadow-[3px_3px_0_#1A1A1A]">
                   <span className="font-mono text-xs font-bold text-dark">
-                    ⚡ Draf tersimpan!
+                    [Draf tersimpan]
                   </span>
                   <button
                     type="button"
@@ -914,7 +914,7 @@ export default function KaryaPage() {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-[#FFF3C4] px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                   >
-                    📄 Unduh Makalah / Riset (PDF)
+                    // UNDUH MAKALAH / RISET (PDF)
                   </a>
                 )}
                 {(detail.links || []).map((l, i) => (
@@ -1079,7 +1079,7 @@ export default function KaryaPage() {
                 {form.pdf_url ? (
                   <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
                     <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="font-mono text-xs font-bold text-maroon">📄 PDF Terunggah</span>
+                      <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
                       <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
                         {form.pdf_url.split('/').pop()}
                       </a>
@@ -1154,7 +1154,7 @@ export default function KaryaPage() {
                   className="flex w-full items-center justify-between border-2 border-dark bg-paper px-4 py-2.5 font-mono text-xs font-bold uppercase text-dark shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                 >
                   <span className="flex items-center gap-2">
-                    <span>⚡ Detail Lanjutan & Tautan</span>
+                    <span>// Detail Lanjutan & Tautan</span>
                     <span className="bg-white border border-dark px-1.5 py-0.2 text-[10px] text-maroon">
                       {showAdvanced ? 'Tutup' : 'Opsional'}
                     </span>
@@ -1439,7 +1439,7 @@ export default function KaryaPage() {
                   onClick={() => setShowPreview(true)}
                   className="flex-1 py-3 border-2 border-dark bg-white font-bold uppercase font-[family-name:var(--font-outfit)] text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2"
                 >
-                  👁️ Lihat Pratinjau
+                  Pratinjau
                 </button>
                 <button
                   onClick={submitKarya}
