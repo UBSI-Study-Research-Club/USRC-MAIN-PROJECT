@@ -280,8 +280,51 @@ export default function KaryaPage() {
   const [uploadingImage, setUploadingImage] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false)
 
   const supabase = createClient()
+
+  // Load draft dari localStorage saat komponen dipasang
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('usrc_karya_draft')
+      if (saved) {
+        setHasDraft(true)
+      }
+    } catch {}
+  }, [])
+
+  const loadDraft = () => {
+    try {
+      const saved = localStorage.getItem('usrc_karya_draft')
+      if (saved) {
+        const d = JSON.parse(saved)
+        if (d.form) setForm(d.form)
+        if (d.formLinks) setFormLinks(d.formLinks)
+        if (d.formPoints) setFormPoints(d.formPoints)
+        if (d.isKelompok !== undefined) setIsKelompok(d.isKelompok)
+        if (d.pickedMembers) setPickedMembers(d.pickedMembers)
+        setShowForm(true)
+      }
+      setHasDraft(false)
+    } catch {}
+  }
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem('usrc_karya_draft')
+    } catch {}
+    setHasDraft(false)
+  }
+
+  // Auto-save draft saat form berubah (jika form sedang dibuka)
+  useEffect(() => {
+    if (!showForm) return
+    try {
+      const payload = { form, formLinks, formPoints, isKelompok, pickedMembers }
+      localStorage.setItem('usrc_karya_draft', JSON.stringify(payload))
+    } catch {}
+  }, [form, formLinks, formPoints, isKelompok, pickedMembers, showForm])
 
   // Detail popup selalu diturunkan dari karyaList by id — bintang yang baru
   // diklik ikut ke-update di popup juga (dulu: snapshot objek, angkanya basi).
@@ -519,6 +562,7 @@ export default function KaryaPage() {
       setPickedMembers([])
       setIsKelompok(false)
       setShowForm(false)
+      try { localStorage.removeItem('usrc_karya_draft') } catch {}
       setSuccessMsg('Karya terkirim! Menunggu persetujuan admin sebelum tampil publik.')
     } catch (err: any) {
       setError(err.message || 'Gagal mengirim karya.')
@@ -588,13 +632,37 @@ export default function KaryaPage() {
             Hasil nyata anggota USRC. Kasih bintang buat karya favoritmu, karya terbaik tampil di halaman utama.
           </p>
           {userId && !inactive && (
-            <button
-              onClick={openForm}
-              className="mt-5 inline-flex items-center gap-2 border-[3px] border-dark bg-maroon px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-            >
-              <Plus className="w-4 h-4" strokeWidth={3} />
-              Buat karya
-            </button>
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                onClick={openForm}
+                className="inline-flex items-center gap-2 border-[3px] border-dark bg-maroon px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+              >
+                <Plus className="w-4 h-4" strokeWidth={3} />
+                Buat karya
+              </button>
+              {hasDraft && (
+                <div className="flex items-center gap-2 border-2 border-dark bg-[#FFF3C4] px-3 py-2 shadow-[3px_3px_0_#1A1A1A]">
+                  <span className="font-mono text-xs font-bold text-dark">
+                    ⚡ Draf tersimpan!
+                  </span>
+                  <button
+                    type="button"
+                    onClick={loadDraft}
+                    className="border border-dark bg-white px-2 py-0.5 font-mono text-xs font-bold hover:bg-maroon hover:text-white"
+                  >
+                    Lanjutkan
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardDraft}
+                    className="text-xs font-bold text-maroon hover:underline px-1"
+                    title="Hapus draf"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
           )}
           {userId && inactive && (
             <p className="mt-5 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-xs font-bold">
