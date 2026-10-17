@@ -972,7 +972,7 @@ export default function KaryaPage() {
                   placeholder="Ceritakan karyamu"
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Kategori & Input Dinamis Berdasarkan Kategori */}
               <div>
                 <label className="font-mono text-xs font-bold uppercase text-dark">Kategori *</label>
                 <div className="mt-1.5 flex flex-wrap gap-2">
@@ -1000,6 +1000,9 @@ export default function KaryaPage() {
                   </p>
                 )}
               </div>
+
+              {/* 1. Gambar Karya: Muncul HANYA jika Kategori Poster / Desain, UI/UX, atau Lainnya */}
+              {form.category && (form.category === 'Poster / Desain' || form.category === 'UI/UX' || form.category === 'Lainnya') && (
                 <div>
                   <label className="font-mono text-xs font-bold uppercase text-dark">Gambar Karya</label>
                   {form.image_url ? (
@@ -1071,80 +1074,82 @@ export default function KaryaPage() {
                     </label>
                   )}
                 </div>
-              </div>
+              )}
 
-              {/* ── Kotak Upload PDF Tambahan (Makalah / Riset / Artikel) ── */}
-              <div className="mt-4 border-t-2 border-dashed border-dark/30 pt-4">
-                <label className="font-mono text-xs font-bold uppercase text-dark">Dokumen Makalah / Riset / Artikel (Opsional PDF)</label>
-                {form.pdf_url ? (
-                  <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
-                    <div className="flex items-center gap-2 overflow-hidden">
-                      <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
-                      <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
-                        {form.pdf_url.split('/').pop()}
-                      </a>
+              {/* 2. Dokumen Makalah / Riset / Artikel (PDF): Muncul HANYA jika Kategori Artikel / Makalah / Riset atau Lainnya */}
+              {form.category && (form.category === 'Artikel / Makalah / Riset' || form.category === 'Lainnya') && (
+                <div className="border-t-2 border-dashed border-dark/30 pt-4">
+                  <label className="font-mono text-xs font-bold uppercase text-dark">Dokumen Makalah / Riset / Artikel (PDF)</label>
+                  {form.pdf_url ? (
+                    <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
+                        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
+                          {form.pdf_url.split('/').pop()}
+                        </a>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setForm({ ...form, pdf_url: '' })}
+                        className="flex-none border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        title="Hapus PDF"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setForm({ ...form, pdf_url: '' })}
-                      className="flex-none border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                      title="Hapus PDF"
+                  ) : (
+                    <label
+                      className={`mt-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark bg-white px-4 py-6 cursor-pointer transition-colors hover:bg-[#FFF3C4] ${uploadingPdf ? 'opacity-60 cursor-wait' : ''}`}
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    className={`mt-1 flex flex-col items-center justify-center gap-2 border-2 border-dashed border-dark bg-white px-4 py-6 cursor-pointer transition-colors hover:bg-[#FFF3C4] ${uploadingPdf ? 'opacity-60 cursor-wait' : ''}`}
-                  >
-                    {uploadingPdf ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin text-maroon" />
-                        <span className="font-mono text-xs font-bold text-dark/70">Mengunggah dokumen PDF...</span>
-                      </>
-                    ) : (
-                      <>
-                        <UploadCloud className="w-6 h-6 text-maroon" />
-                        <span className="font-mono text-xs font-bold text-dark/70">
-                          Klik pilih file PDF — atau seret ke sini
-                        </span>
-                        <span className="font-mono text-[10px] text-dark/50">
-                          Format PDF · maks 15 MB (khusus makalah, riset, artikel)
-                        </span>
-                      </>
-                    )}
-                    <input
-                      type="file"
-                      accept={PDF_TYPES.join(',')}
-                      className="hidden"
-                      disabled={uploadingPdf}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        e.target.value = ''
-                        if (!file) return
-                        if (!PDF_TYPES.includes(file.type)) {
-                          setError('Format file harus PDF.')
-                          return
-                        }
-                        if (file.size > MAX_PDF_SIZE) {
-                          setError('Ukuran file PDF maksimal 15 MB.')
-                          return
-                        }
-                        setError(null)
-                        setUploadingPdf(true)
-                        try {
-                          const url = await uploadKaryaPdf(file)
-                          setForm((f) => ({ ...f, pdf_url: url }))
-                        } catch {
-                          setError('Gagal mengunggah PDF. Coba lagi.')
-                        } finally {
-                          setUploadingPdf(false)
-                        }
-                      }}
-                    />
-                  </label>
-                )}
-              </div>
+                      {uploadingPdf ? (
+                        <>
+                          <Loader2 className="w-6 h-6 animate-spin text-maroon" />
+                          <span className="font-mono text-xs font-bold text-dark/70">Mengunggah dokumen PDF...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-6 h-6 text-maroon" />
+                          <span className="font-mono text-xs font-bold text-dark/70">
+                            Klik pilih file PDF — atau seret ke sini
+                          </span>
+                          <span className="font-mono text-[10px] text-dark/50">
+                            Format PDF · maks 15 MB
+                          </span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept={PDF_TYPES.join(',')}
+                        className="hidden"
+                        disabled={uploadingPdf}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          e.target.value = ''
+                          if (!file) return
+                          if (!PDF_TYPES.includes(file.type)) {
+                            setError('Format file harus PDF.')
+                            return
+                          }
+                          if (file.size > MAX_PDF_SIZE) {
+                            setError('Ukuran file PDF maksimal 15 MB.')
+                            return
+                          }
+                          setError(null)
+                          setUploadingPdf(true)
+                          try {
+                            const url = await uploadKaryaPdf(file)
+                            setForm((f) => ({ ...f, pdf_url: url }))
+                          } catch {
+                            setError('Gagal mengunggah PDF. Coba lagi.')
+                          } finally {
+                            setUploadingPdf(false)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              )}
 
               {/* ── Tombol Collapse / Bagian Opsional (F3) ── */}
               <div className="border-t-2 border-dashed border-dark/30 pt-4">
