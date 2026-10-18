@@ -311,6 +311,7 @@ export default function KaryaPage() {
         if (d.formPoints) setFormPoints(d.formPoints)
         if (d.isKelompok !== undefined) setIsKelompok(d.isKelompok)
         if (d.pickedMembers) setPickedMembers(d.pickedMembers)
+        if (d.pdfName) setPdfName(d.pdfName)
         setShowForm(true)
       }
       setHasDraft(false)
@@ -328,10 +329,10 @@ export default function KaryaPage() {
   useEffect(() => {
     if (!showForm) return
     try {
-      const payload = { form, formLinks, formPoints, isKelompok, pickedMembers }
+      const payload = { form, formLinks, formPoints, isKelompok, pickedMembers, pdfName }
       localStorage.setItem('usrc_karya_draft', JSON.stringify(payload))
     } catch {}
-  }, [form, formLinks, formPoints, isKelompok, pickedMembers, showForm])
+  }, [form, formLinks, formPoints, isKelompok, pickedMembers, showForm, pdfName])
 
   // Detail popup selalu diturunkan dari karyaList by id — bintang yang baru
   // diklik ikut ke-update di popup juga (dulu: snapshot objek, angkanya basi).
