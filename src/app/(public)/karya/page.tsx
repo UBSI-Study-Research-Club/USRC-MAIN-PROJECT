@@ -62,14 +62,20 @@ const uploadKaryaImage = async (file: File): Promise<string> => {
   return data.publicUrl
 }
 
-// Upload file PDF dokumen makalah / riset ke Supabase Storage
+// Upload file PDF dokumen makalah / riset ke Supabase Storage (fallback ke aplikasi/octet-stream jika bucket menolak application/pdf)
 const uploadKaryaPdf = async (file: File): Promise<string> => {
   const supabase = createClient()
   const path = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
-  const { error } = await supabase.storage
+  let { error } = await supabase.storage
     .from('karya-images')
     .upload(path, file, { contentType: 'application/pdf', cacheControl: '31536000' })
-  if (error) throw error
+  if (error) {
+    // Coba upload dengan octet-stream sebagai fallback jika kebijakan bucket strict
+    const res = await supabase.storage
+      .from('karya-images')
+      .upload(path, file, { contentType: 'application/octet-stream', cacheControl: '31536000' })
+    if (res.error) throw res.error
+  }
   const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
   return data.publicUrl
 }
@@ -1139,8 +1145,9 @@ export default function KaryaPage() {
                           try {
                             const url = await uploadKaryaPdf(file)
                             setForm((f) => ({ ...f, pdf_url: url }))
-                          } catch {
-                            setError('Gagal mengunggah PDF. Coba lagi.')
+                          } catch (err: any) {
+                            console.error('PDF upload error:', err)
+                            setError(err?.message ? `Gagal mengunggah PDF: ${err.message}` : 'Gagal mengunggah PDF. Coba lagi.')
                           } finally {
                             setUploadingPdf(false)
                           }
