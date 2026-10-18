@@ -17,6 +17,7 @@ export default function DaftarPage() {
     full_name: "",
     nim: "",
     email: "",
+    phone: "",
     prodi: "",
     reason: "",
     website: "", // Honeypot anti-bot
@@ -65,6 +66,7 @@ export default function DaftarPage() {
         full_name: form.full_name.trim(),
         nim: form.nim.trim(),
         email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim() || null,
         prodi: form.prodi,
         reason: form.reason.trim() || null,
         hobbies: hobi.length > 0 ? hobi : null,
@@ -206,6 +208,22 @@ export default function DaftarPage() {
               required
               value={form.email}
               onChange={handleChange}
+              className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"
+            />
+          </div>
+
+          {/* No. Telepon / WhatsApp */}
+          <div>
+            <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
+              No. Telepon / WhatsApp *
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              required
+              value={form.phone}
+              onChange={handleChange}
+              placeholder="08xxxxxxxxxx"
               className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"
             />
           </div>
