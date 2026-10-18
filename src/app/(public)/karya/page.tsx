@@ -1120,6 +1120,7 @@ export default function KaryaPage() {
                             const url = await uploadKaryaFile(file)
                             setForm((f) => ({ ...f, image_url: url }))
                           } catch (err: any) {
+                            console.error('Gagal unggah gambar:', err)
                             setError(err?.message || 'Gagal mengunggah gambar. Coba lagi.')
                           } finally {
                             setUploadingImage(false)
@@ -1196,7 +1197,9 @@ export default function KaryaPage() {
                             setForm((f) => ({ ...f, pdf_url: url }))
                             setPdfName(file.name)
                           } catch (err: any) {
-                            setError(err?.message || 'Gagal mengunggah PDF. Coba lagi.')
+                            console.error('Gagal unggah PDF:', err)
+                            const pesan = err?.message || 'Gagal mengunggah PDF. Coba lagi.'
+                            setError(pesan.includes('4MB') ? `${pesan} — coba kompres PDF kamu dulu.` : pesan)
                           } finally {
                             setUploadingPdf(false)
                           }
