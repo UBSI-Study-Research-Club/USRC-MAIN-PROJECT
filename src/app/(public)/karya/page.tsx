@@ -9,6 +9,8 @@ import {
   Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
+import { PixelCharacter, type PixelCharacterConfig } from '@/components/pixel/PixelCharacter'
+import { PixelAvatar } from '@/components/pixel/PixelAvatar'
 
 type KaryaLink = { link_type: string; url: string; label: string | null }
 type Socials = { instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
@@ -258,7 +260,31 @@ const catColor = (c?: string | null): [string, string] => {
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map((x) => x[0]).join('').toUpperCase()
 const p2 = (n: number) => String(n).padStart(2, '0')
-// Label fallback per tipe poin kalau penulis gak isi judul seksi
+function mapPixelConfig(member: any): PixelCharacterConfig {
+  const hairColorMap: Record<string, NonNullable<PixelCharacterConfig['hair']>['color']> = {
+    hitam: 'black', black: 'black', coklat: 'brown', brown: 'brown',
+    pirang: 'blonde', blonde: 'blonde', merah: 'red', red: 'red',
+  };
+  const faceMap: Record<string, PixelCharacterConfig['face']> = {
+    normal: 'neutral', neutral: 'neutral', smile: 'smile', wink: 'wink', focus: 'focus',
+  };
+  const clothingMap: Record<string, PixelCharacterConfig['clothing']> = {
+    'hoodie-usrc': 'hoodie', hoodie: 'hoodie', casual: 'casual', tshirt: 'tshirt', jacket: 'jacket',
+  };
+  const accessoryMap: Record<string, PixelCharacterConfig['accessory']> = {
+    none: 'none', cap: 'cap', glasses: 'glasses', headset: 'headset', headband: 'headband',
+  };
+  return {
+    skin: (member.pixel_body as PixelCharacterConfig['skin']) || 'medium',
+    hair: {
+      style: (member.pixel_hair as any) || 'short',
+      color: hairColorMap[member.pixel_hair_color || ''] || 'black',
+    },
+    face: faceMap[member.pixel_face || ''] || 'neutral',
+    clothing: clothingMap[member.pixel_clothing || ''] || 'hoodie',
+    accessory: accessoryMap[member.pixel_accessories || ''] || 'none',
+  };
+}
 const POINT_FALLBACK: Record<string, string> = {
   teks: 'catatan', chips: 'gaya', warna: 'palet warna', link: 'tautan', tabel: 'tabel',
 }
@@ -272,6 +298,7 @@ export default function KaryaPage() {
   const [inactive, setInactive] = useState(false)
 
   const [detailId, setDetailId] = useState<string | null>(null)
+  const [pixelMap, setPixelMap] = useState<Map<string, { avatar_id: string | null; avatar_bg: string | null; pixel_config: PixelCharacterConfig }>>(new Map())
   const [catFilter, setCatFilter] = useState('Semua')
   const [showForm, setShowForm] = useState(false)
   const [isKelompok, setIsKelompok] = useState(false)
@@ -290,6 +317,32 @@ export default function KaryaPage() {
   const [hasDraft, setHasDraft] = useState(false)
 
   const supabase = createClient()
+
+  const renderOwnerAvatar = (ownerId: string, ownerName: string) => {
+    const memberData = pixelMap.get(ownerId)
+    if (memberData?.avatar_id) {
+      return (
+        <PixelAvatar
+          id={memberData.avatar_id}
+          bg={memberData.avatar_bg}
+          className="h-[30px] w-[30px] flex-none rounded-full border-2 border-dark overflow-hidden"
+        />
+      )
+    }
+    const cfg = memberData?.pixel_config
+    if (cfg) {
+      return (
+        <div className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full border-2 border-dark bg-paper overflow-hidden">
+          <PixelCharacter config={cfg} />
+        </div>
+      )
+    }
+    return (
+      <i className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full border-2 border-dark bg-[#E38595] font-display text-[10px] font-black not-italic text-dark">
+        {initials(ownerName)}
+      </i>
+    )
+  }
 
   // Load draft dari localStorage saat komponen dipasang
   useEffect(() => {
@@ -373,6 +426,20 @@ export default function KaryaPage() {
       if (rpcErr) throw rpcErr
       const loadedKarya = (data as unknown as Karya[]) || []
       setKaryaList(loadedKarya)
+
+      // Fetch member directory for pixel configs & animal avatars
+      const { data: memDir } = await supabase.rpc('get_member_directory')
+      if (memDir) {
+        const map = new Map()
+        ;(memDir as any[]).forEach(m => {
+          map.set(m.id, {
+            avatar_id: m.avatar_id || null,
+            avatar_bg: m.avatar_bg || null,
+            pixel_config: mapPixelConfig(m)
+          })
+        })
+        setPixelMap(map)
+      }
       // Auto-open detail popup jika ada hash di URL (dari /karya#id di feed)
       if (typeof window !== 'undefined' && window.location.hash) {
         const targetId = window.location.hash.replace('#', '')
@@ -791,9 +858,7 @@ export default function KaryaPage() {
                     {k.title}
                   </h3>
                   <div className="mt-2.5 mb-1.5 flex items-center gap-2 font-mono text-xs text-dark">
-                    <i className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full border-2 border-dark bg-[#E38595] font-display text-[10px] font-black not-italic text-dark">
-                      {initials(k.owner_name)}
-                    </i>
+                    {renderOwnerAvatar(k.owner_id, k.owner_name)}
                     <span className="line-clamp-1">{creatorsOf(k)}</span>
                   </div>
                   {k.description && (
@@ -868,9 +933,7 @@ export default function KaryaPage() {
                 {detail.title}
               </h2>
               <div className="mt-2.5 flex items-center gap-2 font-mono text-xs text-dark">
-                <i className="grid h-[26px] w-[26px] flex-none place-items-center rounded-full border-2 border-dark bg-[#E38595] font-display text-[10px] font-black not-italic">
-                  {initials(detail.owner_name)}
-                </i>
+                {renderOwnerAvatar(detail.owner_id, detail.owner_name)}
                 <span>{creatorsOf(detail)}</span>
               </div>
               {detail.description && (
