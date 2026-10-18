@@ -59,7 +59,12 @@ const uploadKaryaFile = async (file: File): Promise<string> => {
   const res = await fetch('/api/files', { method: 'POST', body })
   if (!res.ok) {
     const err = await res.json().catch(() => null)
-    throw new Error(err?.error || `unggah gagal (${res.status})`)
+    const msg = err?.error || `unggah gagal (${res.status})`
+    console.error('File upload error:', res.status, msg)
+    if (res.status === 413 || msg.toLowerCase().includes('size') || msg.toLowerCase().includes('besar')) {
+      throw new Error('File terlalu besar (> 4 MB). Mohon kompres PDF terlebih dahulu sebelum mengunggah.')
+    }
+    throw new Error(msg)
   }
   const data = await res.json()
   return `/api/files/${data.id}`
