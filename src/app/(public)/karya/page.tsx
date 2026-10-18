@@ -44,34 +44,23 @@ const SOCIAL_LABELS: [keyof Socials, string][] = [
   ['instagram', 'IG'], ['github', 'GitHub'], ['behance', 'Behance'], ['linkedin', 'LinkedIn'],
 ]
 const MAX_LINKS = 6
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5 MB
-const MAX_PDF_SIZE = 15 * 1024 * 1024 // 15 MB
+const MAX_IMAGE_SIZE = 4 * 1024 * 1024 // 4 MB — cap request body Vercel (gudang Telegram)
+const MAX_PDF_SIZE = 4 * 1024 * 1024 // 4 MB — naik jadi 2 GB begitu Local Bot API aktif
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const PDF_TYPES = ['application/pdf']
 
-// Upload gambar ke Supabase Storage
-const uploadKaryaImage = async (file: File): Promise<string> => {
-  const supabase = createClient()
-  const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const path = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
-  const { error } = await supabase.storage
-    .from('karya-images')
-    .upload(path, file, { contentType: file.type, cacheControl: '31536000' })
-  if (error) throw error
-  const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
-  return data.publicUrl
-}
-
-// Upload file PDF dokumen makalah / riset ke Supabase Storage
-const uploadKaryaPdf = async (file: File): Promise<string> => {
-  const supabase = createClient()
-  const path = `pdf-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.pdf`
-  const { error } = await supabase.storage
-    .from('karya-images')
-    .upload(path, file, { contentType: 'application/pdf', cacheControl: '31536000' })
-  if (error) throw error
-  const { data } = supabase.storage.from('karya-images').getPublicUrl(path)
-  return data.publicUrl
+// Upload file apa pun ke gudang Telegram via /api/files — balikin URL relatif
+// /api/files/<id> yang disimpan langsung ke kolom image_url / pdf_url karya.
+const uploadKaryaFile = async (file: File): Promise<string> => {
+  const body = new FormData()
+  body.append('file', file)
+  const res = await fetch('/api/files', { method: 'POST', body })
+  if (!res.ok) {
+    const err = await res.json().catch(() => null)
+    throw new Error(err?.error || `unggah gagal (${res.status})`)
+  }
+  const data = await res.json()
+  return `/api/files/${data.id}`
 }
 
 type FormLink = { link_type: string; url: string; label: string }
@@ -295,6 +284,7 @@ export default function KaryaPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [uploadingPdf, setUploadingPdf] = useState(false)
+  const [pdfName, setPdfName] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [hasDraft, setHasDraft] = useState(false)
@@ -321,6 +311,7 @@ export default function KaryaPage() {
         if (d.formPoints) setFormPoints(d.formPoints)
         if (d.isKelompok !== undefined) setIsKelompok(d.isKelompok)
         if (d.pickedMembers) setPickedMembers(d.pickedMembers)
+        if (d.pdfName) setPdfName(d.pdfName)
         setShowForm(true)
       }
       setHasDraft(false)
@@ -338,10 +329,10 @@ export default function KaryaPage() {
   useEffect(() => {
     if (!showForm) return
     try {
-      const payload = { form, formLinks, formPoints, isKelompok, pickedMembers }
+      const payload = { form, formLinks, formPoints, isKelompok, pickedMembers, pdfName }
       localStorage.setItem('usrc_karya_draft', JSON.stringify(payload))
     } catch {}
-  }, [form, formLinks, formPoints, isKelompok, pickedMembers, showForm])
+  }, [form, formLinks, formPoints, isKelompok, pickedMembers, showForm, pdfName])
 
   // Detail popup selalu diturunkan dari karyaList by id — bintang yang baru
   // diklik ikut ke-update di popup juga (dulu: snapshot objek, angkanya basi).
@@ -575,6 +566,7 @@ export default function KaryaPage() {
       }
 
       setForm(emptyForm)
+      setPdfName('')
       setFormLinks([emptyLink()])
       setFormPoints([])
       setPickedMembers([])
@@ -1056,16 +1048,16 @@ export default function KaryaPage() {
                             return
                           }
                           if (file.size > MAX_IMAGE_SIZE) {
-                            setError('Ukuran gambar maksimal 5 MB.')
+                            setError('Ukuran gambar maksimal 4 MB.')
                             return
                           }
                           setError(null)
                           setUploadingImage(true)
                           try {
-                            const url = await uploadKaryaImage(file)
+                            const url = await uploadKaryaFile(file)
                             setForm((f) => ({ ...f, image_url: url }))
-                          } catch {
-                            setError('Gagal mengunggah gambar. Coba lagi.')
+                          } catch (err: any) {
+                            setError(err?.message || 'Gagal mengunggah gambar. Coba lagi.')
                           } finally {
                             setUploadingImage(false)
                           }
@@ -1085,12 +1077,12 @@ export default function KaryaPage() {
                       <div className="flex items-center gap-2 overflow-hidden">
                         <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
                         <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
-                          {form.pdf_url.split('/').pop()}
+                          {pdfName || 'Dokumen tersimpan'}
                         </a>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setForm({ ...form, pdf_url: '' })}
+                        onClick={() => { setForm({ ...form, pdf_url: '' }); setPdfName('') }}
                         className="flex-none border-2 border-dark bg-white p-1.5 shadow-[2px_2px_0_var(--color-dark)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                         title="Hapus PDF"
                       >
@@ -1113,7 +1105,7 @@ export default function KaryaPage() {
                             Klik pilih file PDF — atau seret ke sini
                           </span>
                           <span className="font-mono text-[10px] text-dark/50">
-                            Format PDF · maks 15 MB
+                            Format PDF · maks 4 MB
                           </span>
                         </>
                       )}
@@ -1131,16 +1123,17 @@ export default function KaryaPage() {
                             return
                           }
                           if (file.size > MAX_PDF_SIZE) {
-                            setError('Ukuran file PDF maksimal 15 MB.')
+                            setError('Ukuran file PDF maksimal 4 MB.')
                             return
                           }
                           setError(null)
                           setUploadingPdf(true)
                           try {
-                            const url = await uploadKaryaPdf(file)
+                            const url = await uploadKaryaFile(file)
                             setForm((f) => ({ ...f, pdf_url: url }))
-                          } catch {
-                            setError('Gagal mengunggah PDF. Coba lagi.')
+                            setPdfName(file.name)
+                          } catch (err: any) {
+                            setError(err?.message || 'Gagal mengunggah PDF. Coba lagi.')
                           } finally {
                             setUploadingPdf(false)
                           }

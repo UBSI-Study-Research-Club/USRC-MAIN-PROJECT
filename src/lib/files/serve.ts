@@ -21,18 +21,24 @@ export async function serveFile(id: string, inline: boolean): Promise<Response> 
     return new Response('telegram error', { status: 502 })
   }
 
-  const upstream = await fetch(
-    `https://api.telegram.org/file/bot${token}/${metaJson.result.file_path}`
-  )
-  if (upstream.status === 404) {
-    // File can lag a few seconds behind getFile on Telegram's download servers.
-    await new Promise((r) => setTimeout(r, 2000))
-    const retry = await fetch(
+  // Telegram's download edge can 404/hang briefly for freshly uploaded files —
+  // retry with backoff before giving up.
+  let upstream: globalThis.Response | null = null
+  for (const delay of [0, 2000, 5000, 10000]) {
+    if (delay) await new Promise((r) => setTimeout(r, delay))
+    const res = await fetch(
       `https://api.telegram.org/file/bot${token}/${metaJson.result.file_path}`
     )
-    if (retry.ok && retry.body) return streamFile(retry, row, inline)
+    if (res.ok && res.body) {
+      upstream = res
+      break
+    }
+    if (res.status === 404 || res.status >= 500) continue
+    return new Response('telegram error', { status: 502 })
   }
-  if (!upstream.ok || !upstream.body) return new Response('telegram error', { status: 502 })
+  if (!upstream) {
+    return new Response('file belum tersedia, coba lagi sebentar', { status: 503 })
+  }
   return streamFile(upstream, row, inline)
 }
 
