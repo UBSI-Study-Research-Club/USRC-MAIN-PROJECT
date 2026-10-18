@@ -70,6 +70,7 @@ create table projects (
   title text not null,
   description text,
   image_url text,
+  pdf_url text,
   category text,
   status text not null default 'pending' check (status in ('pending', 'approved')),
   created_at timestamptz default now()
@@ -330,6 +331,7 @@ returns table (
   title text,
   description text,
   image_url text,
+  pdf_url text,
   category text,
   links jsonb,
   owner_id uuid,
@@ -342,7 +344,7 @@ returns table (
 )
 language sql security definer stable as $$
   select
-    p.id, p.title, p.description, p.image_url, p.category,
+    p.id, p.title, p.description, p.image_url, p.pdf_url, p.category,
     coalesce((
       select jsonb_agg(jsonb_build_object('link_type', pl.link_type, 'url', pl.url, 'label', pl.label) order by pl.created_at)
       from project_links pl
@@ -369,7 +371,7 @@ language sql security definer stable as $$
   from projects p
   join profiles o on o.id = p.user_id
   where p.status = 'approved'
-  order by 12 desc, p.created_at desc;
+  order by 13 desc, p.created_at desc;
 $$;
 
 grant execute on function public.get_public_karya() to anon, authenticated;

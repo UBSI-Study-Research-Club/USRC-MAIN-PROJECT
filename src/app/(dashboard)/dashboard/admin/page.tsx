@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
-import { withHttps } from '@/lib/url'
+import { withHttps, getPdfViewUrl } from '@/lib/url'
 import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock, Trash2, CalendarDays, Ban, RotateCcw } from 'lucide-react'
 
 type Profile = {
@@ -28,6 +28,7 @@ type Project = {
   title: string
   description: string
   image_url: string
+  pdf_url?: string | null
   project_links: { link_type: string; url: string; label: string | null }[] | null
   category: string
   status: 'pending' | 'approved'
@@ -168,7 +169,7 @@ function AdminDashboardContent() {
         setLoadingProjects(true)
         const { data, error } = await supabase
           .from('projects')
-          .select('id, user_id, title, description, image_url, category, status, created_at, project_links(link_type, url, label)')
+          .select('id, user_id, title, description, image_url, pdf_url, category, status, created_at, project_links(link_type, url, label)')
           .order('created_at', { ascending: false })
 
         if (error) throw error
@@ -880,6 +881,16 @@ function AdminDashboardContent() {
                             <span className={`border border-[#1A1A1A] px-2 py-0.5 font-mono font-bold ${project.status === 'pending' ? 'bg-[#FFF3C4]' : 'bg-[#D1E7DD]'}`}>
                               {project.status === 'pending' ? 'MENUNGGU' : 'LIVE'}
                             </span>
+                            {project.pdf_url && (
+                              <a
+                                href={getPdfViewUrl(project.pdf_url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-mono font-bold text-maroon underline hover:bg-white"
+                              >
+                                [PDF] LIHAT DOKUMEN
+                              </a>
+                            )}
                           </div>
                           {(project.project_links || []).length > 0 ? (
                             <div className="flex flex-wrap gap-2 mt-2 text-xs">
