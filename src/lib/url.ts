@@ -8,3 +8,15 @@ export function withHttps(raw: string | null | undefined): string {
   if (v.startsWith("/")) return v;
   return /^https?:\/\//i.test(v) ? v : `https://${v}`;
 }
+
+// URL PDF untuk dibuka inline di tab baru browser.
+// File di gudang Telegram (/api/files/<id>) dibuka via /api/files/<id>/raw agar inline (bukan download attachment).
+export function getPdfViewUrl(raw: string | null | undefined): string {
+  const v = (raw ?? "").trim();
+  if (!v) return "#";
+  if (v.includes("/api/files/") && !v.endsWith("/raw")) {
+    const rawUrl = v.replace(/\/api\/files\/([^/?#]+)/, "/api/files/$1/raw");
+    return withHttps(rawUrl);
+  }
+  return withHttps(v);
+}
