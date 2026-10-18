@@ -1,4 +1,4 @@
-use client';
+'use client';
 
 // ─── Avatar Hewan Pixel (USRC) ──────────────────────────────────
 // Aset resmi 11 avatar hewan pixel buatan Aditya Prayoga (Adit)
