@@ -1,7 +1,7 @@
 'use client';
 
 // ─── Avatar Hewan Pixel (USRC) ──────────────────────────────────
-// Aset resmi 6 avatar hewan pixel buatan Aditya Prayoga (Adit/Yoga)
+// Aset resmi 11 avatar hewan pixel buatan Aditya Prayoga (Adit)
 // Format: WebP Lossless (24×24 scaled 10×), transparan, ultra-ringan.
 
 export interface AnimalAvatar {
@@ -14,9 +14,14 @@ export const AVATARS: AnimalAvatar[] = [
   { id: 'ayam', name: 'Ayam', asset: '/pixel/animals/ayam.webp' },
   { id: 'beruang', name: 'Beruang', asset: '/pixel/animals/beruang.webp' },
   { id: 'gorila', name: 'Gorila', asset: '/pixel/animals/gorila.webp' },
+  { id: 'hamster', name: 'Hamster', asset: '/pixel/animals/hamster.webp' },
+  { id: 'kelinci', name: 'Kelinci', asset: '/pixel/animals/kelinci.webp' },
   { id: 'kucing', name: 'Kucing', asset: '/pixel/animals/kucing.webp' },
   { id: 'monyet', name: 'Monyet', asset: '/pixel/animals/monyet.webp' },
+  { id: 'panda', name: 'Panda', asset: '/pixel/animals/panda.webp' },
+  { id: 'pinguin', name: 'Pinguin', asset: '/pixel/animals/pinguin.webp' },
   { id: 'rubah', name: 'Rubah', asset: '/pixel/animals/rubah.webp' },
+  { id: 'singa', name: 'Singa', asset: '/pixel/animals/singa.webp' },
 ];
 
 export const AVATAR_BG = ['#E38595', '#FFF3C4', '#D1E7DD', '#F8D7DA', '#F5F3EF'];
