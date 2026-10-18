@@ -25,7 +25,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { withHttps } from "@/lib/url";
+import { withHttps, getPdfViewUrl } from "@/lib/url";
 
 interface Meeting {
   id: string;
@@ -47,6 +47,7 @@ interface Project {
   title: string;
   description: string | null;
   image_url: string | null;
+  pdf_url?: string | null;
   category: string | null;
   links: KaryaLink[] | null;
   stars: number;
@@ -268,9 +269,16 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
       {/* Header badge */}
       {project.category && (
         <div className="flex items-center justify-between bg-[#FFF3C4] border-b-2 border-dark px-3 py-2">
-          <span className={`${FONT_MONO} text-[10px] font-bold uppercase text-dark`}>
-            {project.category}
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className={`${FONT_MONO} text-[10px] font-bold uppercase text-dark`}>
+              {project.category}
+            </span>
+            {project.pdf_url && (
+              <span className="border border-dark bg-maroon px-1 py-0.2 text-[8px] font-bold uppercase text-white leading-none">
+                PDF
+              </span>
+            )}
+          </div>
           <span className={`${FONT_MONO} text-[9px] text-dark/50`}>// karya</span>
         </div>
       )}
@@ -316,7 +324,18 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
 
         {/* Footer */}
         <div className="mt-auto pt-2 flex items-center justify-between">
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {project.pdf_url && (
+              <a
+                href={getPdfViewUrl(project.pdf_url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className={`${FONT_MONO} inline-flex items-center border-[1px] border-dark bg-[#FFF3C4] px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-dark transition-all hover:bg-white`}
+              >
+                // LIHAT PDF
+              </a>
+            )}
             {(project.links || []).slice(0, 2).map((l, i) => (
               <a
                 key={i}
@@ -893,6 +912,20 @@ export default function LandingPage() {
                   {selectedProject.star_count || 0} bintang
                 </span>
               </div>
+
+              {/* PDF Document */}
+              {selectedProject.pdf_url && (
+                <div className="pt-1">
+                  <a
+                    href={getPdfViewUrl(selectedProject.pdf_url)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
+                  >
+                    // LIHAT MAKALAH / RISET (PDF)
+                  </a>
+                </div>
+              )}
 
               {/* Links */}
               {selectedProject.links && selectedProject.links.length > 0 && (

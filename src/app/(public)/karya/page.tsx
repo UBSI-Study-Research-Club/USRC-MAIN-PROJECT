@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { withHttps } from '@/lib/url'
+import { withHttps, getPdfViewUrl } from '@/lib/url'
 import {
   Star, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
@@ -836,7 +836,14 @@ export default function KaryaPage() {
 
                 {/* strip kategori */}
                 <div className="flex items-center justify-between border-b-[3px] border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-[11px] font-medium uppercase tracking-[.08em]">
-                  <b className="text-dark">{k.category || 'Lainnya'}</b>
+                  <div className="flex items-center gap-1.5">
+                    <b className="text-dark">{k.category || 'Lainnya'}</b>
+                    {k.pdf_url && (
+                      <span className="border border-dark bg-maroon px-1.5 py-0.5 text-[9px] font-bold uppercase text-white leading-none">
+                        PDF
+                      </span>
+                    )}
+                  </div>
                   <span className="text-maroon">#{p2(idx + 1)}</span>
                 </div>
 
@@ -870,8 +877,22 @@ export default function KaryaPage() {
                     <p className="m-0 line-clamp-2 font-mono text-xs italic text-dark/75">{k.description}</p>
                   )}
 
-                  <div className="mt-auto flex items-center justify-between gap-2.5 pb-4 pt-3">
-                    {starBtn(k)}
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2.5 pb-4 pt-3">
+                    <div className="flex items-center gap-2">
+                      {starBtn(k)}
+                      {k.pdf_url && (
+                        <a
+                          href={getPdfViewUrl(k.pdf_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 border-2 border-dark bg-[#FFF3C4] px-2.5 py-1 font-mono text-[11px] font-bold uppercase text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                          title="Buka PDF di tab baru"
+                        >
+                          // LIHAT PDF
+                        </a>
+                      )}
+                    </div>
                     <span className={`${FONT_M} text-xs font-medium uppercase tracking-wide underline decoration-2 underline-offset-4 hover:text-maroon`}>
                       Lihat karya →
                     </span>
@@ -969,12 +990,12 @@ export default function KaryaPage() {
                 {starBtn(detail, true)}
                 {detail.pdf_url && (
                   <a
-                    href={withHttps(detail.pdf_url)}
+                    href={getPdfViewUrl(detail.pdf_url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-[#FFF3C4] px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                   >
-                    // UNDUH MAKALAH / RISET (PDF)
+                    // LIHAT MAKALAH / RISET (PDF)
                   </a>
                 )}
                 {(detail.links || []).map((l, i) => (
@@ -1145,7 +1166,7 @@ export default function KaryaPage() {
                     <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
                       <div className="flex items-center gap-2 overflow-hidden">
                         <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
-                        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
+                        <a href={getPdfViewUrl(form.pdf_url)} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
                           {pdfName || 'Dokumen tersimpan'}
                         </a>
                       </div>
