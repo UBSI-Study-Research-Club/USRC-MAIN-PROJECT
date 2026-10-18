@@ -24,8 +24,19 @@ export async function serveFile(id: string, inline: boolean): Promise<Response> 
   const upstream = await fetch(
     `https://api.telegram.org/file/bot${token}/${metaJson.result.file_path}`
   )
+  if (upstream.status === 404) {
+    // File can lag a few seconds behind getFile on Telegram's download servers.
+    await new Promise((r) => setTimeout(r, 2000))
+    const retry = await fetch(
+      `https://api.telegram.org/file/bot${token}/${metaJson.result.file_path}`
+    )
+    if (retry.ok && retry.body) return streamFile(retry, row, inline)
+  }
   if (!upstream.ok || !upstream.body) return new Response('telegram error', { status: 502 })
+  return streamFile(upstream, row, inline)
+}
 
+function streamFile(upstream: globalThis.Response, row: { name: string; mime: string }, inline: boolean): Response {
   const safeName = row.name.replace(/["\\\r\n]/g, '_')
   return new Response(upstream.body, {
     headers: {
