@@ -2,6 +2,7 @@
 
 import { Star, ExternalLink, User } from "lucide-react";
 import type { FeedProject } from "@/hooks/useFeed";
+import { KaryaCover } from "@/components/KaryaCover";
 
 interface FeedCardProps {
   project: FeedProject;
@@ -40,30 +41,23 @@ export function FeedCard({ project, currentUserId, onToggleStar }: FeedCardProps
 
       {/* Image Preview */}
       {project.image_url ? (
-        <div className="relative aspect-video w-full overflow-hidden bg-paper border-b-[3px] border-dark">
-          <img
-            src={project.image_url}
-            alt={project.title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        </div>
+        <KaryaCover src={project.image_url} alt={project.title} className="aspect-[4/3] border-b-[3px] border-dark sm:aspect-[16/9] xl:aspect-[2/1]" />
       ) : (
-        <div className="flex h-36 w-full items-center justify-center bg-paper border-b-[3px] border-dark">
+        <div className="flex h-24 w-full items-center justify-center bg-paper border-b-[3px] border-dark">
           <span className={`${FONT_MONO} text-xs text-dark/30`}>// no preview</span>
         </div>
       )}
 
       {/* Content Body */}
-      <div className="p-5 flex flex-col gap-4">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className={`${FONT_DISPLAY} text-xl font-black uppercase tracking-tight text-dark leading-snug`}>
+      <div className="p-4 sm:p-5 flex flex-col gap-3 sm:gap-4">
+        <div className="flex flex-col-reverse items-start gap-2 sm:flex-row sm:justify-between sm:gap-3">
+          <h3 className={`${FONT_DISPLAY} text-lg sm:text-xl font-black uppercase tracking-tight text-dark leading-snug break-words`}>
             {project.title}
           </h3>
           {project.owner && (
-            <div className="flex items-center gap-1.5 border-2 border-dark bg-paper px-2.5 py-1 shrink-0 shadow-[2px_2px_0_var(--color-dark)]">
+            <div className="flex max-w-full items-center gap-1.5 border-2 border-dark bg-paper px-2.5 py-1 shrink-0 shadow-[2px_2px_0_var(--color-dark)]">
               <User className="w-3.5 h-3.5 text-maroon" strokeWidth={2.5} />
-              <span className={`${FONT_MONO} text-xs font-bold text-dark`}>
+              <span className={`${FONT_MONO} truncate text-xs font-bold text-dark`}>
                 {project.owner.full_name}
               </span>
             </div>
@@ -71,18 +65,18 @@ export function FeedCard({ project, currentUserId, onToggleStar }: FeedCardProps
         </div>
 
         {project.description && (
-          <p className="text-sm text-dark/80 leading-relaxed font-[family-name:var(--font-work-sans)]">
+          <p className="line-clamp-3 text-sm text-dark/80 leading-relaxed font-[family-name:var(--font-work-sans)]">
             {project.description}
           </p>
         )}
 
         {/* Footer Actions */}
-        <div className="mt-2 pt-4 border-t-2 border-dashed border-dark/30 flex items-center justify-between">
+        <div className="mt-1 pt-3 sm:pt-4 border-t-2 border-dashed border-dark/30 flex flex-wrap items-center justify-between gap-2">
           <span className={`${FONT_MONO} text-xs text-dark/50`}>
             {formatDate(project.created_at)}
           </span>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Star button */}
             <button
               onClick={() => canStar && onToggleStar(project.id, project.my_star)}

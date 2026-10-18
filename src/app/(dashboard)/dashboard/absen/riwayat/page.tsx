@@ -2,19 +2,23 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Calendar, Clock, CheckCircle2, AlertCircle, Loader2, Search, History, Check, X, Hourglass } from 'lucide-react'
-import { GhostScreen, type Meeting, type Attendance } from '../shared'
-import { AbsenTabs } from '../AbsenTabs'
+import { Calendar, AlertCircle, Loader2, Search, History, Check, X, Hourglass } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { GLIDE } from '@/components/motion/Glide'
+import { AbsenSkeleton, GhostScreen, type Meeting, type Attendance } from '../shared'
 
 const PAGE_SIZE = 10
 
+// Cache data terakhir — lihat catatan di halaman Sesi Aktif.
+const cache: { meetings?: Meeting[]; total?: number; att?: Record<string, Attendance> } = {}
+
 function RiwayatContent() {
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [total, setTotal] = useState(0)
-  const [attendances, setAttendances] = useState<Record<string, Attendance>>({})
+  const [meetings, setMeetings] = useState<Meeting[]>(cache.meetings ?? [])
+  const [total, setTotal] = useState(cache.total ?? 0)
+  const [attendances, setAttendances] = useState<Record<string, Attendance>>(cache.att ?? {})
   const [visible, setVisible] = useState(PAGE_SIZE)
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!cache.meetings)
   const [error, setError] = useState<string | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
   const [ghost, setGhost] = useState(false)
@@ -23,7 +27,6 @@ function RiwayatContent() {
 
   const fetchData = async () => {
     try {
-      setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
@@ -48,8 +51,10 @@ function RiwayatContent() {
         .range(0, visible - 1)
 
       if (meetErr) throw meetErr
-      setMeetings(meetingsData || [])
-      setTotal(count || 0)
+      cache.meetings = meetingsData || []
+      cache.total = count || 0
+      setMeetings(cache.meetings)
+      setTotal(cache.total)
 
       const { data: attData, error: attErr } = await supabase
         .from('attendances')
@@ -62,6 +67,7 @@ function RiwayatContent() {
       attData?.forEach((att) => {
         attMap[att.meeting_id] = att
       })
+      cache.att = attMap
       setAttendances(attMap)
     } catch (err: any) {
       setError(err.message || 'Gagal memuat riwayat sesi.')
@@ -121,13 +127,11 @@ function RiwayatContent() {
   const totalHistoris = total
   const hadirCount = Object.values(attendances).filter(a => a.status === 'approved').length
   const rate = totalHistoris > 0 ? Math.round((hadirCount / totalHistoris) * 100) : 0
+  const pendingCount = Object.values(attendances).filter(a => a.status === 'pending').length
+  const counts = { approved: hadirCount, pending: pendingCount, alpa: Math.max(0, totalHistoris - hadirCount - pendingCount) }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="w-8 h-8 animate-spin text-[#7A1B2E]" />
-      </div>
-    )
+    return <AbsenSkeleton />
   }
 
   if (ghost) {
@@ -135,29 +139,8 @@ function RiwayatContent() {
   }
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto pb-12">
-      {/* SVG filter for rough stamp texture */}
-      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden="true" focusable="false">
-        <filter id="rough">
-          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" result="n"/>
-          <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4"/>
-        </filter>
-      </svg>
+    <div className="space-y-8">
 
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-white border-2 border-[#1A1A1A] shadow-[6px_6px_0_#1A1A1A] p-7 md:p-8">
-        <div className="absolute top-0 right-0 bg-[#7A1B2E] text-white font-mono text-[11px] px-3.5 py-1 border-l-2 border-b-2 border-[#1A1A1A] font-bold uppercase tracking-wider">
-          // AREA ANGGOTA
-        </div>
-        <h1 className="text-3xl md:text-4xl font-black uppercase font-['Outfit'] tracking-tight text-[#7A1B2E] mb-2">
-          Riwayat Absensi
-        </h1>
-        <p className="text-sm md:text-base font-['Work_Sans'] text-[#1A1A1A]/80 max-w-xl leading-relaxed">
-          Semua sesi yang sudah lewat beserta status kehadiranmu yang telah tervalidasi oleh sekretaris.
-        </p>
-      </div>
-
-      <AbsenTabs />
 
       {error && (
         <div className="border-2 border-[#1A1A1A] bg-[#F8D7DA] p-4 shadow-[4px_4px_0_#1A1A1A] flex items-center gap-3 text-[#1A1A1A]">
@@ -166,26 +149,37 @@ function RiwayatContent() {
         </div>
       )}
 
-      {/* Summary Card ala absensi-v2 */}
-      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] border-2 border-[#1A1A1A] bg-white shadow-[6px_6px_0_#1A1A1A]">
-        <div className="p-6 bg-[#F5F3EF] border-b-2 md:border-b-0 md:border-r-2 border-[#1A1A1A] flex flex-col justify-center">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#1A1A1A]/70">// Total Hadir</span>
-          <b className="font-black font-['Outfit'] text-5xl md:text-6xl text-[#7A1B2E] my-1">
-            {hadirCount}<small className="text-3xl text-[#1A1A1A]">/{totalHistoris}</small>
-          </b>
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#1A1A1A]">Sesi Terverifikasi</span>
-          <div className="mt-4 h-3 border-2 border-[#1A1A1A] bg-white overflow-hidden">
-            <div className="h-full bg-[#7A1B2E]" style={{ width: `${rate}%` }} />
+      {/* Ringkasan kehadiran */}
+      <div className="grid grid-cols-1 border-2 border-[#1A1A1A] bg-white shadow-[6px_6px_0_#1A1A1A] sm:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="p-5 sm:p-6">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#1A1A1A]/60">Kehadiran kamu</p>
+          <div className="mt-1 flex items-baseline gap-3">
+            <b className="font-[family-name:var(--font-outfit)] text-5xl font-black leading-none text-[#7A1B2E]">
+              {hadirCount}<small className="text-2xl text-[#1A1A1A]/70">/{totalHistoris}</small>
+            </b>
+            <span className="font-mono text-sm font-bold text-[#1A1A1A]">{rate}%</span>
+          </div>
+          <div className="mt-4 h-3 overflow-hidden border-2 border-[#1A1A1A] bg-white">
+            <motion.div
+              className="h-full bg-[#7A1B2E]"
+              initial={{ width: 0 }}
+              animate={{ width: `${rate}%` }}
+              transition={{ ...GLIDE, duration: 0.9, delay: 0.1 }}
+            />
           </div>
         </div>
-        <div className="p-6 flex flex-col justify-center">
-          <p className="font-mono text-xs font-bold uppercase tracking-wider text-[#1A1A1A] mb-3">
-            // Statistik Kehadiran Anggota
-          </p>
-          <p className="text-sm font-['Work_Sans'] text-[#1A1A1A]/80 leading-relaxed">
-            Tingkat kehadiran kamu saat ini adalah <span className="font-bold text-[#7A1B2E]">{rate}%</span> dari seluruh sesi pertemuan yang telah lampau. Pertahankan kehadiran dan keaktifanmu di USRC!
-          </p>
-        </div>
+        <dl className="grid grid-cols-3 border-t-2 border-[#1A1A1A] sm:grid-cols-1 sm:border-l-2 sm:border-t-0">
+          {[
+            { label: 'Hadir', val: counts.approved, cls: 'text-green-800' },
+            { label: 'Pending', val: counts.pending, cls: 'text-amber-800' },
+            { label: 'Absen', val: counts.alpa, cls: 'text-[#1A1A1A]/60' },
+          ].map((c, i) => (
+            <div key={c.label} className={`flex flex-col items-center justify-center px-5 py-3 sm:flex-row sm:justify-between sm:gap-6 ${i > 0 ? 'border-l-2 border-dashed border-[#1A1A1A] sm:border-l-0 sm:border-t-2' : ''}`}>
+              <dt className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]/60">{c.label}</dt>
+              <dd className={`font-[family-name:var(--font-outfit)] text-2xl font-black ${c.cls}`}>{c.val}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
       {/* Search Filter */}
@@ -204,21 +198,22 @@ function RiwayatContent() {
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-3.5 h-3.5 bg-[#7A1B2E] border-2 border-[#1A1A1A]" />
-          <h2 className="text-xl font-black uppercase font-['Outfit'] tracking-wide text-[#1A1A1A]">
-            Daftar Sesi Lampau ({filtered.length})
+          <h2 className="text-xl font-black uppercase font-[family-name:var(--font-outfit)] tracking-wide text-[#1A1A1A]">
+            Sesi sebelumnya
           </h2>
+          <span className="font-mono text-xs font-bold text-[#1A1A1A]/50">{filtered.length} sesi</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="border-2 border-[#1A1A1A] bg-white p-10 text-center shadow-[6px_6px_0_#1A1A1A]">
             <History className="w-10 h-10 text-gray-300 mx-auto mb-2" />
             <p className="font-mono text-xs uppercase text-gray-500 font-bold">
-              {search ? '// Tidak ada sesi yang cocok dengan pencarian.' : '// Belum ada riwayat sesi lampau.'}
+              {search ? 'Tidak ada sesi yang cocok.' : 'Belum ada sesi sebelumnya.'}
             </p>
           </div>
         ) : (
           <div className="space-y-4">
-            {filtered.map((meeting) => {
+            {filtered.map((meeting, idx) => {
               const att = attendances[meeting.id]
               const startDate = new Date(meeting.starts_at)
               const endDate = new Date(meeting.ends_at)
@@ -231,56 +226,48 @@ function RiwayatContent() {
                 st === 'approved' ? { label: 'HADIR', cls: 'bg-[#D1E7DD] text-green-900', icon: Check } :
                 st === 'pending' ? { label: 'PENDING', cls: 'bg-[#FFF3C4] text-yellow-900', icon: Hourglass } :
                 st === 'rejected' ? { label: 'DITOLAK', cls: 'bg-[#F8D7DA] text-red-900', icon: X } :
-                { label: 'TIDAK HADIR', cls: 'bg-gray-100 text-gray-600', icon: X }
+                { label: 'Tidak hadir', cls: 'bg-gray-100 text-gray-600', icon: X }
 
               const BadgeIcon = badgeConfig.icon
 
               return (
-                <div
+                <motion.div
                   key={meeting.id}
-                  className="relative grid grid-cols-[76px_1fr_auto] md:grid-cols-[90px_1fr_auto] items-stretch bg-white border-2 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0_#7A1B2E] transition-all overflow-hidden"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...GLIDE, delay: Math.min(idx * 0.05, 0.3) }}
+                  className="grid grid-cols-[64px_1fr] items-stretch overflow-hidden border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] transition-[transform,box-shadow] duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#7A1B2E] sm:grid-cols-[84px_1fr_auto]"
                 >
-                  {/* Stamp Overlay for History */}
-                  {att && (
-                    <div className={`absolute right-24 top-[30%] z-20 pointer-events-none px-3 py-1 border-3 border-current outline-1 outline-current outline-offset-2 rounded-md font-black uppercase font-['Outfit'] text-xl tracking-widest text-center rotate-[-10deg] origin-center opacity-85 mix-blend-multiply ${
-                      att.status === 'approved' ? 'text-[#17543A]' : att.status === 'rejected' ? 'text-[#A62639]' : 'text-[#8A5A00]'
-                    }`} style={{ filter: 'url(#rough)' }}>
-                      {att.status === 'approved' ? 'HADIR' : att.status === 'rejected' ? 'DITOLAK' : 'PENDING'}
-                    </div>
-                  )}
-
-                  {/* Date Stub */}
-                  <div className="bg-[#F5F3EF] border-r-2 border-dashed border-[#1A1A1A] p-3 flex flex-col items-center justify-center text-center">
-                    <b className="font-black font-['Outfit'] text-3xl text-[#7A1B2E] leading-none">
-                      {dayNum}
-                    </b>
-                    <span className="font-mono text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A] mt-1">
-                      {monthStr}
-                    </span>
+                  {/* Tanggal */}
+                  <div className="flex flex-col items-center justify-center border-r-2 border-dashed border-[#1A1A1A] bg-[#F5F3EF] p-2 text-center">
+                    <b className="font-[family-name:var(--font-outfit)] text-2xl font-black leading-none text-[#7A1B2E] sm:text-3xl">{dayNum}</b>
+                    <span className="mt-1 font-mono text-[10px] font-bold uppercase tracking-wider text-[#1A1A1A]">{monthStr}</span>
                   </div>
 
                   {/* Info */}
-                  <div className="p-4 md:p-5 flex flex-col justify-center min-w-0">
-                    <h3 className="font-black uppercase font-['Outfit'] text-lg md:text-xl text-[#1A1A1A] truncate">
+                  <div className="flex min-w-0 flex-col justify-center gap-1.5 p-3.5 sm:p-5">
+                    <h3 className="line-clamp-2 font-[family-name:var(--font-outfit)] text-base font-black uppercase leading-tight text-[#1A1A1A] sm:text-lg">
                       {meeting.title}
                     </h3>
-                    <p className="font-mono text-xs text-[#1A1A1A]/70 mt-1 flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5 text-[#7A1B2E] shrink-0" />
-                      <span className="truncate">
-                        {startDate.toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Pontianak' })} ·{' '}
-                        {startDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Pontianak' })} – {endDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Pontianak' })} WIB
-                      </span>
+                    <p className="flex items-center gap-1.5 font-mono text-[11px] text-[#1A1A1A]/65">
+                      <Calendar className="h-3.5 w-3.5 shrink-0 text-[#7A1B2E]" />
+                      {startDate.toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'Asia/Pontianak' })},{' '}
+                      {startDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Pontianak' })}–{endDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Pontianak' })}
                     </p>
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="px-4 flex items-center justify-center">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 border-1.5 border-[#1A1A1A] font-mono text-xs font-bold uppercase ${badgeConfig.cls}`}>
-                      <BadgeIcon className="w-3.5 h-3.5" />
-                      <span>{badgeConfig.label}</span>
+                    <span className={`inline-flex w-fit items-center gap-1.5 border-2 border-[#1A1A1A] px-2 py-0.5 font-mono text-[10px] font-bold uppercase sm:hidden ${badgeConfig.cls}`}>
+                      <BadgeIcon className="h-3 w-3" />
+                      {badgeConfig.label}
                     </span>
                   </div>
-                </div>
+
+                  {/* Status (desktop) */}
+                  <div className="hidden items-center px-5 sm:flex">
+                    <span className={`inline-flex items-center gap-1.5 border-2 border-[#1A1A1A] px-3 py-1.5 font-mono text-xs font-bold uppercase ${badgeConfig.cls}`}>
+                      <BadgeIcon className="h-3.5 w-3.5" />
+                      {badgeConfig.label}
+                    </span>
+                  </div>
+                </motion.div>
               )
             })}
           </div>
@@ -290,7 +277,7 @@ function RiwayatContent() {
         {!search && meetings.length < total && (
           <button
             onClick={() => setVisible((v) => v + PAGE_SIZE)}
-            className="w-full py-3 px-4 bg-white text-[#1A1A1A] border-2 border-[#1A1A1A] font-bold uppercase font-['Outfit'] shadow-[3px_3px_0_#1A1A1A] hover:bg-[#7A1B2E] hover:text-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3 px-4 bg-white text-[#1A1A1A] border-2 border-[#1A1A1A] font-bold uppercase font-[family-name:var(--font-outfit)] shadow-[3px_3px_0_#1A1A1A] hover:bg-[#7A1B2E] hover:text-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
             <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : 'hidden'}`} />
             <span>Muat Lagi ({meetings.length}/{total})</span>

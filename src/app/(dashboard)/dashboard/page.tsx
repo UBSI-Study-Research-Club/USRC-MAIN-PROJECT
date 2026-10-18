@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, AlertCircle, CheckCircle2, Sparkles, ArrowRight, FolderKanban } from "lucide-react";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus, type AbsenStatusItem } from "@/hooks/useAbsenStatus";
@@ -270,9 +270,12 @@ function FeedTimeline() {
 }
 
 // ── Page ─────────────────────────────────────────────────
+// Hasil cek status anggota disimpan agar kembali ke Feed tidak menampilkan spinner lagi.
+const gateCache: { value?: "ok" | "blocked" } = {};
+
 export default function DashboardPage() {
   const router = useRouter();
-  const [gate, setGate] = useState<"checking" | "ok" | "blocked">("checking");
+  const [gate, setGate] = useState<"checking" | "ok" | "blocked">(gateCache.value ?? "checking");
 
   useEffect(() => {
     let alive = true;
@@ -290,7 +293,8 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .maybeSingle();
       if (!alive) return;
-      setGate(profile && profile.status === "aktif" ? "ok" : "blocked");
+      gateCache.value = profile && profile.status === "aktif" ? "ok" : "blocked";
+      setGate(gateCache.value);
     })();
     return () => { alive = false; };
   }, [router]);
@@ -311,98 +315,103 @@ export default function DashboardPage() {
 }
 
 function DashboardContent() {
-  const prefersReduced = useReducedMotion();
   const sectionRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start start", "end start"],
-  });
-  const headerY = useTransform(scrollYProgress, [0, 1], [0, -30]);
-  const headerRotate = useTransform(scrollYProgress, [0, 1], [2, 0]);
 
   return (
-    <div ref={sectionRef} className="mx-auto max-w-3xl px-4 py-8 flex flex-col gap-10">
+    <div ref={sectionRef} className="flex flex-col gap-8 md:gap-10 md:py-2">
       {/* Header Banner — Arsip Kertas Fold */}
       <div className="archive-stack rot">
         <i className="archive-lay c"></i>
         <i className="archive-lay b"></i>
         <i className="archive-lay a"></i>
-        <motion.div
-          style={prefersReduced ? {} : { y: headerY, rotate: headerRotate }}
-          className="archive-sheet archive-fold flex flex-col md:flex-row md:items-center justify-between gap-4 border-[3px] border-dark bg-white p-6"
+        <div
+          className="archive-sheet archive-fold flex items-center justify-between gap-4 border-[3px] border-dark bg-white p-4 sm:p-6"
         >
-          <div>
-            <span className={`${FONT_MONO} inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
+          <div className="min-w-0">
+            <span className={`${FONT_MONO} hidden sm:inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
               // Ruang Interaksi Anggota
             </span>
-            <h1 className={`${FONT_DISPLAY} text-3xl font-black uppercase tracking-tight text-dark`}>
+            <h1 className={`${FONT_DISPLAY} text-2xl sm:text-3xl lg:text-4xl font-black uppercase leading-none tracking-tight text-dark`}>
               Dashboard <span className="text-maroon">Anggota</span>
             </h1>
-            <p className={`${FONT_MONO} text-xs text-dark/70 mt-1`}>
+            <p className={`${FONT_MONO} hidden sm:block text-xs text-dark/70 mt-2`}>
               Pantau kehadiran, ikuti story rekan setim, dan apresiasi karya terbaru.
             </p>
           </div>
           <Link
             href="/profil"
-            className={`${FONT_DISPLAY} inline-flex items-center gap-2 border-[3px] border-dark bg-paper px-5 py-3 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-all`}
+            aria-label="Atur Profil & Pixel"
+            className={`${FONT_DISPLAY} inline-flex shrink-0 items-center gap-2 border-[3px] border-dark bg-paper p-2.5 sm:px-5 sm:py-3 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-all`}
           >
-            <span>Atur Profil &amp; Pixel</span>
+            <span className="hidden sm:inline">Atur Profil &amp; Pixel</span>
             <Sparkles className="w-4 h-4" />
           </Link>
-        </motion.div>
+        </div>
       </div>
 
-      {/* Pixel Story — identitas anggota di atas feed (Stack Kertas Rot2) */}
-      <section aria-label="Pixel Story">
-        <div className="archive-stack rot2">
-          <i className="archive-lay c"></i>
-          <i className="archive-lay b"></i>
-          <i className="archive-lay a"></i>
-          <div className="archive-sheet">
-            <PixelStoryContainer />
+      {/* Desktop: 2 kolom (konten utama + sidebar absen sticky). Mobile: 1 kolom berurutan. */}
+      <div className="grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-10">
+        {/* Pixel Story — identitas anggota di atas feed (Stack Kertas Rot2) */}
+        <section aria-label="Pixel Story" className="min-w-0 lg:col-start-1 lg:row-start-1">
+          <div className="archive-stack rot2">
+            <i className="archive-lay c"></i>
+            <i className="archive-lay b"></i>
+            <i className="archive-lay a"></i>
+            <div className="archive-sheet">
+              <PixelStoryContainer />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Absen Banner */}
-      <section aria-label="Status Absen">
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-maroon border-2 border-dark" />
-            <h2 className={`${FONT_DISPLAY} text-lg font-black uppercase tracking-wider text-dark`}>
-              Jadwal &amp; Absensi Sesi
-            </h2>
-          </div>
-          <Link
-            href="/dashboard/absen/riwayat"
-            className="inline-flex items-stretch border-2 border-dark bg-[#FFF3C4] shadow-[3px_3px_0_#1A1A1A] no-underline font-display font-extrabold text-[12px] uppercase tracking-[.07em] rotate-[-1deg] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_#7A1B2E] transition-all"
-          >
-            <span className="block px-3 py-1.5">Lihat Riwayat Absen</span>
-            <i className="not-italic grid place-items-center w-8 bg-maroon text-white border-l-2 border-dark text-base">→</i>
-          </Link>
-        </div>
-        <AbsenBanner />
-      </section>
+        {/* Absen — sidebar sticky di desktop */}
+        <section aria-label="Status Absen" className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:sticky lg:top-24">
+          <SectionHeader dot="bg-maroon" title="Jadwal & Absensi" href="/dashboard/absen/riwayat" cta="Riwayat" ctaLong="Riwayat Absen" tilt="rotate-[-1deg]" />
+          <AbsenBanner />
+        </section>
 
-      {/* Feed Timeline */}
-      <section aria-label="Feed Karya Anggota">
-        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-[#E8A100] border-2 border-dark" />
-            <h2 className={`${FONT_DISPLAY} text-lg font-black uppercase tracking-wider text-dark`}>
-              Timeline Karya Anggota
-            </h2>
-          </div>
-          <Link
-            href="/karya"
-            className="inline-flex items-stretch border-2 border-dark bg-[#FFF3C4] shadow-[3px_3px_0_#1A1A1A] no-underline font-display font-extrabold text-[12px] uppercase tracking-[.07em] rotate-[1deg] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_#7A1B2E] transition-all"
-          >
-            <span className="block px-3 py-1.5">Eksplor Semua Karya</span>
-            <i className="not-italic grid place-items-center w-8 bg-maroon text-white border-l-2 border-dark text-base">→</i>
-          </Link>
-        </div>
-        <FeedTimeline />
-      </section>
+        {/* Feed Timeline */}
+        <section aria-label="Feed Karya Anggota" className="min-w-0 lg:col-start-1 lg:row-start-2">
+          <SectionHeader dot="bg-[#E8A100]" title="Timeline Karya" href="/karya" cta="Semua" ctaLong="Eksplor Semua Karya" tilt="rotate-[1deg]" />
+          <FeedTimeline />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  dot,
+  title,
+  href,
+  cta,
+  ctaLong,
+  tilt,
+}: {
+  dot: string;
+  title: string;
+  href: string;
+  cta: string;
+  ctaLong: string;
+  tilt: string;
+}) {
+  return (
+    <div className="flex justify-between items-center gap-3 mb-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={`w-3 h-3 shrink-0 ${dot} border-2 border-dark`} />
+        <h2 className={`${FONT_DISPLAY} truncate text-base sm:text-lg font-black uppercase tracking-wider text-dark`}>
+          {title}
+        </h2>
+      </div>
+      <Link
+        href={href}
+        className={`inline-flex shrink-0 items-stretch border-2 border-dark bg-[#FFF3C4] shadow-[3px_3px_0_#1A1A1A] no-underline font-display font-extrabold text-[11px] sm:text-[12px] uppercase tracking-[.07em] ${tilt} hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0_#7A1B2E] transition-all`}
+      >
+        <span className="block px-2.5 py-1.5 sm:px-3">
+          <span className="sm:hidden">{cta}</span>
+          <span className="hidden sm:inline">{ctaLong}</span>
+        </span>
+        <i className="not-italic grid place-items-center w-7 sm:w-8 bg-maroon text-white border-l-2 border-dark text-base">→</i>
+      </Link>
     </div>
   );
 }

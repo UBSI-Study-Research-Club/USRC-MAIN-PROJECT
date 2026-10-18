@@ -172,7 +172,7 @@ export default function ProfilPage() {
     if (updateError) {
       setError(updateError.message || "Gagal menyimpan profil.");
     } else {
-      setMessage("Profil berhasil disimpan! ✓");
+      setMessage("Profil berhasil disimpan!");
     }
   }
 
