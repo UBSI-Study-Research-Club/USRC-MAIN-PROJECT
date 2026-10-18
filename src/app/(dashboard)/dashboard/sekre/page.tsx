@@ -446,7 +446,7 @@ function SekretarisDashboardContent() {
         <h1 className="font-[family-name:var(--font-outfit)] text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight text-[#7A1B2E]">
           Dashboard Sekretaris
         </h1>
-        <p className="mt-2 max-w-2xl font-['Work_Sans'] text-sm md:text-base leading-relaxed text-[#1A1A1A]/80">
+        <p className="mt-2 max-w-2xl font-[family-name:var(--font-work-sans)] text-sm md:text-base leading-relaxed text-[#1A1A1A]/80">
           Validasi kehadiran anggota secara <span className="font-bold underline text-[#1A1A1A]">realtime</span> per sesi pertemuan, serta kelola antrian pendaftaran anggota baru USRC.
         </p>
       </section>
@@ -731,11 +731,11 @@ function SekretarisDashboardContent() {
           {/* Attendances Table */}
           <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
             <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-              <h3 className="font-black uppercase font-['Outfit'] text-sm">
+              <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
                 Daftar Hadir Sesi ({attendances.length} Anggota)
               </h3>
               <span className="font-mono text-[10px] bg-[#D1E7DD] border border-[#1A1A1A] px-2 py-0.5 font-bold">
-                ⚡️ LIVE SYNC (SUPABASE REALTIME)
+                LIVE SYNC (SUPABASE REALTIME)
               </span>
             </div>
 
@@ -760,7 +760,7 @@ function SekretarisDashboardContent() {
                       <th className="p-3 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="font-['Work_Sans'] text-sm">
+                  <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
                     {attendances.map((att) => (
                       <tr key={att.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
                         <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
@@ -855,7 +855,7 @@ function SekretarisDashboardContent() {
                             </span>
                           </div>
                           {reg.reason && (
-                            <p className="font-['Work_Sans'] text-sm italic text-[#1A1A1A]/85 mt-2 bg-[#FFF9DC] p-2.5 border border-dashed border-[#1A1A1A]/40">
+                            <p className="font-[family-name:var(--font-work-sans)] text-sm italic text-[#1A1A1A]/85 mt-2 bg-[#FFF9DC] p-2.5 border border-dashed border-[#1A1A1A]/40">
                               “{reg.reason}”
                             </p>
                           )}
@@ -923,7 +923,7 @@ function SekretarisDashboardContent() {
                       {filteredMembers.map((member) => (
                         <div key={member.id} className="border-2 border-[#1A1A1A] bg-white shadow-[3px_3px_0_#1A1A1A] p-4">
                           <div className="flex items-start justify-between gap-2">
-                            <p className="font-bold font-['Work_Sans'] text-[#1A1A1A] leading-tight">
+                            <p className="font-bold font-[family-name:var(--font-work-sans)] text-[#1A1A1A] leading-tight">
                               {member.full_name}
                             </p>
                             <span className="flex-none font-mono text-[10px] px-2 py-0.5 border-2 border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
@@ -934,7 +934,7 @@ function SekretarisDashboardContent() {
                             <span>NIM: {member.nim}</span>
                             <span>{member.prodi}</span>
                           </div>
-                          <p className="mt-2 border-t border-dashed border-[#1A1A1A]/30 pt-2 font-['Work_Sans'] text-xs italic text-gray-700">
+                          <p className="mt-2 border-t border-dashed border-[#1A1A1A]/30 pt-2 font-[family-name:var(--font-work-sans)] text-xs italic text-gray-700">
                             {member.reason || 'Belum ada alasan tersimpan.'}
                           </p>
                         </div>
@@ -953,7 +953,7 @@ function SekretarisDashboardContent() {
                             <th className="p-3">Alasan Masuk USRC</th>
                           </tr>
                         </thead>
-                        <tbody className="font-['Work_Sans'] text-sm">
+                        <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
                           {filteredMembers.map((member) => (
                             <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50 transition-colors">
                               <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">

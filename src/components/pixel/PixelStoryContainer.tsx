@@ -6,6 +6,9 @@ import { createClient } from '@/lib/supabase/client';
 import { PixelCharacter, type PixelCharacterConfig } from './PixelCharacter';
 import { PixelAvatar } from './PixelAvatar';
 import { Sparkles, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { SideSheet, SheetButton } from '@/components/SideSheet';
+import { GLIDE } from '@/components/motion/Glide';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -220,6 +223,12 @@ function MemberAvatar({ m, sizeClass }: { m: Member; sizeClass: string }) {
 }
 
 
+// Kertas bergaris tipis — dipakai catatan kecil (strip) dan besar (kartu member)
+const LINED = 'repeating-linear-gradient(transparent 0 12px, rgba(26,26,26,.07) 12px 13px)';
+
+/* Catatan ala Instagram Notes, versi kertas: gelembung kecil maks 2 baris di atas
+   avatar, selotip washi di atas, dan dua titik "thought bubble" ke arah avatar.
+   Teks lengkap tetap bisa dibaca di kartu member. */
 function BubbleShape({
   text, color, tilt, idx, pop,
 }: {
@@ -227,24 +236,24 @@ function BubbleShape({
 }) {
   return (
     <span
-      className={`relative inline-block max-w-full min-w-[46px] px-[9px] py-[6px] border-2 border-dark${pop ? ' ps-bubble-pop' : ''}`}
-      style={{
-        background: color,
-        transform: `rotate(${tilt})`,
-        boxShadow: '2px 2px 0 #1A1A1A',
-        // @ts-expect-error css var
-        '--tilt': tilt,
-        '--i': idx,
-      }}
+      className={`relative inline-flex max-w-[118px] flex-col items-center${pop ? ' ps-bubble-pop' : ''}`}
+      style={{ transform: `rotate(${tilt})`, '--tilt': tilt, '--i': idx } as React.CSSProperties}
     >
-      <span className="block overflow-hidden font-body text-[11.5px] font-medium leading-[1.3] text-center" style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 3, overflow: 'hidden', overflowWrap: 'anywhere' }}>
-        {text}
-      </span>
-      {/* ekor bubble */}
       <span
-        className="absolute left-1/2 -bottom-[7px] w-[11px] h-[11px] border-r-2 border-b-2 border-dark"
-        style={{ background: color, transform: 'translateX(-50%) rotate(45deg)' }}
-      />
+        className="relative block rounded-[12px_12px_12px_5px] border-2 border-dark px-2.5 pb-1.5 pt-2 shadow-[2px_2px_0_#1A1A1A]"
+        style={{ backgroundColor: color, backgroundImage: LINED }}
+      >
+        <span aria-hidden="true" className="absolute -top-[7px] left-1/2 h-[10px] w-[26px] -translate-x-1/2 -rotate-6 border-x-2 border-dashed border-dark/25 bg-[#E38595]/75" />
+        <span
+          className="block text-center font-body text-[11px] font-semibold leading-[1.25] text-dark"
+          style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 2, overflow: 'hidden', overflowWrap: 'anywhere' }}
+        >
+          {text}
+        </span>
+      </span>
+      {/* titik thought-bubble */}
+      <span aria-hidden="true" className="-ml-5 mt-[3px] h-[8px] w-[8px] rounded-full border-2 border-dark" style={{ background: color }} />
+      <span aria-hidden="true" className="-ml-9 mt-[2px] h-[5px] w-[5px] rounded-full border-[1.5px] border-dark" style={{ background: color }} />
     </span>
   );
 }
@@ -252,17 +261,104 @@ function BubbleShape({
 function EmptyBubble({ tilt, idx, pop }: { tilt: string; idx: number; pop: boolean }) {
   return (
     <span
-      className={`relative inline-block max-w-full min-w-[46px] px-[9px] py-[6px] border-2 border-dashed border-dark bg-white${pop ? ' ps-bubble-pop' : ''}`}
+      className={`relative inline-flex max-w-[118px] flex-col items-center${pop ? ' ps-bubble-pop' : ''}`}
       style={{ transform: `rotate(${tilt})`, '--tilt': tilt, '--i': idx } as React.CSSProperties}
     >
-      <span className="block text-[11.5px] font-semibold leading-[1.3] text-center text-maroon" style={{ overflowWrap: 'anywhere' }}>
-        + catatan
+      <span className="block rounded-[12px_12px_12px_5px] border-2 border-dashed border-dark bg-white px-2.5 py-1.5 transition-colors hover:bg-[#FFF3C4]">
+        <span className="block text-center text-[11px] font-bold leading-[1.25] text-maroon">+ catatan</span>
       </span>
-      <span
-        className="absolute left-1/2 -bottom-[7px] w-[11px] h-[11px] border-r-2 border-b-2 border-dashed border-dark bg-white"
-        style={{ transform: 'translateX(-50%) rotate(45deg)' }}
-      />
+      <span aria-hidden="true" className="-ml-5 mt-[3px] h-[8px] w-[8px] rounded-full border-2 border-dashed border-dark bg-white" />
+      <span aria-hidden="true" className="-ml-9 mt-[2px] h-[5px] w-[5px] rounded-full border-[1.5px] border-dashed border-dark bg-white" />
     </span>
+  );
+}
+
+// ─── Banner kartu member (unik per nama) ────────────────────────────────────
+
+function hashName(str: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+// PRNG kecil (mulberry32) — pola sama setiap kali untuk nama yang sama
+function seeded(seed: number) {
+  let t = seed;
+  return () => {
+    t = (t + 0x6d2b79f5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* Banner: mosaik pixel yang di-generate dari nama (makin rapat ke kanan),
+   sebagian pixel berkedip pelan, dan nama depan besar bergaris di kanan bawah. */
+function NameBanner({ member, idx }: { member: Member; idx: number }) {
+  const first = member.full_name.split(' ')[0].toUpperCase();
+  const seed = hashName(member.full_name);
+  const rand = seeded(seed);
+  const base = member.avatar_bg || `hsl(${seed % 360} 55% 82%)`;
+  const COLS = 30;
+  const ROWS = 10;
+  const INK = ['rgba(26,26,26,.16)', 'rgba(255,255,255,.6)', 'rgba(122,27,46,.28)'];
+
+  const cells: { x: number; y: number; fill: string; twinkle: boolean; delay: number }[] = [];
+  for (let x = 0; x < COLS; x++) {
+    for (let y = 0; y < ROWS; y++) {
+      const density = Math.pow(x / COLS, 1.6) * 0.75;
+      if (rand() < density) {
+        cells.push({ x, y, fill: INK[Math.floor(rand() * INK.length)], twinkle: rand() < 0.18, delay: Math.round(rand() * 3000) });
+      }
+    }
+  }
+  const nameSize = Math.min(104, Math.round(560 / Math.max(first.length, 3)));
+
+  return (
+    <div className="relative h-[150px] overflow-hidden border-b-[3px] border-dark" style={{ backgroundColor: base }}>
+      {/* mosaik */}
+      <svg aria-hidden="true" className="absolute inset-0 h-full w-full" viewBox={`0 0 ${COLS * 10} ${ROWS * 10}`} preserveAspectRatio="xMaxYMid slice">
+        {cells.map((c, i) => (
+          <rect
+            key={i}
+            x={c.x * 10 + 0.8}
+            y={c.y * 10 + 0.8}
+            width={8.4}
+            height={8.4}
+            fill={c.fill}
+            className={c.twinkle ? 'ps-twinkle' : undefined}
+            style={c.twinkle ? { animationDelay: `${c.delay}ms` } : undefined}
+          />
+        ))}
+      </svg>
+      {/* titik halftone halus di kiri supaya chip tetap terbaca */}
+      <div aria-hidden="true" className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(rgba(26,26,26,.12) 1px, transparent 1.2px)', backgroundSize: '9px 9px', maskImage: 'linear-gradient(90deg,#000,transparent 60%)', WebkitMaskImage: 'linear-gradient(90deg,#000,transparent 60%)' }} />
+
+      {/* nama besar */}
+      {/* Outline lewat text-shadow berlapis (mengikuti isi huruf) — text-stroke
+          memperlihatkan garis kontur di dalam huruf pada font variabel. */}
+      <span
+        aria-hidden="true"
+        className="absolute -bottom-3 right-3 select-none font-display font-black uppercase leading-none text-white"
+        style={{
+          fontSize: nameSize,
+          textShadow:
+            '-2px -2px 0 #1A1A1A, 2px -2px 0 #1A1A1A, -2px 2px 0 #1A1A1A, 2px 2px 0 #1A1A1A, 0 -2px 0 #1A1A1A, 0 2px 0 #1A1A1A, -2px 0 0 #1A1A1A, 2px 0 0 #1A1A1A, 5px 5px 0 #1A1A1A',
+        }}
+      >
+        {first}
+      </span>
+
+      <span className="absolute left-4 top-4 border-2 border-dark bg-white px-2.5 py-0.5 font-mono text-[11px] font-semibold tracking-[.08em] shadow-[2px_2px_0_#1A1A1A]">
+        NO. {pad(idx + 1)} · SEJAK {member.member_since}
+      </span>
+      <span className="absolute right-4 top-4 rotate-[3deg] border-2 border-dark bg-maroon px-3 py-0.5 font-display text-[12px] font-extrabold uppercase tracking-[.16em] text-white shadow-[3px_3px_0_#1A1A1A]">
+        {member.role}
+      </span>
+    </div>
   );
 }
 
@@ -286,7 +382,7 @@ function StoryItem({
   const isNew = hasNote && !isOwn;
 
   return (
-    <li className="flex-none" style={{ scrollSnapAlign: 'center' }}>
+    <li className="flex-none list-none" style={{ scrollSnapAlign: 'center' }}>
         <button
         type="button"
         onClick={onClickAvatar}
@@ -310,7 +406,7 @@ function StoryItem({
 
         {/* Avatar */}
         <span
-          className={`relative z-[1] w-[72px] h-[72px] -mt-3 rounded-full overflow-hidden flex items-center justify-center transition-all duration-100
+          className={`relative z-[1] w-[72px] h-[72px] mt-0.5 rounded-full overflow-hidden flex items-center justify-center transition-all duration-100
             ${isNew ? 'border-2 border-maroon shadow-[3px_3px_0_#7A1B2E]' : 'border-2 border-dark bg-paper'}
             ${isSelected ? 'bg-[#FFF3C4] border-maroon shadow-[3px_3px_0_#7A1B2E]' : ''}
             group-hover:-translate-y-0.5
@@ -338,307 +434,132 @@ function MemberCard({
   member,
   allMembers,
   selfId,
-  onPrev,
-  onNext,
-  onClose,
   onEditNote,
-  slideDir,
 }: {
   member: Member;
   allMembers: Member[];
   selfId: string | null;
-  onPrev: () => void;
-  onNext: () => void;
-  onClose: () => void;
   onEditNote: () => void;
-  slideDir: number;
 }) {
   const note = activeNote(member);
   const idx = allMembers.findIndex(m => m.id === member.id);
-  const total = allMembers.length;
   const isOwn = member.id === selfId;
   const color = BUBBLE_COLORS[idx % BUBBLE_COLORS.length];
-  const wmText = Array(12).fill(`@${member.full_name.split(' ')[0].toUpperCase()} ✦ `).join('');
-  const shirtColor = (() => {
-    if (member.avatar_bg) return member.avatar_bg;
-    const c = { hoodie: '#2E5090', casual: '#4A90E2', tshirt: '#FF6B6B', jacket: '#34495E' };
-    return c[member.pixel_config.clothing || 'hoodie'];
-  })();
 
-  // link cards
   const links: { kind: LinkKind; url: string }[] = (
     ['instagram', 'github', 'behance', 'linkedin'] as LinkKind[]
   ).filter(k => !!member[k]).map(k => ({ kind: k, url: member[k as keyof Member] as string }));
 
-  const slideClass = slideDir > 0 ? 'ps-slide-r' : slideDir < 0 ? 'ps-slide-l' : '';
-
   return (
-    <>
-      {/* modal header */}
-      <div className="flex-none flex items-center gap-2.5 px-5 py-2.5 bg-paper border-b-2 border-dark">
-        <span className="mr-auto font-mono text-xs font-semibold uppercase tracking-[.08em]">// Member card</span>
-        <span className="font-mono text-xs text-dark/60">{pad(idx + 1)}/{pad(total)}</span>
-        <button
-          type="button" onClick={onPrev}
-          className="w-11 h-11 flex items-center justify-center border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
-          aria-label="Profil sebelumnya"
-        >
-          <ChevronLeft className="w-5 h-5" strokeWidth={3} />
-        </button>
-        <button
-          type="button" onClick={onNext}
-          className="w-11 h-11 flex items-center justify-center border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
-          aria-label="Profil berikutnya"
-        >
-          <ChevronRight className="w-5 h-5" strokeWidth={3} />
-        </button>
-        <button
-          type="button" onClick={onClose}
-          className="w-11 h-11 flex items-center justify-center border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A] hover:bg-[#F8D7DA] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
-          aria-label="Tutup profil"
-        >
-          <X className="w-5 h-5" strokeWidth={3} />
-        </button>
-      </div>
+    <div className="pb-8">
+      <NameBanner member={member} idx={idx} />
 
-      {/* scrollable body */}
-      <div className={`flex-1 min-h-0 overflow-y-auto overscroll-contain ${slideClass}`} tabIndex={-1}>
-        {/* Hero */}
-        <div
-          className="relative flex-none h-[150px] overflow-hidden border-b-2 border-dark"
-          style={{
-            backgroundColor: shirtColor,
-            backgroundImage: 'radial-gradient(circle at 1px 1px,rgba(255,255,255,.32) 1.6px,transparent 0),repeating-linear-gradient(135deg,rgba(26,26,26,.15) 0 2px,transparent 2px 16px)',
-            backgroundSize: '14px 14px, auto',
-          }}
-        >
-          {/* watermark berjalan */}
-          <span className="absolute left-[-6px] bottom-[-22px] whitespace-nowrap" style={{ transform: 'rotate(-5deg)', transformOrigin: 'left bottom' }}>
-            <span
-              className="font-display font-black text-transparent ps-drift"
-              style={{ fontSize: 'clamp(78px,17vw,112px)', lineHeight: 1, letterSpacing: '.02em', WebkitTextStroke: '2px rgba(255,255,255,.55)' }}
-            >
-              {wmText}
-            </span>
-          </span>
-          {/* glass chip kiri atas */}
-          <span
-            className="absolute z-[2] top-[14px] left-[16px] px-[11px] py-[5px] font-mono text-[11px] font-semibold tracking-[.08em]"
-            style={{ transform: 'rotate(-3deg)', background: 'rgba(255,255,255,.7)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,.4)', outline: '1.5px solid #1A1A1A' }}
-          >
-            NO. {pad(idx + 1)} // {member.member_since}
-          </span>
-          {/* stamp role kanan atas */}
-          <span
-            className="absolute z-[2] top-[14px] right-[16px] px-[13px] py-[3px] bg-[#FFF3C4] border-2 border-dark font-display font-extrabold text-[13px] uppercase tracking-[.16em] shadow-[3px_3px_0_#1A1A1A]"
-            style={{ transform: 'rotate(4deg)' }}
-          >
-            {member.role}
-          </span>
+      <div className="flex flex-col gap-6 px-5 sm:px-7">
+        {/* Avatar + identitas */}
+        <div className="relative -mt-14 h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-dark bg-[#FFF3C4] shadow-[5px_5px_0_#7A1B2E]">
+          <MemberAvatar m={member} sizeClass="w-full h-full" />
         </div>
 
-        {/* Body */}
-        <div className="relative px-7 pb-7 flex flex-col gap-[26px]" style={{ '--pad': '28px', '--pp': '128px' } as React.CSSProperties}>
-          {/* avatar besar — menonjol ke atas hero */}
-          <div className="relative z-[3] w-32 h-32 -mt-16">
-            <div className="relative w-32 h-32 rounded-full overflow-hidden bg-[#FFF3C4] border-4 border-dark shadow-[6px_6px_0_#7A1B2E] transition-transform duration-200 hover:-translate-y-1 hover:-rotate-3">
-              <MemberAvatar m={member} sizeClass="w-full h-full" />
-              {/* sheen sekali */}
-              <span className="absolute inset-0 ps-sheen pointer-events-none" style={{ background: 'linear-gradient(115deg,transparent 35%,rgba(255,255,255,.7) 50%,transparent 65%)', transform: 'translateX(-130%)' }} />
-            </div>
-          </div>
-
-          {/* catatan speech bubble */}
-          {note && (
-            <aside
-              className="absolute z-[4] ps-note-pop border-2 border-dark"
-              style={{
-                left: 'calc(28px + 128px + 22px)',
-                top: 'calc(128px / -2 + 6px)',
-                maxWidth: 'calc(100% - 128px - 28px - 22px - 28px)',
-                padding: '11px 15px 10px',
-                background: color,
-                boxShadow: '4px 4px 0 #1A1A1A',
-                transform: 'rotate(1.6deg)',
-              }}
-              aria-label="Catatan terbaru"
-            >
-              {/* ekor kiri */}
-              <span
-                className="absolute -left-[9px] bottom-4 w-[14px] h-[14px] border-l-2 border-b-2 border-dark"
-                style={{ background: color, transform: 'rotate(45deg)' }}
-              />
-              <p className="m-0 font-body text-[15px] leading-[1.4]" style={{ display: '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: 4, overflow: 'hidden', overflowWrap: 'anywhere' }}>
-                {note.text}
-              </p>
-              <small className="block mt-1.5 font-mono text-[10px] uppercase tracking-[.06em] text-dark/60">
-                {ago(Date.now() - note.at.getTime())} · hilang dalam {remaining(note.at)}
-              </small>
-            </aside>
+        <div className="-mt-2">
+          <h2 id="ps-card-title" className="m-0 font-display text-[clamp(28px,7vw,40px)] font-black uppercase leading-[1.02]" style={{ overflowWrap: 'anywhere' }}>
+            {member.full_name}
+          </h2>
+          <p className="mt-1.5 font-mono text-[11px] uppercase tracking-[.08em] text-dark/60">{member.prodi}</p>
+          {member.about ? (
+            <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-dark/80" style={{ overflowWrap: 'anywhere' }}>{member.about}</p>
+          ) : (
+            <p className="mt-3 font-mono text-[13px] text-dark/50">{isOwn ? 'Kamu belum menulis tentang dirimu.' : 'Belum ada deskripsi.'}</p>
           )}
-          {!note && isOwn && (
-            <button
-              type="button"
-              onClick={onEditNote}
-              className="absolute z-[4] ps-note-pop border-2 border-dashed border-dark bg-white text-left cursor-pointer hover:bg-[#FFF3C4] transition-colors"
-              style={{
-                left: 'calc(28px + 128px + 22px)',
-                top: 'calc(128px / -2 + 6px)',
-                maxWidth: 'calc(100% - 128px - 28px - 22px - 28px)',
-                padding: '11px 15px 10px',
-                transform: 'rotate(1.6deg)',
-              }}
-            >
-              <span className="absolute -left-[9px] bottom-4 w-[14px] h-[14px] border-l-2 border-b-2 border-dashed border-dark bg-white" style={{ transform: 'rotate(45deg)' }} />
-              <p className="m-0 font-body text-[15px] leading-[1.4] text-maroon font-semibold">+ tulis catatan</p>
-              <small className="block mt-1.5 font-mono text-[10px] uppercase tracking-[.06em] text-dark/60">hilang otomatis 24 jam</small>
-            </button>
-          )}
-
-          {/* identitas */}
-          <div className="-mt-0.5">
-            <h2 className="m-0 font-display font-black uppercase leading-[1.14]" style={{ fontSize: 'clamp(30px,6vw,44px)', letterSpacing: '.01em', overflowWrap: 'anywhere' }}>
-              <span
-                className="ps-name-hl"
-                style={{
-                  background: 'linear-gradient(transparent 58%, #E38595 58% 92%, transparent 92%)',
-                  WebkitBoxDecorationBreak: 'clone',
-                  padding: '0 8px',
-                  marginLeft: '-8px',
-                } as React.CSSProperties}
-              >
-                {member.full_name}
-              </span>
-            </h2>
-            <div className="mt-2 font-mono text-[12px] tracking-[.04em] text-dark/70">
-              @{member.full_name.split(' ')[0].toLowerCase()} · {member.prodi}
-            </div>
-            {member.about ? (
-              <p className="mt-[14px] text-[16px] leading-[1.6] whitespace-pre-line" style={{ overflowWrap: 'anywhere' }}>{member.about}</p>
-            ) : (
-              <p className="mt-[14px] font-mono text-[13px] text-dark/55">// {isOwn ? 'Kamu belum nulis about me.' : 'Belum nulis about me.'}</p>
-            )}
-          </div>
-
-          {/* statistik tiket */}
-          <div className="grid grid-cols-3 bg-white border-2 border-dark shadow-[4px_4px_0_#1A1A1A]">
-            {[
-              { val: member.sessions_attended, label: 'Sesi hadir' },
-              { val: member.projects_count, label: 'Karya' },
-              { val: member.member_since, label: 'Gabung' },
-            ].map((s, i) => (
-              <div key={i} className={`px-1.5 pt-3 pb-2.5 text-center ${i > 0 ? 'border-l-2 border-dashed border-dark' : ''}`}>
-                <b className="block font-display font-black text-[30px] leading-none text-maroon">{s.val}</b>
-                <span className="block mt-1.5 font-mono text-[10px] uppercase tracking-[.12em] text-dark/60">{s.label}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* link cards */}
-          {links.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h3 className="m-0 font-mono text-[12px] font-semibold uppercase tracking-[.14em] text-maroon">// Link</h3>
-              <ul className="m-0 p-0 list-none grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))' }}>
-                {links.map(({ kind, url }) => {
-                  const [ib, ic] = LINK_COLOR[kind];
-                  return (
-                    <li key={kind}>
-                      <a
-                        href={url.startsWith('http') ? url : `https://${url}`}
-                        target="_blank"
-                        rel="noopener noreferrer nofollow ugc"
-                        className="group flex items-stretch min-h-[58px] text-inherit no-underline bg-white border-2 border-dark shadow-[3px_3px_0_#1A1A1A] transition-all duration-100 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[6px_6px_0_#7A1B2E] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
-                        style={{ background: 'white' }}
-                      >
-                        <span className="flex-none w-14 grid place-items-center border-r-2 border-dark" style={{ background: ib, color: ic }}>
-                          {LINK_ICON[kind]}
-                        </span>
-                        <span className="flex-1 min-w-0 px-3 py-2 flex flex-col justify-center">
-                          <small className="font-mono text-[10px] uppercase tracking-[.1em] text-dark/55">{LINK_LABEL[kind]}</small>
-                          <b className="text-[14px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{url.replace(/^https?:\/\//, '')}</b>
-                        </span>
-                        {ARROW_ICON}
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          )}
-
-          {/* tag gantung */}
-          {member.hobbies.length > 0 && (
-            <section className="flex flex-col gap-3">
-              <h3 className="m-0 font-mono text-[12px] font-semibold uppercase tracking-[.14em] text-maroon">// Tag</h3>
-              <ul className="m-0 p-0 list-none flex flex-wrap gap-x-4 gap-y-3.5">
-                {member.hobbies.slice(0, 6).map((t, i) => (
-                  <li
-                    key={t}
-                    className="ps-tagw"
-                    style={{
-                      filter: 'drop-shadow(2px 2px 0 #1A1A1A)',
-                      transform: `rotate(${i % 2 ? '1.2deg' : '-1.2deg'})`,
-                      transformOrigin: '18px 50%',
-                      // @ts-expect-error css var
-                      '--r': `${i % 2 ? '1.2deg' : '-1.2deg'}`,
-                    }}
-                  >
-                    {/* bentuk tag gantung */}
-                    <span
-                      className="relative inline-flex items-center py-[7px] pr-4 pl-8"
-                      style={{
-                        background: '#1A1A1A',
-                        clipPath: 'polygon(14px 0,100% 0,100% 100%,0 100%,0 14px)',
-                      }}
-                    >
-                      <span
-                        className="absolute inset-[2px]"
-                        style={{
-                          background: TAG_BG[i % TAG_BG.length],
-                          clipPath: 'polygon(12px 0,100% 0,100% 100%,0 100%,0 12px)',
-                        }}
-                      />
-                      {/* lubang tag */}
-                      <span className="absolute left-[13px] top-1/2 w-[11px] h-[11px] -mt-[5.5px] rounded-full bg-paper border-2 border-dark" />
-                      <span className="relative font-mono text-[13px] font-semibold lowercase">{t}</span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {/* barcode footer */}
-          <div className="flex flex-col gap-1.5 mt-1">
-            <span
-              className="block h-[34px]"
-              style={{ background: 'repeating-linear-gradient(90deg,#1A1A1A 0 2px,transparent 2px 5px,#1A1A1A 5px 6px,transparent 6px 10px,#1A1A1A 10px 13px,transparent 13px 15px,#1A1A1A 15px 16px,transparent 16px 20px)' }}
-            />
-            <span className="font-mono text-[10px] font-medium tracking-[.24em] uppercase text-center text-dark/70">
-              USRC · member card · no. {pad(idx + 1)}
-            </span>
-          </div>
         </div>
-      </div>
 
-      {/* footer — hanya untuk diri sendiri */}
-      {isOwn && (
-        <div className="flex-none flex flex-wrap gap-3 px-5 py-3.5 bg-paper border-t-2 border-dark">
+        {/* Catatan */}
+        {note ? (
+          <div
+            className="relative -rotate-[0.6deg] rounded-[18px_18px_18px_6px] border-2 border-dark px-5 pb-4 pt-5 shadow-[4px_4px_0_#1A1A1A]"
+            style={{ backgroundColor: color, backgroundImage: 'repeating-linear-gradient(transparent 0 23px, rgba(26,26,26,.08) 23px 24px)' }}
+          >
+            <span aria-hidden="true" className="absolute -top-[9px] left-8 h-[14px] w-[46px] -rotate-6 border-x-2 border-dashed border-dark/25 bg-[#E38595]/75" />
+            <p className="m-0 font-body text-[17px] font-semibold leading-[24px]" style={{ overflowWrap: 'anywhere' }}>{note.text}</p>
+            <p className="mt-2 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[.08em] text-dark/55">
+              <span>Catatan · {ago(Date.now() - note.at.getTime())}</span>
+              <span>Hilang {remaining(note.at)}</span>
+            </p>
+          </div>
+        ) : isOwn ? (
           <button
-            type="button" onClick={onEditNote}
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-[18px] py-2 cursor-pointer font-display font-extrabold text-[13px] uppercase tracking-[.05em] bg-maroon text-white border-2 border-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
+            type="button"
+            onClick={onEditNote}
+            className="rounded-[18px_18px_18px_6px] border-2 border-dashed border-dark bg-white p-4 text-left transition-colors hover:bg-[#FFF3C4]"
           >
-            {note ? 'Ubah catatan' : 'Tulis catatan'}
+            <p className="m-0 font-semibold text-maroon">+ Tulis catatan</p>
+            <p className="mt-1 font-mono text-[10px] uppercase tracking-[.06em] text-dark/50">Otomatis hilang setelah 24 jam</p>
           </button>
-          <a
-            href="/profil"
-            className="inline-flex items-center justify-center gap-2 min-h-11 px-[18px] py-2 font-display font-extrabold text-[13px] uppercase tracking-[.05em] bg-white text-dark border-2 border-dark shadow-[3px_3px_0_#7A1B2E] hover:bg-paper active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all no-underline"
-          >
-            Atur profil
-          </a>
+        ) : null}
+
+        {/* Statistik */}
+        <div className="grid grid-cols-3 border-2 border-dark bg-white shadow-[4px_4px_0_#1A1A1A]">
+          {[
+            { val: member.sessions_attended, label: 'Sesi hadir' },
+            { val: member.projects_count, label: 'Karya' },
+            { val: member.member_since, label: 'Gabung' },
+          ].map((s, i) => (
+            <div key={i} className={`px-1.5 py-3 text-center ${i > 0 ? 'border-l-2 border-dashed border-dark' : ''}`}>
+              <b className="block font-display text-[28px] font-black leading-none text-maroon">{s.val}</b>
+              <span className="mt-1.5 block font-mono text-[10px] uppercase tracking-[.12em] text-dark/60">{s.label}</span>
+            </div>
+          ))}
         </div>
-      )}
-    </>
+
+        {/* Link */}
+        {links.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h3 className="kg-lbl m-0">{'//'} Link</h3>
+            <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
+              {links.map(({ kind, url }) => {
+                const [ib, ic] = LINK_COLOR[kind];
+                return (
+                  <li key={kind}>
+                    <a
+                      href={url.startsWith('http') ? url : `https://${url}`}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow ugc"
+                      className="group flex min-h-[54px] items-stretch border-2 border-dark bg-white text-inherit no-underline shadow-[3px_3px_0_#1A1A1A] transition-[transform,box-shadow] duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_#7A1B2E] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+                    >
+                      <span className="grid w-12 flex-none place-items-center border-r-2 border-dark" style={{ background: ib, color: ic }}>
+                        {LINK_ICON[kind]}
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
+                        <small className="font-mono text-[10px] uppercase tracking-[.1em] text-dark/55">{LINK_LABEL[kind]}</small>
+                        <b className="truncate text-[14px] font-semibold">{url.replace(/^https?:\/\//, '')}</b>
+                      </span>
+                      {ARROW_ICON}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* Hobi */}
+        {member.hobbies.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <h3 className="kg-lbl m-0">{'//'} Hobi</h3>
+            <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+              {member.hobbies.slice(0, 8).map((t, i) => (
+                <li
+                  key={t}
+                  className="border-2 border-dark px-3 py-1 font-mono text-[13px] font-semibold lowercase shadow-[2px_2px_0_#1A1A1A]"
+                  style={{ background: TAG_BG[i % TAG_BG.length] }}
+                >
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -758,13 +679,16 @@ function ComposerModal({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+// Data terakhir — strip langsung tampil saat kembali ke halaman, lalu diperbarui.
+const storyCache: { members?: Member[]; ordered?: Member[]; selfId?: string | null } = {};
+
 export function PixelStoryContainer() {
   const supabase = createClient();
 
-  const [members, setMembers] = useState<Member[]>([]);
-  const [orderedList, setOrderedList] = useState<Member[]>([]);
-  const [selfId, setSelfId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [members, setMembers] = useState<Member[]>(storyCache.members ?? []);
+  const [orderedList, setOrderedList] = useState<Member[]>(storyCache.ordered ?? []);
+  const [selfId, setSelfId] = useState<string | null>(storyCache.selfId ?? null);
+  const [loading, setLoading] = useState(!storyCache.members);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -773,6 +697,8 @@ export function PixelStoryContainer() {
 
   // modal kartu member
   const [openId, setOpenId] = useState<string | null>(null);
+  // id terakhir yang dibuka — konten tetap ada selama animasi tutup
+  const [shownId, setShownId] = useState<string | null>(null);
   const [slideDir, setSlideDir] = useState(0);
 
   // composer
@@ -793,18 +719,14 @@ export function PixelStoryContainer() {
 
   // lock body scroll when modal or composer is open
   useEffect(() => {
-    if (openId || composerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    if (!composerOpen) return;
+    document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [openId, composerOpen]);
+  }, [composerOpen]);
   const load = useCallback(async () => {
     try {
-      setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
       const uid = user?.id ?? null;
       setSelfId(uid);
@@ -813,8 +735,10 @@ export function PixelStoryContainer() {
       if (error) throw error;
 
       const mapped = ((data as MemberDirectoryRow[]) || []).map(mapMember);
+      const ordered = initialOrder(mapped, uid);
+      Object.assign(storyCache, { members: mapped, ordered, selfId: uid });
       setMembers(mapped);
-      setOrderedList(initialOrder(mapped, uid));
+      setOrderedList(ordered);
     } catch (err) {
       console.error('PixelStory fetch error:', err);
     } finally {
@@ -854,6 +778,7 @@ export function PixelStoryContainer() {
   function openCard(id: string, dir = 0) {
     setSlideDir(dir);
     setOpenId(id);
+    setShownId(id);
     // scroll avatar ke tengah
     setTimeout(() => {
       rowRef.current?.querySelector(`[data-id="${id}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
@@ -883,7 +808,6 @@ export function PixelStoryContainer() {
     function handleKey(e: KeyboardEvent) {
       if (e.key === 'ArrowRight') { e.preventDefault(); stepCard(1); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); stepCard(-1); }
-      if (e.key === 'Escape') closeCard();
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
@@ -939,6 +863,8 @@ export function PixelStoryContainer() {
   if (orderedList.length === 0) return null;
 
   const openMember = orderedList.find(m => m.id === openId);
+  const shownMember = orderedList.find(m => m.id === shownId);
+  const openIdx = Math.max(0, orderedList.findIndex(m => m.id === shownId));
   const selfMember = members.find(m => m.id === selfId);
 
   return (
@@ -1006,35 +932,67 @@ export function PixelStoryContainer() {
         </div>
       </section>
 
-      {/* ── Modal kartu member ── */}
-      {mounted && openMember && createPortal(
-        <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-3"
-          style={{ background: 'rgba(26,26,26,.65)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
-          onClick={closeCard}
-        >
-          <div
-            className="ps-modal-pop flex flex-col bg-white border-2 border-dark overflow-hidden w-full max-w-[620px]"
-            style={{ maxHeight: 'min(92vh, 860px)', boxShadow: '8px 8px 0 #7A1B2E' }}
-            onClick={e => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ps-card-title"
-          >
-            <MemberCard
-              member={openMember}
-              allMembers={orderedList}
-              selfId={selfId}
-              onPrev={() => stepCard(-1)}
-              onNext={() => stepCard(1)}
-              onClose={closeCard}
-              onEditNote={() => { closeCard(); setTimeout(openComposer, 80); }}
-              slideDir={slideDir}
-            />
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* ── Panel kartu member (geser dari kiri) ── */}
+      <SideSheet
+        open={!!openMember}
+        onClose={closeCard}
+        width="sm:w-[min(540px,92vw)]"
+        label={<>{'//'} Member card <span className="ml-1 text-dark/50">{pad(openIdx + 1)}/{pad(orderedList.length)}</span></>}
+        actions={
+          <>
+            <SheetButton onClick={() => stepCard(-1)} label="Profil sebelumnya">
+              <ChevronLeft className="h-4 w-4" strokeWidth={3} />
+            </SheetButton>
+            <SheetButton onClick={() => stepCard(1)} label="Profil berikutnya">
+              <ChevronRight className="h-4 w-4" strokeWidth={3} />
+            </SheetButton>
+          </>
+        }
+        footer={
+          shownMember && shownMember.id === selfId ? (
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => { closeCard(); setTimeout(openComposer, 380); }}
+                className="inline-flex min-h-11 flex-1 items-center justify-center border-2 border-dark bg-maroon px-4 font-display text-[13px] font-extrabold uppercase tracking-[.05em] text-white shadow-[3px_3px_0_#1A1A1A] transition-all hover:bg-hot active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              >
+                {activeNote(shownMember) ? 'Ubah catatan' : 'Tulis catatan'}
+              </button>
+              <a
+                href="/profil"
+                className="inline-flex min-h-11 flex-1 items-center justify-center border-2 border-dark bg-white px-4 font-display text-[13px] font-extrabold uppercase tracking-[.05em] text-dark no-underline shadow-[3px_3px_0_#7A1B2E] transition-all hover:bg-paper active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
+              >
+                Atur profil
+              </a>
+            </div>
+          ) : undefined
+        }
+      >
+        {shownMember && (
+          <AnimatePresence mode="popLayout" initial={false} custom={slideDir}>
+            <motion.div
+              key={shownMember.id}
+              custom={slideDir}
+              variants={{
+                enter: (d: number) => ({ x: d === 0 ? 0 : d > 0 ? 60 : -60, opacity: 0 }),
+                center: { x: 0, opacity: 1 },
+                exit: (d: number) => ({ x: d === 0 ? 0 : d > 0 ? -60 : 60, opacity: 0 }),
+              }}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={GLIDE}
+            >
+              <MemberCard
+                member={shownMember}
+                allMembers={orderedList}
+                selfId={selfId}
+                onEditNote={() => { closeCard(); setTimeout(openComposer, 380); }}
+              />
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </SideSheet>
 
       {/* ── Composer catatan ── */}
       {mounted && composerOpen && selfMember && createPortal(

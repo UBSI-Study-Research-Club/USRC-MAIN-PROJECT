@@ -533,10 +533,10 @@ function AdminDashboardContent() {
         <div className="flex items-start gap-4">
           <Lock className="w-6 h-6 text-[#7A1B2E] shrink-0 mt-1" />
           <div>
-            <h1 className="text-lg font-black uppercase font-['Outfit'] text-[#7A1B2E]">
+            <h1 className="text-lg font-black uppercase font-[family-name:var(--font-outfit)] text-[#7A1B2E]">
               Akses Ditolak
             </h1>
-            <p className="text-sm font-['Work_Sans'] text-[#1A1A1A] mt-2">
+            <p className="text-sm font-[family-name:var(--font-work-sans)] text-[#1A1A1A] mt-2">
               {error || 'Anda tidak memiliki akses ke panel admin. Hubungi admin untuk informasi lebih lanjut.'}
             </p>
           </div>
@@ -552,10 +552,10 @@ function AdminDashboardContent() {
         <div className="absolute top-0 right-0 bg-[#FFF3C4] text-[#1A1A1A] font-mono text-[10px] px-3 py-1 border-l-2 border-b-2 border-[#1A1A1A] font-bold">
           // ADMIN ONLY
         </div>
-        <h1 className="text-2xl md:text-3xl font-black uppercase font-['Outfit'] tracking-wide text-[#7A1B2E]">
+        <h1 className="text-2xl md:text-3xl font-black uppercase font-[family-name:var(--font-outfit)] tracking-wide text-[#7A1B2E]">
           Panel Admin
         </h1>
-        <p className="text-sm font-['Work_Sans'] text-[#1A1A1A] mt-1 max-w-2xl">
+        <p className="text-sm font-[family-name:var(--font-work-sans)] text-[#1A1A1A] mt-1 max-w-2xl">
           Kelola anggota, ubah role, setujui karya, dan kelola sesi absen. Aksi hapus bersifat permanen — baca konfirmasinya baik-baik.
         </p>
       </div>
@@ -731,7 +731,7 @@ function AdminDashboardContent() {
           {/* Members Table */}
           <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
             <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-              <h3 className="font-black uppercase font-['Outfit'] text-sm">
+              <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
                 Daftar Anggota ({filteredMembers.length})
               </h3>
               <span className="font-mono text-[10px] bg-[#D1E7DD] border border-[#1A1A1A] px-2 py-0.5 font-bold">
@@ -760,7 +760,7 @@ function AdminDashboardContent() {
                       <th className="p-3">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="font-['Work_Sans'] text-sm">
+                  <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
                     {filteredMembers.map((member) => (
                       <tr key={member.id} className={`border-b border-[#1A1A1A] hover:bg-gray-50 ${member.status === 'nonaktif' ? 'opacity-60' : ''}`}>
                         <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
@@ -828,7 +828,7 @@ function AdminDashboardContent() {
           <div className="space-y-4">
             <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
               <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-                <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
                   Semua Karya ({projects.length})
                 </h3>
                 <span className="font-mono text-[10px] bg-[#FFF3C4] border border-[#1A1A1A] px-2 py-0.5 font-bold">
@@ -862,10 +862,10 @@ function AdminDashboardContent() {
 
                         {/* Details */}
                         <div className={project.image_url ? 'col-span-1 md:col-span-2' : 'col-span-1 md:col-span-3'}>
-                          <h4 className="font-black uppercase font-['Outfit'] text-sm text-[#7A1B2E] mb-1">
+                          <h4 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm text-[#7A1B2E] mb-1">
                             {project.title}
                           </h4>
-                          <p className="text-xs font-['Work_Sans'] text-gray-700 mb-2 line-clamp-2">
+                          <p className="text-xs font-[family-name:var(--font-work-sans)] text-gray-700 mb-2 line-clamp-2">
                             {project.description}
                           </p>
                           <div className="flex flex-wrap gap-2 text-xs">
@@ -943,7 +943,7 @@ function AdminDashboardContent() {
           <div className="space-y-4">
             <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
               <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-                <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
                   Semua Sesi Absen ({meetings.length})
                 </h3>
                 <span className="font-mono text-[10px] bg-[#F8D7DA] border border-[#1A1A1A] px-2 py-0.5 font-bold">
@@ -964,7 +964,7 @@ function AdminDashboardContent() {
                   {meetings.map((meeting) => (
                     <div key={meeting.id} className="flex items-center justify-between gap-3 p-4">
                       <div className="min-w-0">
-                        <p className="font-black uppercase font-['Outfit'] text-sm truncate">
+                        <p className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm truncate">
                           {meeting.title}
                         </p>
                         <p className="font-mono text-[10px] text-gray-500">
@@ -994,7 +994,7 @@ function AdminDashboardContent() {
           <div className="space-y-4">
             <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
               <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-                <h3 className="font-black uppercase font-['Outfit'] text-sm">
+                <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
                   Rekap Aktivitas Anggota ({activityData.length})
                 </h3>
                 <span className="font-mono text-[10px] bg-[#E1F5E1] border border-[#1A1A1A] px-2 py-0.5 font-bold">
@@ -1024,7 +1024,7 @@ function AdminDashboardContent() {
                         <th className="p-3 text-center">Tingkat %</th>
                       </tr>
                     </thead>
-                    <tbody className="font-['Work_Sans'] text-sm">
+                    <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
                       {activityData.map((member) => (
                         <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
                           <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">

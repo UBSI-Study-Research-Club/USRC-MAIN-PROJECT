@@ -33,10 +33,10 @@ export function GhostScreen() {
   return (
     <div className="border-2 border-[#1A1A1A] bg-white p-8 text-center shadow-[4px_4px_0_#1A1A1A] max-w-lg mx-auto mt-10">
       <AlertCircle className="w-10 h-10 text-[#7A1B2E] mx-auto mb-4" />
-      <h1 className="text-xl font-black uppercase font-['Outfit'] text-[#1A1A1A] mb-2">
+      <h1 className="text-xl font-black uppercase font-[family-name:var(--font-outfit)] text-[#1A1A1A] mb-2">
         Akun Belum Aktif
       </h1>
-      <p className="text-sm font-['Work_Sans'] text-[#1A1A1A]/80 mb-1">
+      <p className="text-sm font-[family-name:var(--font-work-sans)] text-[#1A1A1A]/80 mb-1">
         Kamu berhasil login, tapi pendaftaranmu <span className="font-bold">belum disetujui sekretaris</span>.
       </p>
       <p className="text-xs font-mono text-gray-500 mb-6">
@@ -48,6 +48,22 @@ export function GhostScreen() {
       >
         Daftar Anggota
       </a>
+    </div>
+  )
+}
+
+// Placeholder saat data pertama kali dimuat — bentuknya mengikuti kartu asli
+// supaya tidak ada lompatan layout.
+export function AbsenSkeleton() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Memuat">
+      <div className="skeleton h-6 w-48" />
+      <div className="space-y-5 border-2 border-[#1A1A1A]/15 bg-white p-6">
+        <div className="skeleton h-4 w-40" />
+        <div className="skeleton h-10 w-3/4" />
+        <div className="skeleton h-4 w-full" />
+        <div className="skeleton h-12 w-full" />
+      </div>
     </div>
   )
 }

@@ -17,9 +17,12 @@ export type FeedProject = {
 
 const PAGE_SIZE = 10;
 
+// Halaman pertama terakhir — tampil instan saat kembali ke Feed, lalu diperbarui.
+const feedCache: { items?: FeedProject[] } = {};
+
 export function useFeed() {
-  const [items, setItems] = useState<FeedProject[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<FeedProject[]>(feedCache.items ?? []);
+  const [loading, setLoading] = useState(!feedCache.items);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
@@ -69,6 +72,7 @@ export function useFeed() {
           owner: p.profiles ?? null,
         }));
 
+        if (pageNum === 0) feedCache.items = mapped;
         setItems((prev) =>
           pageNum === 0 ? mapped : [...prev, ...mapped]
         );

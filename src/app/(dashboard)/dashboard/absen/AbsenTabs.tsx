@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { GlidePill } from '@/components/motion/Glide'
 
 const TABS = [
   { href: '/dashboard/absen', label: 'Sesi Aktif' },
@@ -11,7 +12,7 @@ const TABS = [
 export function AbsenTabs() {
   const pathname = usePathname()
   return (
-    <div className="flex gap-2">
+    <div role="tablist" className="inline-flex self-start shrink-0 border-2 border-[#1A1A1A] bg-white p-1 shadow-[3px_3px_0_#1A1A1A]">
       {TABS.map((tab) => {
         const active =
           tab.href === '/dashboard/absen'
@@ -21,13 +22,14 @@ export function AbsenTabs() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`px-4 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase font-['Outfit'] shadow-[2px_2px_0_#1A1A1A] transition-colors ${
-              active
-                ? 'bg-[#7A1B2E] text-white shadow-[1px_1px_0_#1A1A1A] translate-x-[1px] translate-y-[1px]'
-                : 'bg-[#F5F3EF] text-[#1A1A1A] hover:bg-[#7A1B2E] hover:text-white'
+            role="tab"
+            aria-selected={active}
+            className={`relative px-4 py-1.5 text-xs font-bold uppercase font-[family-name:var(--font-outfit)] tracking-wide transition-colors duration-200 ${
+              active ? 'text-white' : 'text-[#1A1A1A]/70 hover:text-[#1A1A1A]'
             }`}
           >
-            {tab.label}
+            {active && <GlidePill id="absen-tab" className="bg-[#7A1B2E]" />}
+            <span className="relative z-10">{tab.label}</span>
           </Link>
         )
       })}
