@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
 import { PixelCharacter, type PixelCharacterConfig } from '@/components/pixel/PixelCharacter'
+import { PixelAvatar } from '@/components/pixel/PixelAvatar'
 
 type KaryaLink = { link_type: string; url: string; label: string | null }
 type Socials = { instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
@@ -297,7 +298,7 @@ export default function KaryaPage() {
   const [inactive, setInactive] = useState(false)
 
   const [detailId, setDetailId] = useState<string | null>(null)
-  const [pixelMap, setPixelMap] = useState<Map<string, PixelCharacterConfig>>(new Map())
+  const [pixelMap, setPixelMap] = useState<Map<string, { avatar_id: string | null; avatar_bg: string | null; pixel_config: PixelCharacterConfig }>>(new Map())
   const [catFilter, setCatFilter] = useState('Semua')
   const [showForm, setShowForm] = useState(false)
   const [isKelompok, setIsKelompok] = useState(false)
@@ -318,7 +319,17 @@ export default function KaryaPage() {
   const supabase = createClient()
 
   const renderOwnerAvatar = (ownerId: string, ownerName: string) => {
-    const cfg = pixelMap.get(ownerId)
+    const memberData = pixelMap.get(ownerId)
+    if (memberData?.avatar_id) {
+      return (
+        <PixelAvatar
+          id={memberData.avatar_id}
+          bg={memberData.avatar_bg}
+          className="h-[30px] w-[30px] flex-none rounded-full border-2 border-dark overflow-hidden"
+        />
+      )
+    }
+    const cfg = memberData?.pixel_config
     if (cfg) {
       return (
         <div className="grid h-[30px] w-[30px] flex-none place-items-center rounded-full border-2 border-dark bg-paper overflow-hidden">
@@ -416,12 +427,16 @@ export default function KaryaPage() {
       const loadedKarya = (data as unknown as Karya[]) || []
       setKaryaList(loadedKarya)
 
-      // Fetch member directory for pixel configs
+      // Fetch member directory for pixel configs & animal avatars
       const { data: memDir } = await supabase.rpc('get_member_directory')
       if (memDir) {
         const map = new Map()
         ;(memDir as any[]).forEach(m => {
-          map.set(m.id, mapPixelConfig(m))
+          map.set(m.id, {
+            avatar_id: m.avatar_id || null,
+            avatar_bg: m.avatar_bg || null,
+            pixel_config: mapPixelConfig(m)
+          })
         })
         setPixelMap(map)
       }
