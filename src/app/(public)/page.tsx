@@ -24,7 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { withHttps } from "@/lib/url";
+import { withHttps, getPdfViewUrl } from "@/lib/url";
 import { SideSheet } from "@/components/SideSheet";
 import { KaryaCover } from "@/components/KaryaCover";
 import { MobileCarousel } from "@/components/MobileCarousel";
@@ -49,6 +49,7 @@ interface Project {
   title: string;
   description: string | null;
   image_url: string | null;
+  pdf_url?: string | null;
   category: string | null;
   links: KaryaLink[] | null;
   stars: number;
@@ -383,9 +384,16 @@ function ProjectCard({ project, index, onClick }: { project: Project; index: num
     >
       {/* Strip kategori */}
       <div className="flex items-center justify-between gap-2 border-b-2 border-dark bg-[#FFF3C4] px-3 py-2">
-        <span className={`${FONT_MONO} truncate text-[10px] font-bold uppercase tracking-wider text-dark`}>
-          {project.category || "Lainnya"}
-        </span>
+        <div className="flex items-center gap-1.5 truncate">
+          <span className={`${FONT_MONO} truncate text-[10px] font-bold uppercase tracking-wider text-dark`}>
+            {project.category || "Lainnya"}
+          </span>
+          {project.pdf_url && (
+            <span className="shrink-0 border border-dark bg-maroon px-1 py-0.2 text-[8px] font-bold uppercase text-white leading-none">
+              PDF
+            </span>
+          )}
+        </div>
         <span className={`${FONT_MONO} shrink-0 text-[10px] font-bold text-maroon`}>#{String(index + 1).padStart(2, "0")}</span>
       </div>
 
@@ -555,7 +563,19 @@ export default function LandingPage() {
         const { data: allKarya, error: karyaError } = await supabase.rpc("get_public_karya");
         if (karyaError) console.error("karya RPC error:", karyaError);
         if (allKarya) {
-          const sorted = (allKarya as Project[])
+          let list = allKarya as Project[];
+          // Fallback enrichment jika RPC get_public_karya belum membawa kolom pdf_url
+          if (list.length > 0 && list.every((k) => k.pdf_url === undefined)) {
+            const { data: pdfData } = await supabase.from('projects').select('id, pdf_url');
+            if (pdfData) {
+              const pdfMap = new Map(pdfData.map((p) => [p.id, p.pdf_url]));
+              list = list.map((k) => ({
+                ...k,
+                pdf_url: pdfMap.get(k.id) ?? null,
+              }));
+            }
+          }
+          const sorted = list
             .map((p) => ({ ...p, star_count: Number(p.stars ?? 0) }))
             .sort((a, b) => b.star_count - a.star_count)
             .slice(0, 6);
@@ -996,6 +1016,19 @@ export default function LandingPage() {
                 <p className="whitespace-pre-line text-[15px] leading-relaxed text-dark/85">
                   {selectedProject.description}
                 </p>
+              </div>
+            )}
+
+            {selectedProject.pdf_url && (
+              <div>
+                <a
+                  href={getPdfViewUrl(selectedProject.pdf_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${FONT_DISPLAY} inline-flex items-center gap-1.5 border-2 border-dark bg-[#FFF3C4] px-3.5 py-2 text-xs font-black uppercase text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
+                >
+                  // LIHAT MAKALAH / RISET (PDF)
+                </a>
               </div>
             )}
 

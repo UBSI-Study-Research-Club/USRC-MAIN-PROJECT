@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { withHttps } from '@/lib/url'
+import { withHttps, getPdfViewUrl } from '@/lib/url'
 import {
   Star, ExternalLink, X, Plus, ArrowLeft,
   Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
@@ -428,7 +428,20 @@ export default function KaryaPage() {
 
       const { data, error: rpcErr } = await supabase.rpc('get_public_karya')
       if (rpcErr) throw rpcErr
-      const loadedKarya = (data as unknown as Karya[]) || []
+      let loadedKarya = (data as unknown as Karya[]) || []
+
+      // Fallback enrichment: ambil pdf_url langsung jika RPC belum menyertakan kolom pdf_url
+      if (loadedKarya.length > 0 && loadedKarya.every((k) => k.pdf_url === undefined)) {
+        const { data: pdfData } = await supabase.from('projects').select('id, pdf_url')
+        if (pdfData) {
+          const pdfMap = new Map(pdfData.map((p) => [p.id, p.pdf_url]))
+          loadedKarya = loadedKarya.map((k) => ({
+            ...k,
+            pdf_url: pdfMap.get(k.id) ?? null,
+          }))
+        }
+      }
+
       setKaryaList(loadedKarya)
 
       // Fetch member directory for pixel configs & animal avatars
@@ -844,7 +857,14 @@ export default function KaryaPage() {
 
                 {/* strip kategori */}
                 <div className="flex items-center justify-between gap-2 border-b-2 border-dark bg-[#FFF3C4] px-2 py-1 font-mono text-[9px] font-medium uppercase tracking-[.06em] md:border-b-[3px] md:px-3 md:py-1.5 md:text-[11px] md:tracking-[.08em]">
-                  <b className="truncate text-dark">{k.category || 'Lainnya'}</b>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <b className="truncate text-dark">{k.category || 'Lainnya'}</b>
+                    {k.pdf_url && (
+                      <span className="shrink-0 border border-dark bg-maroon px-1 py-0.5 text-[8px] font-bold uppercase text-white leading-none md:text-[9px]">
+                        PDF
+                      </span>
+                    )}
+                  </div>
                   <span className="shrink-0 text-maroon">#{p2(idx + 1)}</span>
                 </div>
 
@@ -872,8 +892,22 @@ export default function KaryaPage() {
                     <p className="m-0 hidden line-clamp-2 text-xs leading-relaxed text-dark/70 md:block">{k.description}</p>
                   )}
 
-                  <div className="mt-auto flex items-center justify-between gap-2.5 pb-2.5 pt-2 md:pb-4 md:pt-3">
-                    {starBtn(k)}
+                  <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pb-2.5 pt-2 md:pb-4 md:pt-3">
+                    <div className="flex items-center gap-1.5">
+                      {starBtn(k)}
+                      {k.pdf_url && (
+                        <a
+                          href={getPdfViewUrl(k.pdf_url)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none md:px-2.5 md:py-1 md:text-[11px]"
+                          title="Buka PDF di tab baru"
+                        >
+                          // LIHAT PDF
+                        </a>
+                      )}
+                    </div>
                     <span className={`${FONT_M} hidden text-xs font-medium uppercase tracking-wide underline decoration-2 underline-offset-4 transition-colors group-hover:text-maroon md:inline`}>
                       Lihat karya →
                     </span>
@@ -947,12 +981,12 @@ export default function KaryaPage() {
             {starBtn(detail, true)}
             {detail.pdf_url && (
               <a
-                href={withHttps(detail.pdf_url)}
+                href={getPdfViewUrl(detail.pdf_url)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-[#FFF3C4] px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
               >
-                // UNDUH MAKALAH / RISET (PDF)
+                // LIHAT MAKALAH / RISET (PDF)
               </a>
             )}
             {(detail.links || []).map((l, i) => (
@@ -1122,7 +1156,7 @@ export default function KaryaPage() {
                     <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
                       <div className="flex items-center gap-2 overflow-hidden">
                         <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
-                        <a href={form.pdf_url} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
+                        <a href={getPdfViewUrl(form.pdf_url)} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
                           {pdfName || 'Dokumen tersimpan'}
                         </a>
                       </div>
