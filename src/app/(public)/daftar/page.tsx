@@ -18,7 +18,7 @@ export default function DaftarPage() {
     full_name: "",
     nim: "",
     email: "",
-    phone: "",
+    whatsapp: "",
     prodi: "",
     reason: "",
     website: "", // Honeypot anti-bot
@@ -65,6 +65,14 @@ export default function DaftarPage() {
       return;
     }
 
+    const cleanWa = form.whatsapp.replace(/\D/g, "");
+    const normWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : (!cleanWa.startsWith("62") && cleanWa.length > 0 ? "62" + cleanWa : cleanWa);
+    if (normWa.length < 9 || normWa.length > 16) {
+      setStatus("error");
+      setErrorMsg("Nomor WhatsApp/Telepon tidak valid (harus 9–16 digit).");
+      return;
+    }
+
     setStatus("loading");
 
     try {
@@ -73,7 +81,7 @@ export default function DaftarPage() {
         full_name: form.full_name.trim(),
         nim: form.nim.trim(),
         email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim() || null,
+        whatsapp: normWa,
         prodi: form.prodi,
         reason: form.reason.trim() || null,
         hobbies: hobi.length > 0 ? hobi : null,
@@ -226,9 +234,9 @@ export default function DaftarPage() {
             </label>
             <input
               type="tel"
-              name="phone"
+              name="whatsapp"
               required
-              value={form.phone}
+              value={form.whatsapp}
               onChange={handleChange}
               placeholder="08xxxxxxxxxx"
               className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"

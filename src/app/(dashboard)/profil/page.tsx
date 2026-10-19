@@ -22,6 +22,7 @@ import { Select } from "@/components/Select";
 interface Profile {
   full_name: string;
   nim: string;
+  whatsapp: string;
   prodi: string;
   role: string;
   instagram: string;
@@ -84,7 +85,7 @@ export default function ProfilPage() {
       setEmail(user.email || "");
       const { data } = await supabase
         .from("profiles")
-        .select("full_name, nim, prodi, role, instagram, github, behance, linkedin, hobbies, about, avatar_id, avatar_bg, pixel_updated_at")
+        .select("full_name, nim, whatsapp, prodi, role, instagram, github, behance, linkedin, hobbies, about, avatar_id, avatar_bg, pixel_updated_at")
         .eq("id", user.id)
         .single();
       const loaded: Profile =
@@ -92,6 +93,7 @@ export default function ProfilPage() {
           ? {
               full_name: data.full_name ?? "",
               nim: data.nim ?? "-",
+              whatsapp: data.whatsapp ?? "",
               prodi: data.prodi ?? "Informatika",
               role: data.role ?? "anggota",
               instagram: toHandle("instagram", data.instagram),
@@ -102,7 +104,7 @@ export default function ProfilPage() {
               about: data.about ?? "",
             }
           : {
-              full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
+              full_name: "", nim: "-", whatsapp: "", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
               hobbies: [], about: "",
             };
@@ -136,6 +138,14 @@ export default function ProfilPage() {
       return;
     }
 
+    const cleanWa = profile.whatsapp.replace(/\D/g, "");
+    const normWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : (!cleanWa.startsWith("62") && cleanWa.length > 0 ? "62" + cleanWa : cleanWa);
+    if (normWa.length < 9 || normWa.length > 16) {
+      setError("Nomor WhatsApp tidak valid (harus 9–16 digit).");
+      setSaving(false);
+      return;
+    }
+
     setSaving(true);
     const { data: { user } } = await createClient().auth.getUser();
     if (!user) { router.push("/login"); return; }
@@ -148,6 +158,7 @@ export default function ProfilPage() {
       .from("profiles")
       .update({
         full_name: profile.full_name.trim(),
+        whatsapp: normWa,
         prodi: profile.prodi,
         instagram: safe(toHandle("instagram", profile.instagram)),
         github: safe(toHandle("github", profile.github)),
@@ -307,6 +318,11 @@ export default function ProfilPage() {
                 <input id="pf-nama" type="text" autoComplete="name" value={profile.full_name}
                   onChange={(e) => setField("full_name", e.target.value)}
                   placeholder="Nama lengkap kamu" className={INPUT} />
+              </Field>
+              <Field label="No. WhatsApp *" htmlFor="pf-wa">
+                <input id="pf-wa" type="tel" autoComplete="tel" value={profile.whatsapp}
+                  onChange={(e) => setField("whatsapp", e.target.value)}
+                  placeholder="08xxxxxxxxxx" className={INPUT} required />
               </Field>
               <Field label="Program studi" htmlFor="pf-prodi">
                 <Select id="pf-prodi" value={profile.prodi} onChange={(v) => setField("prodi", v)} options={PRODI_OPTIONS} />

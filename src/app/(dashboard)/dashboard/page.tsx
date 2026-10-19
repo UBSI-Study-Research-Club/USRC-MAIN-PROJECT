@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useRef } from "react";
+import { useEffect, useState, useTransition, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Loader2, AlertCircle, CheckCircle2, ArrowRight, FolderKanban, Star } from "lucide-react";
@@ -13,6 +13,7 @@ import { FeedCard } from "@/components/FeedCard";
 import { SideSheet } from "@/components/SideSheet";
 import { KaryaDetail, type KaryaDetailData } from "@/components/KaryaDetail";
 import { PixelStoryContainer } from "@/components/pixel/PixelStoryContainer";
+import WhatsAppBanner from "@/components/WhatsAppBanner";
 import { GhostScreen } from "./absen/shared";
 
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
@@ -462,11 +463,45 @@ function QuickActions() {
   );
 }
 
+function useWhatsAppStatus() {
+  const [data, setData] = useState<{ whatsapp: string | null; wa_verified_at: string | null } | undefined>(undefined);
+
+  const fetchWa = useCallback(async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setData({ whatsapp: null, wa_verified_at: null });
+      return;
+    }
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("whatsapp, wa_verified_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    setData({
+      whatsapp: prof?.whatsapp ?? null,
+      wa_verified_at: prof?.wa_verified_at ?? null,
+    });
+  }, []);
+
+  useEffect(() => {
+    fetchWa();
+  }, [fetchWa]);
+
+  return { data, refresh: fetchWa };
+}
+
 function DashboardContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
+  const { data: waStatus, refresh: refreshWa } = useWhatsAppStatus();
 
   return (
     <div ref={sectionRef} className="flex flex-col gap-8 md:gap-10 md:py-2">
+      <WhatsAppBanner
+        whatsapp={waStatus?.whatsapp}
+        waVerifiedAt={waStatus?.wa_verified_at}
+        onRefresh={refreshWa}
+      />
       <WelcomeHeader />
 
       {/* Desktop: 2 kolom (konten utama + sidebar absen sticky). Mobile: 1 kolom berurutan. */}
