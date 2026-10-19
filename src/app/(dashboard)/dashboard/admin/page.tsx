@@ -46,6 +46,7 @@ type ActivityData = {
   id: string
   full_name: string
   nim: string
+  whatsapp?: string | null
   hobbies?: string[] | null
   total_sessions: number
   attended: number
@@ -411,7 +412,7 @@ function AdminDashboardContent() {
         // Fetch all profiles with hobbies
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, full_name, nim, hobbies')
+          .select('id, full_name, nim, whatsapp, hobbies')
           .order('full_name', { ascending: true })
 
         if (profilesError) throw profilesError
@@ -444,6 +445,7 @@ function AdminDashboardContent() {
             id: p.id,
             full_name: p.full_name,
             nim: p.nim,
+            whatsapp: p.whatsapp || null,
             hobbies: p.hobbies || null,
             total_sessions: stats.total,
             attended: stats.attended,
@@ -753,6 +755,7 @@ function AdminDashboardContent() {
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-bold leading-tight text-dark">{m.full_name}</p>
                           <p className="font-mono text-[11px] text-dark/60">{m.nim}</p>
+                          <p className="font-mono text-[11px] text-dark/60">{m.whatsapp ? m.whatsapp : 'No. WA belum diisi'}</p>
                         </div>
                         <b className={`${FONT_D} text-2xl font-black text-dark`}>{rate}<span className="text-sm text-dark/50">%</span></b>
                       </div>
