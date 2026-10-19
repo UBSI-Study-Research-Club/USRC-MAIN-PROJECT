@@ -1,6 +1,6 @@
 "use client";
 
-import { Star, ExternalLink, User } from "lucide-react";
+import { Star, PanelLeftOpen, User } from "lucide-react";
 import type { FeedProject } from "@/hooks/useFeed";
 import { KaryaCover } from "@/components/KaryaCover";
 
@@ -8,6 +8,8 @@ interface FeedCardProps {
   project: FeedProject;
   currentUserId: string | null;
   onToggleStar: (id: string, starred: boolean) => void;
+  /** Buka detail di panel samping (tanpa pindah halaman) */
+  onOpen?: (id: string) => void;
 }
 
 function formatDate(iso: string) {
@@ -21,30 +23,33 @@ function formatDate(iso: string) {
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
 
-export function FeedCard({ project, currentUserId, onToggleStar }: FeedCardProps) {
+export function FeedCard({ project, currentUserId, onToggleStar, onOpen }: FeedCardProps) {
   const ownProject = currentUserId === project.owner?.id;
   const canStar = !!currentUserId && !ownProject;
 
   return (
-    <article className="border-[3px] border-dark bg-white shadow-[6px_6px_0px_var(--color-dark)] overflow-hidden transition-all hover:-translate-y-1">
+    <article
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button, a")) return;
+        onOpen?.(project.id);
+      }}
+      className={`group border-[3px] border-dark bg-white shadow-[6px_6px_0px_var(--color-dark)] overflow-hidden transition-transform duration-300 ease-[cubic-bezier(.32,.72,0,1)] hover:-translate-y-1 ${onOpen ? "cursor-pointer" : ""}`}
+    >
       {/* Header category badge */}
       {project.category && (
         <div className="flex items-center justify-between bg-[#FFF3C4] border-b-[3px] border-dark px-4 py-2">
           <span className={`${FONT_MONO} text-xs font-bold uppercase tracking-wider text-dark`}>
             {project.category}
           </span>
-          <span className={`${FONT_MONO} text-[10px] uppercase text-dark/50`}>
-            // USRC FEED
-          </span>
         </div>
       )}
 
       {/* Image Preview */}
       {project.image_url ? (
-        <KaryaCover src={project.image_url} alt={project.title} className="aspect-[4/3] border-b-[3px] border-dark sm:aspect-[16/9] xl:aspect-[2/1]" />
+        <KaryaCover src={project.image_url} alt={project.title} zoom className="aspect-[4/3] border-b-[3px] border-dark sm:aspect-[16/9] xl:aspect-[2/1]" />
       ) : (
         <div className="flex h-24 w-full items-center justify-center bg-paper border-b-[3px] border-dark">
-          <span className={`${FONT_MONO} text-xs text-dark/30`}>// no preview</span>
+          <span className={`${FONT_MONO} text-xs text-dark/30`}>Tanpa gambar</span>
         </div>
       )}
 
@@ -94,14 +99,15 @@ export function FeedCard({ project, currentUserId, onToggleStar }: FeedCardProps
               <span>{project.star_count} Bintang</span>
             </button>
 
-            {/* Detail Link */}
-            <a
-              href={`/karya#${project.id}`}
+            {/* Detail: buka panel di tempat */}
+            <button
+              type="button"
+              onClick={() => onOpen?.(project.id)}
               className={`${FONT_DISPLAY} inline-flex items-center gap-1 border-2 border-dark bg-paper px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-dark shadow-[2px_2px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-colors`}
             >
               <span>Detail</span>
-              <ExternalLink className="w-3.5 h-3.5" strokeWidth={2.5} />
-            </a>
+              <PanelLeftOpen className="w-3.5 h-3.5" strokeWidth={2.5} />
+            </button>
           </div>
         </div>
       </div>

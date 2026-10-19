@@ -56,7 +56,7 @@ export function SideSheet({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reduced ? 0 : 0.28, ease: "easeOut" }}
+            transition={{ duration: reduced ? 0 : 0.2, ease: "easeOut" }}
             onClick={onClose}
           />
           <motion.aside
@@ -64,7 +64,7 @@ export function SideSheet({
             initial={reduced ? { opacity: 0 } : { x: "-100%" }}
             animate={reduced ? { opacity: 1 } : { x: 0 }}
             exit={reduced ? { opacity: 0 } : { x: "-100%" }}
-            transition={{ type: "tween", ease: GLIDE_EASE, duration: reduced ? 0 : 0.42 }}
+            transition={{ type: "tween", ease: GLIDE_EASE, duration: reduced ? 0 : 0.32 }}
           >
             <header className="flex shrink-0 items-center justify-between gap-2 border-b-[3px] border-dark bg-[#FFF3C4] py-2.5 pl-4 pr-3 pt-[max(10px,env(safe-area-inset-top))]">
               <span className="mr-auto min-w-0 truncate font-mono text-[11px] font-medium uppercase tracking-[.1em] text-dark">

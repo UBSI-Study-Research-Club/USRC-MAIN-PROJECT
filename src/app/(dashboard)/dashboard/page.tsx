@@ -3,12 +3,15 @@
 import { useEffect, useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, AlertCircle, CheckCircle2, Sparkles, ArrowRight, FolderKanban } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowRight, FolderKanban, Star } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
+import { nickname } from "@/lib/name";
 import { useFeed } from "@/hooks/useFeed";
 import { useAbsenStatus, type AbsenStatusItem } from "@/hooks/useAbsenStatus";
 import { FeedCard } from "@/components/FeedCard";
+import { SideSheet } from "@/components/SideSheet";
+import { KaryaDetail, type KaryaDetailData } from "@/components/KaryaDetail";
 import { PixelStoryContainer } from "@/components/pixel/PixelStoryContainer";
 import { GhostScreen } from "./absen/shared";
 
@@ -176,10 +179,10 @@ function Reveal({
   return (
     <motion.div
       className={className}
-      initial={reduced ? false : { opacity: 0, y: 24 }}
+      initial={reduced ? false : { opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, ease: "easeOut", delay }}
+      transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1], delay: Math.min(delay, 0.16) }}
     >
       {children}
     </motion.div>
@@ -187,10 +190,32 @@ function Reveal({
 }
 
 // ── Feed Timeline ─────────────────────────────────────────
+type KaryaDetailMap = Map<string, KaryaDetailData & { id: string }>;
+const detailCache: { map?: KaryaDetailMap } = {};
 function FeedTimeline() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { items, loading, error, hasMore, loadMore, toggleStar } = useFeed();
   const [, startTransition] = useTransition();
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [details, setDetails] = useState<KaryaDetailMap | null>(detailCache.map ?? null);
+
+  // Data detail lengkap (poin, sosmed, PDF) diambil sekali saat panel pertama dibuka
+  const openDetail = async (id: string) => {
+    setOpenId(id);
+    setSheetOpen(true);
+    if (detailCache.map) return;
+    const { data } = await createClient().rpc("get_public_karya");
+    detailCache.map = new Map(((data ?? []) as (KaryaDetailData & { id: string })[]).map((k) => [k.id, k]));
+    setDetails(detailCache.map);
+  };
+  const openItem = items.find((p) => p.id === openId) ?? null;
+  const openData: KaryaDetailData | null = openId
+    ? details?.get(openId) ??
+      (openItem
+        ? { title: openItem.title, description: openItem.description, image_url: openItem.image_url, category: openItem.category, links: null, owner_name: openItem.owner?.full_name }
+        : null)
+    : null;
 
   useEffect(() => {
     createClient()
@@ -239,6 +264,7 @@ function FeedTimeline() {
         <Reveal key={project.id} delay={Math.min(idx * 0.1, 0.4)}>
           <FeedCard
             project={project}
+            onOpen={openDetail}
             currentUserId={currentUserId}
             onToggleStar={(id, starred) =>
               startTransition(() => toggleStar(id, starred))
@@ -265,6 +291,22 @@ function FeedTimeline() {
           </button>
         </Reveal>
       )}
+
+      <SideSheet open={sheetOpen && !!openData} onClose={() => setSheetOpen(false)} label="Detail karya">
+        {openData && (
+          <KaryaDetail
+            karya={openData}
+            actions={
+              openItem ? (
+                <span className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-2 text-xs font-bold text-dark`}>
+                  <Star className="h-4 w-4 fill-[#E8A100] text-[#E8A100]" strokeWidth={1.5} />
+                  {openItem.star_count} bintang
+                </span>
+              ) : undefined
+            }
+          />
+        )}
+      </SideSheet>
     </div>
   );
 }
@@ -314,45 +356,123 @@ export default function DashboardPage() {
   return <DashboardContent />;
 }
 
+// ── Header sapaan + statistik pribadi ─────────────────────────
+type MyStats = { name: string; sessions: number; karya: number; stars: number };
+const statsCache: { value?: MyStats } = {};
+
+function useMyStats() {
+  const [stats, setStats] = useState<MyStats | null>(statsCache.value ?? null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !alive) return;
+      const [{ data: profile }, { count: sessions }, { data: myProjects }] = await Promise.all([
+        supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle(),
+        supabase.from("attendances").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "approved"),
+        supabase.from("projects").select("id").eq("user_id", user.id).eq("status", "approved"),
+      ]);
+      const ids = (myProjects ?? []).map((p) => p.id);
+      const { count: stars } = ids.length
+        ? await supabase.from("project_stars").select("id", { count: "exact", head: true }).in("project_id", ids)
+        : { count: 0 };
+      if (!alive) return;
+      statsCache.value = {
+        name: nickname(profile?.full_name),
+        sessions: sessions ?? 0,
+        karya: ids.length,
+        stars: stars ?? 0,
+      };
+      setStats(statsCache.value);
+    })();
+    return () => { alive = false; };
+  }, []);
+  return stats;
+}
+
+function WelcomeHeader() {
+  const stats = useMyStats();
+  const today = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Pontianak" });
+  const tiles = [
+    { label: "Sesi hadir", value: stats?.sessions },
+    { label: "Karya", value: stats?.karya },
+    { label: "Bintang", value: stats?.stars },
+  ];
+
+  return (
+    <div className="archive-stack">
+      <i className="archive-lay c"></i>
+      <i className="archive-lay b"></i>
+      <i className="archive-lay a"></i>
+      <section className="archive-sheet archive-fold grid gap-5 border-[3px] border-dark bg-white p-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-8 md:p-7">
+        <div className="min-w-0">
+          <p className={`${FONT_MONO} text-[11px] font-semibold uppercase tracking-[.18em] text-maroon`}>
+            {today}
+          </p>
+          <h1 className={`${FONT_DISPLAY} mt-1.5 text-3xl font-black uppercase leading-none tracking-tight text-dark md:text-4xl`}>
+            Halo, <span className="text-maroon">{stats ? stats.name : "…"}</span>
+          </h1>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-dark/70">
+            Pantau kehadiran, ikuti story rekan setim, dan apresiasi karya terbaru.
+          </p>
+        </div>
+
+        <dl className="grid grid-cols-3 border-2 border-dark bg-paper shadow-[3px_3px_0_#1A1A1A]">
+          {tiles.map((t, i) => (
+            <div key={t.label} className={`flex min-w-[88px] flex-col items-center justify-center px-3 py-3 md:px-5 ${i > 0 ? "border-l-2 border-dashed border-dark" : ""}`}>
+              <dd className={`${FONT_DISPLAY} text-2xl font-black leading-none text-maroon md:text-3xl`}>
+                {t.value ?? <span className="skeleton inline-block h-7 w-8 align-middle" />}
+              </dd>
+              <dt className={`${FONT_MONO} mt-1.5 text-[10px] font-semibold uppercase tracking-[.12em] text-dark/60`}>{t.label}</dt>
+            </div>
+          ))}
+        </dl>
+      </section>
+    </div>
+  );
+}
+
+// ── Aksi cepat (sidebar) ─────────────────────────────────────
+function QuickActions() {
+  const actions = [
+    { href: "/karya", label: "Unggah karya", hint: "Pamerkan project terbarumu" },
+    { href: "/dashboard/absen/riwayat", label: "Riwayat absen", hint: "Cek kehadiran sesi sebelumnya" },
+    { href: "/profil", label: "Atur profil & pixel", hint: "Avatar, bio, dan sosmed" },
+  ];
+  return (
+    <div className="mt-8 border-[3px] border-dark bg-white shadow-[5px_5px_0_#1A1A1A]">
+      <p className={`${FONT_MONO} border-b-[3px] border-dark bg-[#FFF3C4] px-4 py-2 text-[11px] font-semibold uppercase tracking-[.14em] text-dark`}>
+        Aksi cepat
+      </p>
+      <ul>
+        {actions.map((a, i) => (
+          <li key={a.href} className={i > 0 ? "border-t-2 border-dashed border-dark/25" : ""}>
+            <Link href={a.href} className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-[#FFF3C4]">
+              <span className="min-w-0 flex-1">
+                <span className={`${FONT_DISPLAY} block text-sm font-black uppercase tracking-wide text-dark`}>{a.label}</span>
+                <span className="block truncate text-xs text-dark/60">{a.hint}</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-maroon transition-transform duration-200 group-hover:translate-x-1" strokeWidth={2.5} />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function DashboardContent() {
   const sectionRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={sectionRef} className="flex flex-col gap-8 md:gap-10 md:py-2">
-      {/* Header Banner — Arsip Kertas Fold */}
-      <div className="archive-stack rot">
-        <i className="archive-lay c"></i>
-        <i className="archive-lay b"></i>
-        <i className="archive-lay a"></i>
-        <div
-          className="archive-sheet archive-fold flex items-center justify-between gap-4 border-[3px] border-dark bg-white p-4 sm:p-6"
-        >
-          <div className="min-w-0">
-            <span className={`${FONT_MONO} hidden sm:inline-block bg-[#FFF3C4] border-2 border-dark px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-dark mb-2`}>
-              // Ruang Interaksi Anggota
-            </span>
-            <h1 className={`${FONT_DISPLAY} text-2xl sm:text-3xl lg:text-4xl font-black uppercase leading-none tracking-tight text-dark`}>
-              Dashboard <span className="text-maroon">Anggota</span>
-            </h1>
-            <p className={`${FONT_MONO} hidden sm:block text-xs text-dark/70 mt-2`}>
-              Pantau kehadiran, ikuti story rekan setim, dan apresiasi karya terbaru.
-            </p>
-          </div>
-          <Link
-            href="/profil"
-            aria-label="Atur Profil & Pixel"
-            className={`${FONT_DISPLAY} inline-flex shrink-0 items-center gap-2 border-[3px] border-dark bg-paper p-2.5 sm:px-5 sm:py-3 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_var(--color-dark)] hover:bg-maroon hover:text-white transition-all`}
-          >
-            <span className="hidden sm:inline">Atur Profil &amp; Pixel</span>
-            <Sparkles className="w-4 h-4" />
-          </Link>
-        </div>
-      </div>
+      <WelcomeHeader />
 
       {/* Desktop: 2 kolom (konten utama + sidebar absen sticky). Mobile: 1 kolom berurutan. */}
       <div className="grid grid-cols-1 gap-8 md:gap-10 lg:grid-cols-[minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-10">
         {/* Pixel Story — identitas anggota di atas feed (Stack Kertas Rot2) */}
-        <section aria-label="Pixel Story" className="min-w-0 lg:col-start-1 lg:row-start-1">
+        <section aria-label="Story Anggota" className="min-w-0 lg:col-start-1 lg:row-start-1">
           <div className="archive-stack rot2">
             <i className="archive-lay c"></i>
             <i className="archive-lay b"></i>
@@ -367,6 +487,7 @@ function DashboardContent() {
         <section aria-label="Status Absen" className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:self-start lg:sticky lg:top-24">
           <SectionHeader dot="bg-maroon" title="Jadwal & Absensi" href="/dashboard/absen/riwayat" cta="Riwayat" ctaLong="Riwayat Absen" tilt="rotate-[-1deg]" />
           <AbsenBanner />
+          <QuickActions />
         </section>
 
         {/* Feed Timeline */}
