@@ -1,19 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { withHttps, getPdfViewUrl } from '@/lib/url'
 import {
-  Star, ExternalLink, X, Plus, ArrowLeft,
-  Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
+  Star, X, Plus, Loader2, AlertCircle, CheckCircle2, Palette, UploadCloud, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { PixelStoryContainer } from '@/components/pixel/PixelStoryContainer'
 import { PixelCharacter, type PixelCharacterConfig } from '@/components/pixel/PixelCharacter'
 import { PixelAvatar } from '@/components/pixel/PixelAvatar'
 import { SideSheet } from '@/components/SideSheet'
 import { KaryaCover } from '@/components/KaryaCover'
+import { KaryaDetail, LINK_TYPES } from '@/components/KaryaDetail'
+import { toProfileUrl } from '@/lib/social'
 import { GlidePill } from '@/components/motion/Glide'
+import { Select } from '@/components/Select'
 
 type KaryaLink = { link_type: string; url: string; label: string | null }
 type Socials = { instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
@@ -38,13 +39,6 @@ type Karya = {
 
 type Directory = { id: string; full_name: string; instagram: string | null; github: string | null; behance: string | null; linkedin: string | null }
 
-const LINK_TYPES: [string, string][] = [
-  ['repo', 'Repo'], ['live', 'Live'], ['instagram', 'Instagram'],
-  ['youtube', 'YouTube'], ['behance', 'Behance'], ['figma', 'Figma'],
-  ['portfolio', 'Portofolio'], ['image', 'Gambar'],
-  ['dokumen', 'Artikel / Makalah / Riset (PDF)'], ['sosmed', 'Poster dari Sosmed'],
-  ['tools', 'Project Tools / Aplikasi'], ['other', 'Lainnya'],
-]
 const SOCIAL_LABELS: [keyof Socials, string][] = [
   ['instagram', 'IG'], ['github', 'GitHub'], ['behance', 'Behance'], ['linkedin', 'LinkedIn'],
 ]
@@ -148,7 +142,7 @@ const socialChips = (s: Socials | null) => {
     s[key] ? (
       <a
         key={key}
-        href={withHttps(s[key] as string)}
+        href={toProfileUrl(key, s[key]) ?? '#'}
         target="_blank"
         rel="noopener noreferrer"
         className="border border-dark bg-paper px-1.5 py-0.5 font-mono text-[10px] font-bold hover:bg-[#FFF3C4]"
@@ -160,87 +154,7 @@ const socialChips = (s: Socials | null) => {
   return chips.length > 0 ? <span className="inline-flex flex-wrap gap-1">{chips}</span> : null
 }
 
-// Gabung sosmed pembuat (owner dulu, anggota ngisi yang kosong) per platform.
-const mergedSocials = (k: Karya): Socials => {
-  const sources: (Socials | null)[] = [
-    k.owner_socials,
-    ...(k.members || []).map((m) => ({
-      instagram: m.instagram, github: m.github, behance: m.behance, linkedin: m.linkedin,
-    })),
-  ]
-  const out = { instagram: null, github: null, behance: null, linkedin: null } as Socials
-  for (const [key] of SOCIAL_LABELS) {
-    out[key] = sources.map((s) => s?.[key] ?? null).find(Boolean) ?? null
-  }
-  return out
-}
-
-// Renderer satu poin detail sesuai tipe (Gelombang C).
-const renderPoint = (pt: DetailPoint) => {
-  const v = pt.value || {}
-  switch (pt.point_type) {
-    case 'teks':
-      return <p className="text-sm text-dark/80 leading-relaxed whitespace-pre-wrap">{v.text}</p>
-    case 'chips':
-      return (
-        <div className="flex flex-wrap gap-1.5">
-          {(v.items || []).map((c, i) => (
-            <span key={i} className="border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 font-mono text-xs font-bold">
-              {c}
-            </span>
-          ))}
-        </div>
-      )
-    case 'warna':
-      return (
-        <div className="flex flex-wrap gap-3">
-          {(v.colors || []).map((c, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <span className="h-10 w-10 border-2 border-dark" style={{ backgroundColor: c }} />
-              <span className="font-mono text-[9px] text-dark/50">{c}</span>
-            </div>
-          ))}
-        </div>
-      )
-    case 'link':
-      return v.url ? (
-        <a
-          href={withHttps(v.url)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-1.5 font-mono text-xs font-bold shadow-[2px_2px_0_var(--color-dark)] hover:bg-paper active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-        >
-          <ExternalLink className="w-3.5 h-3.5" />
-          {v.label || v.url}
-        </a>
-      ) : null
-    case 'tabel':
-      return (
-        <div className="overflow-x-auto border-2 border-dark">
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="border-b-2 border-dark bg-paper">
-                {(v.headers || []).map((h, i) => (
-                  <th key={i} className="px-3 py-2 font-bold uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(v.rows || []).map((r, i) => (
-                <tr key={i} className="border-b border-dark/10 last:border-0">
-                  {(v.headers || []).map((_, j) => (
-                    <td key={j} className="px-3 py-1.5 text-dark/80">{r[j] ?? ''}</td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )
-  }
-}
-
-// ── Etalase: warna cover per kategori (deterministik) + inisial ──
+// ── Warna cover per kategori (deterministik) + inisial ──
 const FONT_D = "font-[family-name:var(--font-outfit)]"
 const FONT_M = "font-[family-name:var(--font-ibm-plex-mono)]"
 const CAT_COLORS: Record<string, [string, string]> = {
@@ -288,10 +202,6 @@ function mapPixelConfig(member: any): PixelCharacterConfig {
     accessory: accessoryMap[member.pixel_accessories || ''] || 'none',
   };
 }
-const POINT_FALLBACK: Record<string, string> = {
-  teks: 'catatan', chips: 'gaya', warna: 'palet warna', link: 'tautan', tabel: 'tabel',
-}
-
 export default function KaryaPage() {
   const [karyaList, setKaryaList] = useState<Karya[]>([])
   const [loading, setLoading] = useState(true)
@@ -705,79 +615,67 @@ export default function KaryaPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 md:px-6 py-8 md:py-12">
-      {/* Header — arsip etalase */}
-      <div className="archive-stack mt-2">
-        <i className="archive-lay c" />
-        <i className="archive-lay b" />
-        <i className="archive-lay a" />
-        <div className="archive-sheet relative border-[3px] border-dark bg-[#FFFDF7] p-5 md:p-9">
-          <div className="absolute top-[-3px] right-[-3px] bg-maroon text-white font-mono text-[10px] uppercase tracking-[.1em] px-3 py-1 border-[3px] border-dark">
-            // etalase karya
-          </div>
-          <Link href="/" className="inline-flex items-center gap-1.5 border-2 border-dark bg-white px-2.5 py-1 font-display text-[12px] font-black uppercase text-dark shadow-[2px_2px_0_#1A1A1A] transition-all hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none md:border-[3px] md:px-3 md:py-1.5 md:text-[13px] md:shadow-[3px_3px_0_#1A1A1A]">
-            <ArrowLeft className="w-3.5 h-3.5" strokeWidth={3} />
-            Kembali
-          </Link>
-          <h1 className={`${FONT_D} mt-4 text-[clamp(38px,10vw,88px)] font-black uppercase leading-[.9] tracking-tight text-dark`}>
-            Karya <br className="hidden sm:block" />
-            <span className="text-maroon [text-shadow:3px_3px_0_#1A1A1A] md:[text-shadow:4px_4px_0_#1A1A1A]">Anggota</span>
+      {/* Header ringkas — navigasi sudah ada di navbar & tab bar */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="min-w-0">
+          <h1 className={`${FONT_D} text-[clamp(32px,8vw,64px)] font-black uppercase leading-[.92] tracking-tight text-dark`}>
+            Karya <span className="text-maroon">Anggota</span>
           </h1>
-          <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-dark/75 md:mt-4">
-            Hasil nyata anggota USRC. Beri bintang untuk karya favoritmu — yang terbaik tampil di halaman utama.
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-dark/70">
+            Project, desain, dan riset dari anggota USRC.
           </p>
+        </div>
 
-          {/* Ringkasan */}
-          <dl className="mt-5 flex w-fit border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A]" aria-label="Ringkasan">
+        <div className="flex flex-wrap items-center gap-3">
+          <dl className="flex border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A]" aria-label="Ringkasan">
             {[
               { val: p2(karyaList.length), label: 'Karya' },
               { val: p2(totalBintang), label: 'Bintang' },
             ].map((st, i) => (
               <div key={st.label} className={`flex items-baseline gap-2 px-3.5 py-2 ${i > 0 ? 'border-l-2 border-dashed border-dark' : ''}`}>
-                <dd className={`${FONT_D} text-2xl font-black leading-none text-maroon md:text-3xl`}>{st.val}</dd>
+                <dd className={`${FONT_D} text-2xl font-black leading-none text-maroon`}>{st.val}</dd>
                 <dt className="font-mono text-[10px] font-semibold uppercase tracking-[.14em] text-dark/70">{st.label}</dt>
               </div>
             ))}
           </dl>
           {userId && !inactive && (
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              <button
-                onClick={openForm}
-                className="inline-flex items-center gap-2 border-[3px] border-dark bg-maroon px-4 py-2 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] transition-all hover:-translate-y-0.5 hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none md:px-5 md:py-2.5"
-              >
-                <Plus className="w-4 h-4" strokeWidth={3} />
-                Buat karya
-              </button>
-              {hasDraft && (
-                <div className="flex items-center gap-2 border-2 border-dark bg-[#FFF3C4] px-3 py-2 shadow-[3px_3px_0_#1A1A1A]">
-                  <span className="font-mono text-xs font-bold text-dark">
-                    [Draf tersimpan]
-                  </span>
-                  <button
-                    type="button"
-                    onClick={loadDraft}
-                    className="border border-dark bg-white px-2 py-0.5 font-mono text-xs font-bold hover:bg-maroon hover:text-white"
-                  >
-                    Lanjutkan
-                  </button>
-                  <button
-                    type="button"
-                    onClick={discardDraft}
-                    className="text-xs font-bold text-maroon hover:underline px-1"
-                    title="Hapus draf"
-                  >
-                    ✕
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          {userId && inactive && (
-            <p className="mt-5 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-xs font-bold">
-              Akun belum aktif — buat karya bisa setelah sekre menyetujui pendaftaranmu.
-            </p>
+            <button
+              onClick={openForm}
+              className="inline-flex items-center gap-2 border-[3px] border-dark bg-maroon px-4 py-2 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] transition-all hover:-translate-y-0.5 hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              <Plus className="w-4 h-4" strokeWidth={3} />
+              Buat karya
+            </button>
           )}
         </div>
-      </div>
+      </header>
+
+      {userId && !inactive && hasDraft && (
+        <div className="mt-4 flex w-fit items-center gap-2 border-2 border-dark bg-[#FFF3C4] px-3 py-2 shadow-[3px_3px_0_#1A1A1A]">
+          <span className="font-mono text-xs font-bold text-dark">Draf tersimpan</span>
+          <button
+            type="button"
+            onClick={loadDraft}
+            className="border border-dark bg-white px-2 py-0.5 font-mono text-xs font-bold hover:bg-maroon hover:text-white"
+          >
+            Lanjutkan
+          </button>
+          <button
+            type="button"
+            onClick={discardDraft}
+            className="px-1 text-xs font-bold text-maroon hover:underline"
+            title="Hapus draf"
+            aria-label="Hapus draf"
+          >
+            <X className="h-3.5 w-3.5" strokeWidth={3} />
+          </button>
+        </div>
+      )}
+      {userId && inactive && (
+        <p className="mt-4 inline-block border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-mono text-xs font-bold">
+          Akun belum aktif — buat karya bisa setelah sekre menyetujui pendaftaranmu.
+        </p>
+      )}
 
       {error && (
         <div className="mt-6 border-2 border-dark bg-[#F8D7DA] p-4 shadow-[3px_3px_0_var(--color-dark)] flex items-center gap-3">
@@ -904,7 +802,7 @@ export default function KaryaPage() {
                           className="inline-flex items-center gap-1 border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none md:px-2.5 md:py-1 md:text-[11px]"
                           title="Buka PDF di tab baru"
                         >
-                          // LIHAT PDF
+                          Lihat PDF
                         </a>
                       )}
                     </div>
@@ -919,19 +817,14 @@ export default function KaryaPage() {
         </div>
       )}
 
-      {/* ── Detail: panel kiri ala native ── */}
-      <SideSheet open={detailOpen && !!detail} onClose={() => setDetailOpen(false)} label="// detail karya">
+      {/* ── Detail: panel kiri ── */}
+      <SideSheet open={detailOpen && !!detail} onClose={() => setDetailOpen(false)} label="Detail karya">
         {detail && (
-        <div className="p-4 sm:p-6">
-          {/* cover besar */}
-          {detail.image_url ? (
-            <KaryaCover
-              src={detail.image_url}
-              alt={detail.title}
-              className="aspect-[4/5] max-h-[62vh] border-[3px] border-dark shadow-[5px_5px_0_#1A1A1A] sm:aspect-[4/3]"
-            />
-          ) : (
-            (() => {
+          <KaryaDetail
+            karya={detail}
+            ownerAvatar={renderOwnerAvatar(detail.owner_id, detail.owner_name)}
+            actions={starBtn(detail, true)}
+            fallbackCover={(() => {
               const [g0, g1] = catColor(detail.category)
               return (
                 <div className="kg-img aspect-video w-full border-[3px] border-dark shadow-[5px_5px_0_#1A1A1A]" style={{ '--g0': g0, '--g1': g1 } as React.CSSProperties}>
@@ -940,68 +833,8 @@ export default function KaryaPage() {
                   </span>
                 </div>
               )
-            })()
-          )}
-
-          <span className="mt-6 inline-block rotate-[-2deg] border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[.08em]">
-            {detail.category || 'Lainnya'}
-          </span>
-          <h2 className={`${FONT_D} mt-2.5 text-[clamp(30px,6vw,46px)] font-black uppercase leading-[.95] text-maroon [text-shadow:3px_3px_0_rgba(26,26,26,.15)]`}>
-            {detail.title}
-          </h2>
-          <div className="mt-2.5 flex items-center gap-2 font-mono text-xs text-dark">
-            {renderOwnerAvatar(detail.owner_id, detail.owner_name)}
-            <span>{creatorsOf(detail)}</span>
-          </div>
-          {detail.description && (
-            <p className="mt-2.5 text-sm leading-relaxed text-dark/85">{detail.description}</p>
-          )}
-
-          {/* Detail poin (Gelombang C) — seksi // label bergaris */}
-          {(detail.detail_points || []).length > 0 && (
-            <div className="mt-6 space-y-5">
-              {(detail.detail_points || []).map((pt, i) => (
-                <div key={i}>
-                  <p className="kg-lbl">
-                    {'// '}{pt.title || POINT_FALLBACK[pt.point_type] || 'detail'}
-                  </p>
-                  {renderPoint(pt)}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Sosmed chips pembuat */}
-          <div className="mt-6">
-            {socialChips(mergedSocials(detail))}
-          </div>
-
-          {/* Footer: bintang + tautan + tombol PDF jika ada */}
-          <div className="mt-7 flex flex-wrap items-center gap-3.5 border-t-[3px] border-dashed border-dark pt-5">
-            {starBtn(detail, true)}
-            {detail.pdf_url && (
-              <a
-                href={getPdfViewUrl(detail.pdf_url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-[#FFF3C4] px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                // LIHAT MAKALAH / RISET (PDF)
-              </a>
-            )}
-            {(detail.links || []).map((l, i) => (
-              <a
-                key={i}
-                href={withHttps(l.url)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 border-[3px] border-dark bg-white px-3.5 py-2 font-display text-[13px] font-black uppercase text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                ↗ {l.label || LINK_TYPES.find(([v]) => v === l.link_type)?.[1] || 'Link'}
-              </a>
-            ))}
-          </div>
-        </div>
+            })()}
+          />
         )}
       </SideSheet>
 
@@ -1155,7 +988,7 @@ export default function KaryaPage() {
                   {form.pdf_url ? (
                     <div className="relative mt-1 flex items-center justify-between border-2 border-dark bg-paper p-3">
                       <div className="flex items-center gap-2 overflow-hidden">
-                        <span className="font-mono text-xs font-bold text-maroon">// PDF</span>
+                        <span className="font-mono text-xs font-bold text-maroon">PDF</span>
                         <a href={getPdfViewUrl(form.pdf_url)} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-dark underline truncate">
                           {pdfName || 'Dokumen tersimpan'}
                         </a>
@@ -1234,7 +1067,7 @@ export default function KaryaPage() {
                   className="flex w-full items-center justify-between border-2 border-dark bg-paper px-4 py-2.5 font-mono text-xs font-bold uppercase text-dark shadow-[2px_2px_0_var(--color-dark)] hover:bg-[#FFF3C4] transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                 >
                   <span className="flex items-center gap-2">
-                    <span>// Detail Lanjutan & Tautan</span>
+                    <span>Detail lanjutan & tautan</span>
                     <span className="bg-white border border-dark px-1.5 py-0.2 text-[10px] text-maroon">
                       {showAdvanced ? 'Tutup' : 'Opsional'}
                     </span>
@@ -1252,15 +1085,14 @@ export default function KaryaPage() {
                       <div className="mt-1 space-y-2">
                         {formLinks.map((l, i) => (
                           <div key={i} className="flex flex-wrap items-center gap-2">
-                            <select
+                            <Select
+                              size="sm"
+                              aria-label="Jenis tautan"
                               value={l.link_type}
-                              onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, link_type: e.target.value } : x)))}
-                              className="border-2 border-dark bg-white px-2 py-2 font-mono text-xs font-bold"
-                            >
-                              {LINK_TYPES.map(([v, lbl]) => (
-                                <option key={v} value={v}>{lbl}</option>
-                              ))}
-                            </select>
+                              onChange={(v) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, link_type: v } : x)))}
+                              className="w-auto min-w-[150px] font-mono font-bold"
+                              options={LINK_TYPES.map(([v, lbl]) => ({ value: v, label: lbl }))}
+                            />
                             <input
                               value={l.url}
                               onChange={(e) => setFormLinks(formLinks.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
@@ -1308,19 +1140,18 @@ export default function KaryaPage() {
                         {formPoints.map((pt, i) => (
                           <div key={i} className="border-2 border-dark bg-white p-3 space-y-2">
                             <div className="flex items-center gap-2">
-                              <select
+                              <Select
+                                size="sm"
+                                aria-label="Jenis poin"
                                 value={pt.point_type}
-                                onChange={(e) => {
+                                onChange={(v) => {
                                   const next = [...formPoints]
-                                  next[i] = emptyPoint(e.target.value as PointType)
+                                  next[i] = emptyPoint(v as PointType)
                                   setFormPoints(next)
                                 }}
-                                className="border-2 border-dark bg-paper px-2 py-1.5 font-mono text-xs font-bold"
-                              >
-                                {POINT_TYPES.map(([v, lbl]) => (
-                                  <option key={v} value={v}>{lbl}</option>
-                                ))}
-                              </select>
+                                className="w-auto min-w-[110px] bg-paper font-mono font-bold"
+                                options={POINT_TYPES.map(([v, lbl]) => ({ value: v, label: lbl }))}
+                              />
                               <input
                                 value={pt.title}
                                 onChange={(e) => setFormPoints(formPoints.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
@@ -1480,24 +1311,21 @@ export default function KaryaPage() {
                             </button>
                           </div>
                         ) : (
-                          <select
+                          <Select
                             key={i}
                             value=""
-                            onChange={(e) => {
-                              if (!e.target.value) return
+                            placeholder="Pilih anggota…"
+                            searchable
+                            onChange={(v) => {
+                              if (!v) return
                               const next = [...pickedMembers]
-                              next[i] = e.target.value
+                              next[i] = v
                               setPickedMembers(next)
                             }}
-                            className="w-full border-2 border-dark bg-white px-3 py-2 font-mono text-sm focus:outline-none focus:shadow-[2px_2px_0_var(--color-dark)]"
-                          >
-                            <option value="">Pilih anggota…</option>
-                            {directory
+                            options={directory
                               .filter((x) => !pickedMembers.includes(x.id))
-                              .map((x) => (
-                                <option key={x.id} value={x.id}>{x.full_name}</option>
-                              ))}
-                          </select>
+                              .map((x) => ({ value: x.id, label: x.full_name }))}
+                          />
                         )
                       })}
                       <button

@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, Loader2 } from "lucide-react";
+import { BadgeCheck, Check, Loader2, Pencil } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { SideSheet } from "@/components/SideSheet";
+import { GLIDE } from "@/components/motion/Glide";
+import { nickname } from "@/lib/name";
+import { SOCIAL_PLATFORMS, toHandle } from "@/lib/social";
 import {
   PixelAvatar,
   AVATARS,
@@ -12,6 +17,7 @@ import {
   validAvatarBg,
 } from "@/components/pixel/PixelAvatar";
 import { HOBI_OPTIONS } from "@/lib/hobi";
+import { Select } from "@/components/Select";
 
 interface Profile {
   full_name: string;
@@ -27,11 +33,11 @@ interface Profile {
 }
 
 // Sosmed pembuat — tampil sebagai chip di detail karya.
-const SOCIAL_FIELDS: { key: keyof Pick<Profile, "instagram" | "github" | "behance" | "linkedin">; label: string; placeholder: string }[] = [
-  { key: "instagram", label: "Instagram", placeholder: "instagram.com/username" },
-  { key: "github", label: "GitHub", placeholder: "github.com/username" },
-  { key: "behance", label: "Behance", placeholder: "behance.net/username" },
-  { key: "linkedin", label: "LinkedIn", placeholder: "linkedin.com/in/username" },
+const SOCIAL_FIELDS: { key: keyof Pick<Profile, "instagram" | "github" | "behance" | "linkedin">; label: string }[] = [
+  { key: "instagram", label: "Instagram" },
+  { key: "github", label: "GitHub" },
+  { key: "behance", label: "Behance" },
+  { key: "linkedin", label: "LinkedIn" },
 ];
 
 const PRODI_OPTIONS = ["Informatika", "Sistem Informasi", "SI Akuntansi"];
@@ -41,24 +47,8 @@ const PRODI_OPTIONS = ["Informatika", "Sistem Informasi", "SI Akuntansi"];
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
 
-const BAND_TEXT = "// profil saya // data keanggotaan // usrc ubsi pontianak ";
 
 // ── Batas cooldown dihapus, bisa diganti kapan saja ──
-
-// ── Judul seksi bernomor (01/02/03/04) ──
-function SectionHead({ no, title }: { no: string; title: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <b className="grid h-[38px] w-[38px] flex-none place-items-center border-2 border-dark bg-maroon font-display text-base font-black text-white shadow-[3px_3px_0_#1A1A1A]">
-        {no}
-      </b>
-      <h3 className={`${FONT_DISPLAY} m-0 text-[22px] font-black leading-none text-dark`}>
-        {title}
-      </h3>
-      <i className="h-[3px] min-w-3 flex-1 bg-dark" />
-    </div>
-  );
-}
 
 export default function ProfilPage() {
   const router = useRouter();
@@ -74,13 +64,13 @@ export default function ProfilPage() {
   const [avatarBg, setAvatarBg] = useState<string>(AVATAR_BG[0]);
   const [loadedAvatar, setLoadedAvatar] = useState<{ id: string; bg: string }>({ id: "", bg: "" });
   const [pixelUpdatedAt, setPixelUpdatedAt] = useState<string | null>(null);
-  const avatarLocked = false;
 
   // dialog pilih karakter
   const [pickId, setPickId] = useState("kucing");
   const [pickBg, setPickBg] = useState<string>(AVATAR_BG[0]);
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  const chgRef = useRef<HTMLButtonElement>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  // Snapshot data tersimpan — untuk penanda "ada perubahan belum disimpan"
+  const [savedSnapshot, setSavedSnapshot] = useState("");
 
   useEffect(() => {
     const supabase = createClient();
@@ -97,17 +87,17 @@ export default function ProfilPage() {
         .select("full_name, nim, prodi, role, instagram, github, behance, linkedin, hobbies, about, avatar_id, avatar_bg, pixel_updated_at")
         .eq("id", user.id)
         .single();
-      setProfile(
+      const loaded: Profile =
         data
           ? {
               full_name: data.full_name ?? "",
               nim: data.nim ?? "-",
               prodi: data.prodi ?? "Informatika",
               role: data.role ?? "anggota",
-              instagram: data.instagram ?? "",
-              github: data.github ?? "",
-              behance: data.behance ?? "",
-              linkedin: data.linkedin ?? "",
+              instagram: toHandle("instagram", data.instagram),
+              github: toHandle("github", data.github),
+              behance: toHandle("behance", data.behance),
+              linkedin: toHandle("linkedin", data.linkedin),
               hobbies: data.hobbies ?? [],
               about: data.about ?? "",
             }
@@ -115,18 +105,25 @@ export default function ProfilPage() {
               full_name: "", nim: "-", prodi: "Informatika", role: "anggota",
               instagram: "", github: "", behance: "", linkedin: "",
               hobbies: [], about: "",
-            }
-      );
+            };
+      setProfile(loaded);
       if (data) {
         setAvatarId(data.avatar_id || "kucing");
         setAvatarBg(validAvatarBg(data.avatar_bg));
         setLoadedAvatar({ id: data.avatar_id || "kucing", bg: validAvatarBg(data.avatar_bg) });
         setPixelUpdatedAt(data.pixel_updated_at ?? null);
       }
+      setSavedSnapshot(JSON.stringify({ ...loaded, avatarId: data?.avatar_id || "kucing", avatarBg: validAvatarBg(data?.avatar_bg) }));
       setLoading(false);
     }
     load();
   }, [router]);
+
+  useEffect(() => {
+    if (!message) return;
+    const t = setTimeout(() => setMessage(null), 3500);
+    return () => clearTimeout(t);
+  }, [message]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -152,10 +149,10 @@ export default function ProfilPage() {
       .update({
         full_name: profile.full_name.trim(),
         prodi: profile.prodi,
-        instagram: safe(profile.instagram),
-        github: safe(profile.github),
-        behance: safe(profile.behance),
-        linkedin: safe(profile.linkedin),
+        instagram: safe(toHandle("instagram", profile.instagram)),
+        github: safe(toHandle("github", profile.github)),
+        behance: safe(toHandle("behance", profile.behance)),
+        linkedin: safe(toHandle("linkedin", profile.linkedin)),
         hobbies: profile.hobbies.length > 0 ? profile.hobbies : null,
         about: safe(profile.about),
         avatar_id: avatarId,
@@ -172,401 +169,350 @@ export default function ProfilPage() {
     if (updateError) {
       setError(updateError.message || "Gagal menyimpan profil.");
     } else {
-      setMessage("Profil berhasil disimpan!");
+      setMessage("Profil berhasil disimpan.");
+      setSavedSnapshot(JSON.stringify({ ...profile, avatarId, avatarBg }));
     }
   }
 
   function openPicker() {
     setPickId(avatarId);
     setPickBg(avatarBg);
-    dialogRef.current?.showModal();
-  }
-  function closePicker() {
-    dialogRef.current?.close();
-    chgRef.current?.focus();
+    setPickerOpen(true);
   }
 
-  if (loading) {
+  if (loading || !profile) {
     return (
-      <div className="mx-auto max-w-2xl">
-        <div className="skeleton h-8 w-48" />
-        <div className="skeleton mt-6 h-64 w-full" />
+      <div className="space-y-6">
+        <div className="skeleton h-10 w-48" />
+        <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)]">
+          <div className="skeleton h-80 w-full" />
+          <div className="skeleton h-[480px] w-full" />
+        </div>
       </div>
     );
   }
 
-  // ── Bebas ganti kapan saja tanpa cooldown ──
+  const dirty =
+    JSON.stringify({ ...profile, avatarId, avatarBg }) !== savedSnapshot;
+  const setField = <K extends keyof Profile>(key: K, value: Profile[K]) =>
+    setProfile((p) => (p ? { ...p, [key]: value } : p));
+  const socialsFilled = SOCIAL_FIELDS.filter((f) => profile[f.key].trim());
 
   return (
-    <div>
-      {/* ── Pita marquee ── */}
-      <div
-        className="pf-band -mx-4 mb-8 border-b-[3px] border-maroon bg-dark py-[7px] text-[11px] font-medium uppercase tracking-[.2em] text-[#FFF3C4]"
-        aria-hidden="true"
-      >
-        <span>{BAND_TEXT.repeat(6)}</span>
-      </div>
+    <div className="pb-28 md:pb-12">
+      {/* ── Kepala halaman ── */}
+      <header className="mb-6 md:mb-8">
+        <h1 className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-tight text-dark md:text-4xl`}>
+          Profil
+        </h1>
+        <p className="mt-2 max-w-lg text-sm leading-relaxed text-dark/70">
+          Atur identitas yang tampil di story anggota, kartu member, dan karya kamu.
+        </p>
+      </header>
 
-      <div className="mx-auto max-w-[800px] px-1 pb-16">
-        {/* ── Kepala halaman ── */}
-        <header className="mb-9">
-          <span className="inline-block rotate-[-2deg] border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[.08em] text-dark">
-            // kartu anggota
-          </span>
-          <h1 className={`${FONT_DISPLAY} mt-3 text-[clamp(52px,13vw,104px)] font-black uppercase leading-[.88] tracking-tight text-dark`}>
-            Profil<br />
-            <span className="text-maroon [text-shadow:4px_4px_0_#1A1A1A]">Saya</span>
-          </h1>
-        </header>
+      <div className="grid gap-6 lg:grid-cols-[340px_minmax(0,1fr)] lg:items-start lg:gap-8">
+        {/* ── Pratinjau kartu (sticky di desktop) ── */}
+        <aside className="lg:sticky lg:top-24" aria-label="Pratinjau kartu member">
+          <div className="border-[3px] border-dark bg-white shadow-[6px_6px_0_#7A1B2E]">
+            <div
+              className="relative h-20 border-b-[3px] border-dark lg:h-24"
+              style={{ backgroundColor: avatarBg, backgroundImage: "radial-gradient(rgba(26,26,26,.12) 1px, transparent 1.2px)", backgroundSize: "9px 9px" }}
+            >
+              <span className="absolute right-3 top-3 rotate-[3deg] border-2 border-dark bg-maroon px-2.5 py-0.5 font-display text-[11px] font-extrabold uppercase tracking-[.14em] text-white shadow-[2px_2px_0_#1A1A1A]">
+                {profile.role}
+              </span>
+            </div>
 
-        {message && (
-          <div className="mb-4 flex items-center gap-2 border-2 border-dark bg-[#DFF5E1] px-4 py-3 shadow-[3px_3px_0_#1A1A1A]">
-            <BadgeCheck className="h-4 w-4 text-green-700" strokeWidth={2.5} />
-            <p className={`${FONT_MONO} text-sm text-dark`}>{message}</p>
-          </div>
-        )}
-        {error && (
-          <div className="mb-4 border-2 border-dark bg-[#F8D7DA] px-4 py-3 shadow-[3px_3px_0_#1A1A1A]">
-            <p className={`${FONT_MONO} text-sm text-dark`}>{error}</p>
-          </div>
-        )}
-
-        {/* ── Lembar profil ── */}
-        <div className="archive-stack">
-          <i className="archive-lay c" />
-          <i className="archive-lay b" />
-          <i className="archive-lay a" />
-          <section className="archive-sheet relative border-[3px] border-dark bg-[#FFFDF7]" aria-label="Profil saya">
-            <span className="archive-tape" aria-hidden="true" />
-
-            {/* Identitas + avatar */}
-            <div className="grid justify-items-center gap-8 px-6 pb-8 pt-10 md:grid-cols-[auto_1fr] md:items-center md:gap-10 md:px-8">
-              <div className="pf-ring relative m-3">
+            <div className="px-5 pb-5">
+              <div className="relative z-10 -mt-12 flex items-end justify-between gap-3 lg:-mt-14">
                 <PixelAvatar
                   id={avatarId}
                   bg={avatarBg}
-                  className="h-[184px] w-[184px] overflow-hidden rounded-full border-4 border-dark shadow-[8px_8px_0_#7A1B2E]"
+                  className="h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-dark shadow-[5px_5px_0_#7A1B2E] lg:h-28 lg:w-28"
                 />
-                <span className="absolute left-[-22px] top-0.5 rotate-[-8deg] bg-dark px-2 py-0.5 font-mono text-[11px] font-medium tracking-wide text-[#FFF3C4]">
-                  [EST. 2026]
-                </span>
                 <button
-                  ref={chgRef}
                   type="button"
                   onClick={openPicker}
-                  disabled={avatarLocked}
-                  className="absolute bottom-0.5 right-[-22px] rotate-[4deg] border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-display text-xs font-black uppercase tracking-wide text-dark shadow-[3px_3px_0_#1A1A1A] transition-colors hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mb-1 inline-flex items-center gap-1.5 border-2 border-dark bg-[#FFF3C4] px-3 py-1.5 font-display text-xs font-black uppercase tracking-wide text-dark shadow-[3px_3px_0_#1A1A1A] transition-[transform,box-shadow] hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                 >
-                  ✎ Ganti
+                  <Pencil className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  Ganti karakter
                 </button>
               </div>
 
-              <div className="min-w-0">
-                <span className="inline-block rotate-[-2deg] border-2 border-dark bg-[#D1E7DD] px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[.08em] text-dark">
-                  // anggota aktif
-                </span>
-                <h2 className={`${FONT_DISPLAY} mt-3 text-[clamp(30px,6.5vw,50px)] font-black uppercase leading-[.95] text-dark`} style={{ overflowWrap: "anywhere" }}>
-                  <span className="pf-name-hl">
-                    {profile?.full_name || "Nama kamu"}
-                  </span>
-                </h2>
-                <blockquote className={`${FONT_MONO} m-0 mt-4 max-w-[46ch] border-l-[6px] border-maroon py-0.5 pl-3.5 text-sm text-dark`}>
-                  {profile?.about?.trim() || "Belum ada bio."}
-                </blockquote>
-                <div className="mt-4 grid border-2 border-dark bg-white shadow-[4px_4px_0_#1A1A1A] sm:grid-cols-[1fr_1.4fr_1fr]">
-                  <div className="border-b-2 border-dark px-3 py-2 sm:border-b-0 sm:border-r-2">
-                    <small className="block font-mono text-[10px] uppercase tracking-[.14em] text-dark/60">NIM</small>
-                    <b className={`${FONT_DISPLAY} text-base font-extrabold uppercase text-dark`}>{profile?.nim || "-"}</b>
-                  </div>
-                  <div className="border-b-2 border-dark px-3 py-2 sm:border-b-0 sm:border-r-2">
-                    <small className="block font-mono text-[10px] uppercase tracking-[.14em] text-dark/60">Program studi</small>
-                    <b className={`${FONT_DISPLAY} text-base font-extrabold uppercase text-dark`}>{profile?.prodi}</b>
-                  </div>
-                  <div className="bg-maroon px-3 py-2 text-white">
-                    <small className="block font-mono text-[10px] uppercase tracking-[.14em] text-white/75">Role</small>
-                    <b className={`${FONT_DISPLAY} text-base font-extrabold uppercase`}>{profile?.role}</b>
-                  </div>
+              <h2 className={`${FONT_DISPLAY} mt-4 text-2xl font-black uppercase leading-[1.02] text-dark`} style={{ overflowWrap: "anywhere" }}>
+                {profile.full_name.trim() || "Nama kamu"}
+              </h2>
+              <p className={`${FONT_MONO} mt-1 text-[11px] uppercase tracking-[.08em] text-dark/60`}>
+                @{nickname(profile.full_name, "kamu").toLowerCase()} · {profile.prodi}
+              </p>
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-dark/80" style={{ overflowWrap: "anywhere" }}>
+                {profile.about.trim() || <span className="text-dark/45">Belum ada bio.</span>}
+              </p>
+
+              <dl className="mt-4 grid grid-cols-2 border-2 border-dark bg-paper">
+                <div className="border-r-2 border-dashed border-dark px-3 py-2">
+                  <dt className={`${FONT_MONO} text-[10px] uppercase tracking-[.14em] text-dark/55`}>NIM</dt>
+                  <dd className={`${FONT_DISPLAY} truncate text-sm font-extrabold text-dark`}>{profile.nim}</dd>
                 </div>
-              </div>
-            </div>
-
-                {/* 
-                {unlockNote && (
-                  <p className={`${FONT_MONO} mt-1 text-[11px] text-maroon font-medium`}>
-                    {unlockNote}
-                  </p>
-                )}
-                */}
-
-            {/* ── Form ── */}
-            <form onSubmit={handleSave}>
-              <div className="pf-form border-t-[3px] border-dashed border-dark px-6 pb-6 pt-9 md:px-8">
-                {/* 01 Data diri */}
-                <div className="mb-8">
-                  <SectionHead no="01" title="Data diri" />
-                  <span className={`${FONT_MONO} mb-4 ml-[50px] mt-2 block text-xs text-dark/70`}>
-                    // NIM dan email tidak bisa diubah
-                  </span>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="pf-nim" className={`${FONT_MONO} mb-1.5 block text-[11px] font-medium uppercase tracking-[.12em] text-dark/70`}>
-                        NIM (tetap)
-                      </label>
-                      <input id="pf-nim" value={profile?.nim || "-"} readOnly
-                        className="w-full border-2 border-dark/30 border-dashed bg-[#EFECE5] px-3 py-3 font-mono text-sm text-dark/60" />
-                    </div>
-                    <div>
-                      <label htmlFor="pf-email" className={`${FONT_MONO} mb-1.5 block text-[11px] font-medium uppercase tracking-[.12em] text-dark/70`}>
-                        Email (tetap)
-                      </label>
-                      <input id="pf-email" value={email} readOnly
-                        className="w-full truncate border-2 border-dark/30 border-dashed bg-[#EFECE5] px-3 py-3 font-mono text-sm text-dark/60" />
-                    </div>
-                    <div>
-                      <label htmlFor="pf-nama" className={`${FONT_MONO} mb-1.5 block text-[11px] font-medium uppercase tracking-[.12em] text-dark/70`}>
-                        Nama lengkap
-                      </label>
-                      <input id="pf-nama" type="text" autoComplete="name"
-                        value={profile?.full_name || ""}
-                        onChange={(e) => setProfile((p) => (p ? { ...p, full_name: e.target.value } : p))}
-                        placeholder="Nama lengkap kamu"
-                        className="w-full border-2 border-dark bg-white px-3 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:shadow-[5px_5px_0_#7A1B2E] focus:outline-none" />
-                    </div>
-                    <div>
-                      <label htmlFor="pf-prodi" className={`${FONT_MONO} mb-1.5 block text-[11px] font-medium uppercase tracking-[.12em] text-dark/70`}>
-                        Program studi
-                      </label>
-                      <select id="pf-prodi"
-                        value={profile?.prodi || "Informatika"}
-                        onChange={(e) => setProfile((p) => (p ? { ...p, prodi: e.target.value } : p))}
-                        className="w-full border-2 border-dark bg-white px-3 py-3 font-mono text-sm text-dark focus:shadow-[5px_5px_0_#7A1B2E] focus:outline-none">
-                        {PRODI_OPTIONS.map((p) => (
-                          <option key={p} value={p}>{p}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
+                <div className="px-3 py-2">
+                  <dt className={`${FONT_MONO} text-[10px] uppercase tracking-[.14em] text-dark/55`}>Prodi</dt>
+                  <dd className={`${FONT_DISPLAY} truncate text-sm font-extrabold text-dark`}>{profile.prodi}</dd>
                 </div>
+              </dl>
 
-                {/* 02 Tentang saya */}
-                <div className="mb-8">
-                  <SectionHead no="02" title="Tentang saya" />
-                  <span className={`${FONT_MONO} mb-4 ml-[50px] mt-2 block text-xs text-dark/70`}>
-                    // tampil di kartu member saat diklik orang lain
-                  </span>
-                  <textarea
-                    value={profile?.about || ""}
-                    maxLength={250}
-                    rows={4}
-                    onChange={(e) => setProfile((p) => (p ? { ...p, about: e.target.value } : p))}
-                    placeholder="Tulis perkenalan singkat"
-                    className="w-full resize-y border-2 border-dark bg-white px-3 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:shadow-[5px_5px_0_#7A1B2E] focus:outline-none"
-                  />
-                  <div className={`${FONT_MONO} mt-1 text-right text-xs text-dark/60`}>
-                    {(profile?.about || "").length}/250
-                  </div>
-                </div>
-
-                {/* 03 Sosmed */}
-                <div className="mb-8">
-                  <SectionHead no="03" title="Sosmed" />
-                  <span className={`${FONT_MONO} mb-4 ml-[50px] mt-2 block text-xs text-dark/70`}>
-                    // ikut tampil di karya yang kamu buat, opsional
-                  </span>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {SOCIAL_FIELDS.map((f) => (
-                      <div key={f.key}>
-                        <label htmlFor={`pf-${f.key}`} className={`${FONT_MONO} mb-1.5 block text-[11px] font-medium uppercase tracking-[.12em] text-dark/70`}>
-                          {f.label}
-                        </label>
-                        <input
-                          id={`pf-${f.key}`}
-                          type="text"
-                          value={profile?.[f.key] || ""}
-                          onChange={(e) => setProfile((p) => (p ? { ...p, [f.key]: e.target.value } : p))}
-                          placeholder={f.placeholder}
-                          className="w-full border-2 border-dark bg-white px-3 py-3 font-mono text-sm text-dark placeholder-dark/40 focus:shadow-[5px_5px_0_#7A1B2E] focus:outline-none"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 04 Hobi */}
-                <div className="mb-8">
-                  <SectionHead no="04" title="Hobi &amp; minat" />
-                  <span className={`${FONT_MONO} mb-4 ml-[50px] mt-2 block text-xs text-dark/70`}>
-                    // tampil di tab pendataan admin, pilih satu atau lebih
-                  </span>
-                  <div className="flex flex-wrap gap-2.5">
-                    {HOBI_OPTIONS.map((h) => {
-                      const on = profile?.hobbies.includes(h) ?? false;
-                      return (
-                        <button
-                          key={h}
-                          type="button"
-                          aria-pressed={on}
-                          onClick={() =>
-                            setProfile((p) =>
-                              p
-                                ? {
-                                    ...p,
-                                    hobbies: on
-                                      ? p.hobbies.filter((x) => x !== h)
-                                      : [...p.hobbies, h],
-                                  }
-                                : p
-                            )
-                          }
-                          className={`border-2 px-3 py-1.5 font-mono text-xs font-medium transition-all active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
-                            on
-                              ? "border-dark bg-maroon text-white shadow-[3px_3px_0_#1A1A1A]"
-                              : "border-dark bg-white text-dark shadow-[3px_3px_0_#1A1A1A] hover:bg-[#FFF3C4]"
-                          }`}
-                        >
-                          {h}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Footer form */}
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t-[3px] border-dark pt-6">
-                  <span className="inline-block rotate-[-4deg] border-[3px] border-maroon px-3 py-0.5 font-display text-sm font-black uppercase tracking-[.1em] text-maroon">
-                    Role: {profile?.role || "anggota"}
-                  </span>
-                  <div className="flex items-center gap-3.5">
-                    <span className={`${FONT_MONO} text-xs text-dark/60`} role="status">
-                      {saving ? "Menyimpan..." : ""}
+              {(socialsFilled.length > 0 || profile.hobbies.length > 0) && (
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {socialsFilled.map((f) => (
+                    <span key={f.key} className="border-2 border-dark bg-white px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-maroon">
+                      {f.label}
                     </span>
-                    <button
-                      type="submit"
-                      disabled={saving}
-                      className="inline-flex min-h-11 min-w-[150px] items-center justify-center gap-2 border-[3px] border-dark bg-maroon px-7 py-3 font-display text-sm font-black uppercase tracking-[.08em] text-white shadow-[5px_5px_0_#1A1A1A] transition-all hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-50"
-                    >
-                      {saving && <Loader2 className="h-4 w-4 animate-spin shrink-0" />}
-                      <span>{saving ? 'Menyimpan...' : 'Simpan'}</span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </section>
-        </div>
-      </div>
-
-      {/* ── Dialog pilih karakter ── */}
-      <dialog
-        ref={dialogRef}
-        className="pf-pick m-auto w-[min(760px,calc(100vw-44px))] max-h-[calc(100dvh-28px)] border-0 bg-transparent p-0 text-dark"
-        onClick={(e) => { if (e.target === dialogRef.current) closePicker(); }}
-      >
-        <div className="archive-stack">
-          <i className="archive-lay c" />
-          <i className="archive-lay b" />
-          <i className="archive-lay a" />
-          <div className="archive-sheet relative max-h-[calc(100dvh-28px)] overflow-y-auto border-[3px] border-dark bg-[#FFFDF7] px-6 pb-5 pt-7">
-            <span className="inline-block rotate-[-2deg] border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 font-mono text-[11px] font-medium uppercase tracking-[.08em] text-dark">
-              // ganti karakter
-            </span>
-            <div className="mt-3 flex items-start justify-between gap-3">
-              <h3 className={`${FONT_DISPLAY} m-0 text-[clamp(34px,8vw,52px)] font-black uppercase leading-[.9] text-dark`}>
-                Pilih<br />
-                <span className="text-maroon [text-shadow:3px_3px_0_#1A1A1A]">karakter</span>
-              </h3>
-              <button
-                type="button"
-                onClick={closePicker}
-                aria-label="Tutup"
-                className="h-[42px] w-[42px] flex-none border-[3px] border-dark bg-[#FFF3C4] font-bold shadow-[3px_3px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-[200px_1fr] md:items-start">
-              {/* preview */}
-              <div className="flex flex-col items-center text-center">
-                <PixelAvatar
-                  id={pickId}
-                  bg={pickBg}
-                  className="mb-3 h-[164px] w-[164px] overflow-hidden rounded-full border-4 border-dark shadow-[7px_7px_0_#7A1B2E]"
-                />
-                <b className={`${FONT_DISPLAY} text-2xl font-black leading-none text-dark`}>
-                  {avatarById(pickId).name}
-                </b>
-                <span className={`${FONT_MONO} mt-1 text-xs text-dark/70`}>
-                  No. {String(AVATARS.findIndex((a) => a.id === pickId) + 1).padStart(2, "0")}/{String(AVATARS.length).padStart(2, "0")}
-                </span>
-              </div>
-
-              {/* grid pilihan + latar */}
-              <div>
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-3.5">
-                  {AVATARS.map((a, i) => (
-                    <button
-                      key={a.id}
-                      type="button"
-                      data-k={a.id}
-                      aria-pressed={pickId === a.id}
-                      onClick={() => setPickId(a.id)}
-                      className={`flex flex-col border-[3px] text-left shadow-[3px_3px_0_#1A1A1A] transition-transform hover:-translate-x-px hover:-translate-y-px hover:shadow-[5px_5px_0_#1A1A1A] ${
-                        pickId === a.id ? "border-dark bg-maroon text-white" : "border-dark bg-white text-dark"
-                      }`}
-                    >
-                      <span className="block aspect-square w-full overflow-hidden border-b-[3px] border-dark" style={{ background: pickBg }}>
-                        <PixelAvatar id={a.id} bg={pickBg} className="h-full w-full" />
-                      </span>
-                      <span className="flex justify-between gap-1 px-1.5 py-1 font-mono text-[10px] font-medium uppercase tracking-wide">
-                        <span>{String(i + 1).padStart(2, "0")}</span>
-                        <span>{a.name}</span>
-                      </span>
-                    </button>
+                  ))}
+                  {profile.hobbies.slice(0, 4).map((h) => (
+                    <span key={h} className="border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 font-mono text-[10px] font-semibold lowercase">
+                      {h}
+                    </span>
                   ))}
                 </div>
-
-                <div className="mt-4 flex flex-wrap items-center gap-2.5">
-                  <span className={`${FONT_MONO} text-xs text-dark/70`}>Latar:</span>
-                  {AVATAR_BG.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      aria-label={`Warna latar ${c}`}
-                      aria-pressed={pickBg === c}
-                      onClick={() => setPickBg(c)}
-                      style={{ background: c }}
-                      className={`h-8 w-8 border-[3px] border-dark ${pickBg === c ? "-translate-x-px -translate-y-px shadow-[3px_3px_0_#1A1A1A]" : ""}`}
-                    />
-                  ))}
-                </div>
-              </div>
+              )}
             </div>
+          </div>
+          <p className={`${FONT_MONO} mt-3 hidden text-[11px] text-dark/50 lg:block`}>
+            Pratinjau ini berubah langsung saat kamu mengisi form.
+          </p>
+        </aside>
 
-            <p className={`${FONT_MONO} mb-5 mt-5 text-xs text-dark/70`}>
-              { "// karakter bisa diganti kapan saja tanpa batasan waktu" }
-            </p>
+        {/* ── Form ── */}
+        <form onSubmit={handleSave} className="min-w-0 space-y-6" id="profil-form">
+          <AnimatePresence>
+            {(message || error) && (
+              <motion.div
+                key={message ? "ok" : "err"}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={GLIDE}
+                role="status"
+                className={`flex items-center gap-2 border-2 border-dark px-4 py-3 shadow-[3px_3px_0_#1A1A1A] ${message ? "bg-[#DFF5E1]" : "bg-[#F8D7DA]"}`}
+              >
+                {message && <BadgeCheck className="h-4 w-4 shrink-0 text-green-700" strokeWidth={2.5} />}
+                <p className="text-sm font-semibold text-dark">{message || error}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            <div className="flex flex-wrap justify-end gap-3 border-t-[3px] border-dashed border-dark pt-4">
+          <FormCard no="01" title="Data diri" hint="NIM dan email tidak bisa diubah.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Nama lengkap" htmlFor="pf-nama">
+                <input id="pf-nama" type="text" autoComplete="name" value={profile.full_name}
+                  onChange={(e) => setField("full_name", e.target.value)}
+                  placeholder="Nama lengkap kamu" className={INPUT} />
+              </Field>
+              <Field label="Program studi" htmlFor="pf-prodi">
+                <Select id="pf-prodi" value={profile.prodi} onChange={(v) => setField("prodi", v)} options={PRODI_OPTIONS} />
+              </Field>
+              <Field label="NIM" htmlFor="pf-nim">
+                <input id="pf-nim" value={profile.nim} readOnly className={INPUT_LOCKED} />
+              </Field>
+              <Field label="Email" htmlFor="pf-email">
+                <input id="pf-email" value={email} readOnly className={`${INPUT_LOCKED} truncate`} />
+              </Field>
+            </div>
+          </FormCard>
+
+          <FormCard no="02" title="Tentang saya" hint="Tampil di kartu member saat orang lain membuka profilmu.">
+            <textarea
+              value={profile.about}
+              maxLength={250}
+              rows={4}
+              onChange={(e) => setField("about", e.target.value)}
+              placeholder="Tulis perkenalan singkat"
+              className={`${INPUT} resize-y`}
+            />
+            <div className={`${FONT_MONO} mt-1 text-right text-xs text-dark/55`}>{profile.about.length}/250</div>
+          </FormCard>
+
+          <FormCard no="03" title="Sosmed" hint="Cukup isi username. Tempel link juga boleh — otomatis dirapikan.">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {SOCIAL_FIELDS.map((f) => {
+                const plat = SOCIAL_PLATFORMS[f.key];
+                return (
+                  <Field key={f.key} label={f.label} htmlFor={`pf-${f.key}`}>
+                    <div className="flex items-stretch border-2 border-dark bg-white transition-shadow focus-within:shadow-[4px_4px_0_#7A1B2E]">
+                      <span className={`${FONT_MONO} flex shrink-0 items-center border-r-2 border-dark bg-paper px-2.5 text-xs text-dark/55`}>
+                        {plat.at ? "@" : `${plat.domain}${plat.path}`}
+                      </span>
+                      <input
+                        id={`pf-${f.key}`}
+                        type="text"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={profile[f.key]}
+                        onChange={(e) => setField(f.key, toHandle(f.key, e.target.value))}
+                        placeholder="username"
+                        className="min-w-0 flex-1 bg-transparent px-3 py-2.5 text-sm text-dark placeholder-dark/40 focus:outline-none"
+                      />
+                    </div>
+                  </Field>
+                );
+              })}
+            </div>
+          </FormCard>
+
+          <FormCard no="04" title="Hobi & minat" hint="Pilih satu atau lebih.">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {HOBI_OPTIONS.map((h) => {
+                const on = profile.hobbies.includes(h);
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setField("hobbies", on ? profile.hobbies.filter((x) => x !== h) : [...profile.hobbies, h])}
+                    className={`flex min-h-11 min-w-0 items-center gap-2.5 border-2 border-dark px-2.5 py-2 text-left text-[13px] font-semibold leading-tight transition-[transform,box-shadow,background-color,color] duration-150 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none ${
+                      on ? "bg-[#FFF3C4] text-dark shadow-[3px_3px_0_#7A1B2E]" : "bg-white text-dark/80 shadow-[2px_2px_0_#1A1A1A] hover:bg-paper"
+                    }`}
+                  >
+                    <span className={`grid h-5 w-5 shrink-0 place-items-center border-2 border-dark transition-colors ${on ? "bg-maroon text-white" : "bg-white"}`}>
+                      {on && <Check className="h-3 w-3" strokeWidth={4} />}
+                    </span>
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{h}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className={`${FONT_MONO} mt-3 text-[11px] text-dark/50`}>{profile.hobbies.length} dipilih</p>
+          </FormCard>
+
+          {/* Bar simpan: menempel di bawah layar (di atas tab bar pada mobile) */}
+          <div className="fixed inset-x-0 bottom-[calc(56px+env(safe-area-inset-bottom))] z-40 border-t-[3px] border-dark bg-white/95 px-4 py-3 backdrop-blur md:sticky md:bottom-4 md:mx-0 md:border-[3px] md:shadow-[5px_5px_0_#1A1A1A]">
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3">
+              <span className={`${FONT_MONO} flex items-center gap-2 text-xs ${dirty ? "text-maroon" : "text-dark/50"}`} role="status">
+                <span className={`h-2 w-2 ${dirty ? "bg-maroon" : "bg-green-600"}`} />
+                {saving ? "Menyimpan..." : dirty ? "Ada perubahan belum disimpan" : "Semua tersimpan"}
+              </span>
               <button
-                type="button"
-                onClick={closePicker}
-                className="border-[3px] border-dark bg-white px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-dark shadow-[4px_4px_0_#1A1A1A] active:translate-x-1 active:translate-y-1 active:shadow-none"
+                type="submit"
+                disabled={saving || !dirty}
+                className="inline-flex min-h-11 min-w-[130px] items-center justify-center gap-2 border-[3px] border-dark bg-maroon px-6 py-2.5 font-display text-sm font-black uppercase tracking-[.08em] text-white shadow-[4px_4px_0_#1A1A1A] transition-[transform,box-shadow,background-color,opacity] hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-45 disabled:shadow-none"
               >
-                Batal
-              </button>
-              <button
-                type="button"
-                disabled={avatarLocked}
-                onClick={() => { setAvatarId(pickId); setAvatarBg(pickBg); closePicker(); }}
-                className="border-[3px] border-dark bg-maroon px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-white shadow-[4px_4px_0_#1A1A1A] transition-colors hover:bg-hot active:translate-x-1 active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Pakai karakter ini
+                {saving && <Loader2 className="h-4 w-4 shrink-0 animate-spin" />}
+                Simpan
               </button>
             </div>
           </div>
+        </form>
+      </div>
+
+      {/* ── Panel pilih karakter ── */}
+      <SideSheet
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        label="Pilih karakter"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setPickerOpen(false)}
+              className="border-[3px] border-dark bg-white px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-dark shadow-[3px_3px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              onClick={() => { setAvatarId(pickId); setAvatarBg(pickBg); setPickerOpen(false); }}
+              className="border-[3px] border-dark bg-maroon px-5 py-2.5 font-display text-sm font-black uppercase tracking-wide text-white shadow-[3px_3px_0_#1A1A1A] transition-colors hover:bg-hot active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              Pakai
+            </button>
+          </div>
+        }
+      >
+        <div className="p-4 sm:p-6">
+          <div className="flex items-center gap-4">
+            <PixelAvatar id={pickId} bg={pickBg} className="h-24 w-24 shrink-0 overflow-hidden rounded-full border-4 border-dark shadow-[5px_5px_0_#7A1B2E]" />
+            <div>
+              <b className={`${FONT_DISPLAY} block text-2xl font-black uppercase leading-none text-dark`}>{avatarById(pickId).name}</b>
+              <span className={`${FONT_MONO} mt-1 block text-xs text-dark/60`}>
+                No. {String(AVATARS.findIndex((a) => a.id === pickId) + 1).padStart(2, "0")} / {String(AVATARS.length).padStart(2, "0")}
+              </span>
+            </div>
+          </div>
+
+          <p className="kg-lbl mt-8">Latar</p>
+          <div className="flex flex-wrap gap-2.5">
+            {AVATAR_BG.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Warna latar ${c}`}
+                aria-pressed={pickBg === c}
+                onClick={() => setPickBg(c)}
+                style={{ background: c }}
+                className={`grid h-10 w-10 place-items-center border-[3px] border-dark transition-[transform,box-shadow] ${pickBg === c ? "-translate-x-0.5 -translate-y-0.5 shadow-[3px_3px_0_#7A1B2E]" : "hover:-translate-y-0.5"}`}
+              >
+                {pickBg === c && <Check className="h-4 w-4 text-dark" strokeWidth={3.5} />}
+              </button>
+            ))}
+          </div>
+
+          <p className="kg-lbl mt-7">Karakter</p>
+          <div className="grid grid-cols-3 gap-3 pb-2 sm:grid-cols-4">
+            {AVATARS.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                aria-pressed={pickId === a.id}
+                onClick={() => setPickId(a.id)}
+                className={`relative flex flex-col border-[3px] border-dark text-left transition-[transform,box-shadow] ${
+                  pickId === a.id
+                    ? "-translate-x-0.5 -translate-y-0.5 bg-maroon text-white shadow-[4px_4px_0_#1A1A1A]"
+                    : "bg-white text-dark shadow-[2px_2px_0_#1A1A1A] hover:-translate-y-0.5 hover:shadow-[3px_3px_0_#1A1A1A]"
+                }`}
+              >
+                <span className="block aspect-square w-full overflow-hidden border-b-[3px] border-dark" style={{ background: pickBg }}>
+                  <PixelAvatar id={a.id} bg={pickBg} className="h-full w-full" />
+                </span>
+                <span className="truncate px-1.5 py-1 text-center font-mono text-[10px] font-semibold uppercase tracking-wide">{a.name}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </dialog>
+      </SideSheet>
+    </div>
+  );
+}
+
+// ── Komponen kecil form ──
+const INPUT =
+  "w-full border-2 border-dark bg-white px-3 py-2.5 text-sm text-dark placeholder-dark/40 transition-shadow focus:shadow-[4px_4px_0_#7A1B2E] focus:outline-none";
+const INPUT_LOCKED =
+  "w-full cursor-not-allowed border-2 border-dashed border-dark/30 bg-[#EFECE5] px-3 py-2.5 font-mono text-sm text-dark/60";
+
+function FormCard({ no, title, hint, children }: { no: string; title: string; hint: string; children: React.ReactNode }) {
+  return (
+    <section className="border-[3px] border-dark bg-[#FFFDF7] shadow-[5px_5px_0_#1A1A1A]">
+      <header className="flex items-center gap-3 border-b-[3px] border-dark bg-[#FFF3C4] px-4 py-2.5">
+        <b className="grid h-7 w-7 shrink-0 place-items-center border-2 border-dark bg-maroon font-display text-xs font-black text-white">{no}</b>
+        <h3 className={`${FONT_DISPLAY} text-base font-black uppercase tracking-wide text-dark`}>{title}</h3>
+      </header>
+      <div className="p-4 sm:p-5">
+        <p className="mb-4 text-xs text-dark/60">{hint}</p>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className={`${FONT_MONO} mb-1.5 block text-[11px] font-semibold uppercase tracking-[.12em] text-dark/70`}>
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

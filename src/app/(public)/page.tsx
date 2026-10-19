@@ -9,6 +9,8 @@ import {
   useTransform,
   useSpring,
   useReducedMotion,
+  useInView,
+  animate,
 } from "framer-motion";
 import {
   ArrowRight,
@@ -21,12 +23,12 @@ import {
   UserCheck,
   FolderKanban,
   Star,
-  ExternalLink,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { withHttps, getPdfViewUrl } from "@/lib/url";
+import { nickname } from "@/lib/name";
 import { SideSheet } from "@/components/SideSheet";
 import { KaryaCover } from "@/components/KaryaCover";
+import { KaryaDetail, type KaryaDetailData } from "@/components/KaryaDetail";
 import { MobileCarousel } from "@/components/MobileCarousel";
 
 interface Meeting {
@@ -55,13 +57,10 @@ interface Project {
   stars: number;
   star_count?: number;
   owner_name?: string | null;
+  owner_socials?: KaryaDetailData["owner_socials"];
+  members?: KaryaDetailData["members"];
+  detail_points?: KaryaDetailData["detail_points"];
 }
-
-const LINK_LABELS: Record<string, string> = {
-  repo: "Repo", live: "Live", instagram: "Instagram", youtube: "YouTube",
-  behance: "Behance", figma: "Figma", portfolio: "Portofolio",
-  image: "Gambar", other: "Link",
-};
 
 interface Me {
   name: string;
@@ -99,8 +98,6 @@ function formatTimeWIB(iso: string) {
 
 const FONT_DISPLAY = "font-[family-name:var(--font-outfit)]";
 const FONT_MONO = "font-[family-name:var(--font-ibm-plex-mono)]";
-const GLASS =
-  "border border-white/40 bg-white/70 backdrop-blur-md outline outline-[1.5px] outline-dark";
 
 const CORES = [
   {
@@ -133,14 +130,9 @@ const CORES = [
   },
 ] as const;
 
-function SectionHead({ tag, children }: { tag: string; children: React.ReactNode }) {
+function SectionHead({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
-      <p
-        className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-maroon`}
-      >
-        {tag}
-      </p>
       <h2
         className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide text-dark md:text-5xl`}
       >
@@ -168,50 +160,34 @@ function Reveal({
   return (
     <motion.div
       className={className}
-      initial={reduced ? false : { opacity: 0, y: 24 }}
+      initial={reduced ? false : { opacity: 0, y: 14 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.5, ease: "easeOut", delay }}
+      transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1], delay: Math.min(delay, 0.16) }}
     >
       {children}
     </motion.div>
   );
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  loading,
-  rotate,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  loading: boolean;
-  rotate: string;
-}) {
-  return (
-    <div
-      className={`flex flex-col items-center gap-1 border-2 border-dark bg-white p-4 shadow-[4px_4px_0px_var(--color-maroon)] transition-transform hover:rotate-0 md:p-6 ${rotate}`}
-    >
-      <Icon className="h-5 w-5 text-maroon md:h-6 md:w-6" strokeWidth={2.5} />
-      {loading ? (
-        <Skeleton className="h-8 w-14" />
-      ) : (
-        <span
-          className={`${FONT_DISPLAY} text-3xl font-black text-maroon md:text-5xl`}
-        >
-          {value}
-        </span>
-      )}
-      <span
-        className={`${FONT_MONO} text-[11px] uppercase tracking-wider text-dark/60`}
-      >
-        {label}
-      </span>
-    </div>
-  );
+/* Angka yang menghitung naik saat pertama terlihat di layar. */
+function CountUp({ value }: { value: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-40px" });
+  const reduced = useReducedMotion();
+  const [shown, setShown] = useState(0);
+
+  useEffect(() => {
+    if (!inView || reduced) return;
+    const controls = animate(0, value, {
+      duration: 1.1,
+      ease: [0.32, 0.72, 0, 1],
+      onUpdate: (v) => setShown(Math.round(v)),
+    });
+    return () => controls.stop();
+  }, [inView, value, reduced]);
+
+  return <span ref={ref}>{reduced ? value : shown}</span>;
 }
 
 function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
@@ -226,7 +202,7 @@ function TicketCard({ meeting, index }: { meeting: Meeting; index: number }) {
         <span
           className={`${FONT_MONO} w-fit border-[1.5px] border-dark bg-[#FFF3C4] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-dark md:px-2.5 md:py-1 md:text-[11px]`}
         >
-          // SESI PASCA
+          Selesai
         </span>
         <h3
           className={`${FONT_DISPLAY} line-clamp-2 text-lg font-black uppercase leading-tight tracking-wide text-dark md:text-xl`}
@@ -277,8 +253,8 @@ function coverColors(cat?: string | null): [string, string] {
   return [`hsl(${h},45%,38%)`, `hsl(${(h + 40) % 360},50%,66%)`];
 }
 
-const HERO_PRIMARY = `${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-maroon px-6 py-3 text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:bg-hot hover:shadow-[6px_6px_0px_var(--color-dark)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`;
-const HERO_SECONDARY = `${FONT_DISPLAY} inline-flex min-h-12 items-center gap-2 border-2 border-dark bg-white px-6 py-3 text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_var(--color-maroon)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`;
+const HERO_PRIMARY = `${FONT_DISPLAY} inline-flex min-h-11 items-center justify-center gap-2 border-2 border-dark bg-maroon px-4 py-2.5 text-sm sm:min-h-12 sm:px-6 sm:py-3 sm:text-base font-extrabold uppercase tracking-wider text-white shadow-[4px_4px_0px_var(--color-dark)] transition-[transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:bg-hot hover:shadow-[6px_6px_0px_var(--color-dark)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`;
+const HERO_SECONDARY = `${FONT_DISPLAY} inline-flex min-h-11 items-center justify-center gap-2 border-2 border-dark bg-white px-4 py-2.5 text-sm sm:min-h-12 sm:px-6 sm:py-3 sm:text-base font-extrabold uppercase tracking-wider text-dark shadow-[4px_4px_0px_var(--color-maroon)] transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:shadow-[6px_6px_0px_var(--color-maroon)] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none`;
 
 function greeting() {
   const h = Number(new Date().toLocaleString("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Pontianak" }));
@@ -298,11 +274,11 @@ function MemberHero({ me }: { me: Me }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
-        <span className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-white px-3 py-1 text-sm font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}>
+        <span className={`${FONT_MONO} -rotate-2 whitespace-nowrap border-2 border-dark bg-white px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)] sm:px-3 sm:text-sm`}>
           {greeting()}
         </span>
-        <span className={`${FONT_MONO} rotate-2 border-[3px] border-dark bg-[#FFF3C4] px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}>
-          {"//"} {me.role}
+        <span className={`${FONT_MONO} rotate-2 whitespace-nowrap border-[3px] border-dark bg-[#FFF3C4] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)] sm:px-4 sm:py-1.5 sm:text-sm`}>
+          {me.role}
         </span>
         {me.live && !me.attended && (
           <span className={`${FONT_MONO} inline-flex items-center gap-2 border-2 border-dark bg-maroon px-3 py-1 text-sm font-bold uppercase tracking-wider text-white`}>
@@ -322,9 +298,9 @@ function MemberHero({ me }: { me: Me }) {
         <span>hari ini?</span>
       </h1>
 
-      <p className={`${FONT_MONO} max-w-lg text-base leading-relaxed text-dark/75 md:text-lg`}>{sessionLine}</p>
+      <p className={`${FONT_MONO} max-w-lg text-sm leading-relaxed text-dark/75 sm:text-base md:text-lg`}>{sessionLine}</p>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:gap-4 [&>*:first-child]:col-span-2">
         {me.live && !me.attended ? (
           <Link href="/dashboard/absen" className={HERO_PRIMARY}>
             Absen sekarang
@@ -505,7 +481,7 @@ export default function LandingPage() {
         const { data: att } = await supabase.from("attendances").select("id").eq("user_id", uid).eq("meeting_id", live.id).maybeSingle();
         attended = !!att;
       }
-      setMe({ name: profile?.full_name?.split(" ")[0] ?? "Anggota", role: profile?.role ?? "anggota", live, next, attended });
+      setMe({ name: nickname(profile?.full_name), role: profile?.role ?? "anggota", live, next, attended });
     }
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => setIsLoggedIn(!!session)
@@ -622,11 +598,11 @@ export default function LandingPage() {
       <section
         ref={heroRef}
         id="tentang"
-        className="relative scroll-mt-24 px-6 pb-20 pt-12 md:pb-32 md:pt-20"
+        className="relative scroll-mt-24 px-5 pb-14 pt-6 sm:px-6 md:pb-32 md:pt-20"
       >
         <div className="mx-auto flex max-w-7xl flex-col items-center gap-16 lg:flex-row lg:items-center lg:justify-between">
           {/* Left — Text & Badges */}
-          <div className="flex w-full flex-col items-start gap-8 lg:w-[58%]">
+          <div className="flex w-full flex-col items-start gap-6 sm:gap-8 lg:w-[58%]">
             {authState === "unknown" ? (
               <div className="min-h-[420px] w-full" aria-hidden="true" />
             ) : authState === "member" ? (
@@ -635,14 +611,14 @@ export default function LandingPage() {
               <>
                 <div className="flex flex-wrap items-center gap-3">
                   <span
-                    className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-white px-3 py-1 text-sm font-bold tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}
+                    className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-white px-2.5 py-1 text-xs font-bold tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)] sm:px-3 sm:text-sm`}
                   >
                     [EST. 2026]
                   </span>
                   <span
-                    className={`${FONT_MONO} rotate-2 border-[3px] border-dark bg-[#FFF3C4] px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)]`}
+                    className={`${FONT_MONO} rotate-2 whitespace-nowrap border-[3px] border-dark bg-[#FFF3C4] px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0px_var(--color-maroon)] sm:px-4 sm:py-1.5 sm:text-sm`}
                   >
-                    {"//"} Pendaftaran dibuka
+                    Pendaftaran dibuka
                   </span>
                 </div>
 
@@ -658,12 +634,12 @@ export default function LandingPage() {
                   <span>AJA</span>
                 </h1>
 
-                <p className={`${FONT_MONO} max-w-lg text-base leading-relaxed text-dark/80 md:text-lg`}>
+                <p className={`${FONT_MONO} max-w-lg text-sm leading-relaxed text-dark/80 sm:text-base md:text-lg`}>
                   Komunitas lintas prodi di UBSI Pontianak. Belajar teori, eksekusi
                   riset, dan rilis project nyata.
                 </p>
 
-                <div className="flex flex-wrap gap-4">
+                <div className="grid w-full grid-cols-2 gap-3 sm:flex sm:w-auto sm:flex-wrap sm:gap-4 [&>*:first-child]:col-span-2">
                   <Link href={isLoggedIn ? "/dashboard" : "/daftar"} className={HERO_PRIMARY}>
                     {isLoggedIn ? "Buka dashboard" : "Gabung sekarang"}
                     <ArrowRight className="h-5 w-5" strokeWidth={2.5} />
@@ -681,8 +657,9 @@ export default function LandingPage() {
             )}
           </div>
 
-          {/* Right — Sticker card (parallax) */}
-          <div className="relative flex w-full justify-center py-4 lg:w-[38%] lg:justify-end">
+          {/* Right — kartu polaroid logo (parallax). Disembunyikan di mobile:
+              logo sudah ada di navbar dan kartu besar hanya memanjangkan halaman. */}
+          <div className="relative hidden w-full justify-end py-4 lg:flex lg:w-[38%]">
             <motion.div
               style={
                 prefersReduced
@@ -691,31 +668,40 @@ export default function LandingPage() {
               }
               className="relative"
             >
-              {/* Back card (maroon) */}
+              {/* Kartu belakang */}
               <div className="absolute inset-0 translate-x-3 translate-y-3 rotate-3 border-[3px] border-dark bg-maroon" />
 
-              {/* Front card (white) */}
-              <div className="relative flex h-[360px] w-[280px] flex-col items-center justify-center border-[3px] border-dark bg-white p-5 md:h-[500px] md:w-[400px] md:p-6">
-                {/* Glass badge */}
+              {/* Polaroid */}
+              <div className="relative flex w-[360px] flex-col border-[3px] border-dark bg-white p-4 pb-0 xl:w-[400px]">
+                {/* pin */}
+                <div className="absolute -top-3 left-1/2 z-10 h-6 w-6 -translate-x-1/2 rounded-full border-[3px] border-dark bg-[#ECAEBA] shadow-[2px_2px_0px_var(--color-dark)]" />
+
                 <div
-                  className={`${GLASS} absolute -left-3 top-16 z-20 -rotate-3 px-4 py-2 md:-left-14 md:top-24`}
+                  className="relative flex aspect-square w-full items-center justify-center border-[3px] border-dark bg-paper"
+                  style={{ backgroundImage: "radial-gradient(rgba(26,26,26,.09) 1px, transparent 1.2px)", backgroundSize: "12px 12px" }}
                 >
-                  <span
-                    className={`${FONT_MONO} text-sm font-bold text-dark`}
-                  >
-                    NEW // 2026
-                  </span>
+                  <Image
+                    src="/logo-usrc.svg"
+                    alt="Logo USRC"
+                    width={400}
+                    height={420}
+                    priority
+                    className="h-[72%] w-auto drop-shadow-[4px_4px_0_rgba(26,26,26,.12)]"
+                  />
                 </div>
 
-                {/* Inner frame with logo */}
-                <div className="relative flex h-full w-full items-center justify-center overflow-hidden border-[3px] border-dark bg-white p-4">
-                  <div className="absolute right-4 top-4 z-10 h-6 w-6 rounded-full border-[3px] border-dark bg-[#ECAEBA] shadow-[2px_2px_0px_var(--color-dark)]" />
-                  <Image
-                    src="/logo-usrc-main.jpeg"
-                    alt="USRC Logo"
-                    fill
-                    className="object-contain p-6"
-                  />
+                <div className="flex items-end justify-between gap-3 px-1 py-4">
+                  <div>
+                    <p className={`${FONT_DISPLAY} text-lg font-black uppercase leading-tight text-dark`}>
+                      Study &amp; Research Club
+                    </p>
+                    <p className={`${FONT_MONO} mt-1 text-[11px] uppercase tracking-[.14em] text-dark/55`}>
+                      UBSI Pontianak
+                    </p>
+                  </div>
+                  <span className={`${FONT_MONO} shrink-0 border-2 border-dark bg-[#FFF3C4] px-2 py-0.5 text-[11px] font-bold text-dark`}>
+                    2026
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -744,7 +730,7 @@ export default function LandingPage() {
       <section id="pilar" className="scroll-mt-24 px-4 py-12 md:py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:gap-10">
           <Reveal>
-            <SectionHead tag="// Fondasi kami">
+            <SectionHead>
               4 Pilar <span className="text-maroon">USRC</span>
             </SectionHead>
           </Reveal>
@@ -779,7 +765,7 @@ export default function LandingPage() {
       <section id="sesi" className="scroll-mt-24 px-4 py-12 md:py-20">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:gap-10">
           <Reveal>
-            <SectionHead tag="// Sesi yang sudah berlalu">
+            <SectionHead>
               Kegiatan <span className="text-maroon">Terakhir</span>
             </SectionHead>
           </Reveal>
@@ -825,52 +811,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── LIVE STATS (dark band) ───────────────── */}
-      <section className="border-y-2 border-dark bg-dark px-4 py-20 text-paper">
-        <div className="mx-auto flex max-w-7xl flex-col gap-10">
+      {/* ── USRC DALAM ANGKA ─────────────────────── */}
+      <section className="border-y-2 border-dark bg-dark px-4 py-12 text-paper md:py-20">
+        <div className="mx-auto grid max-w-7xl gap-8 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.6fr)] md:items-center md:gap-14">
           <Reveal>
-            <div className="flex flex-col gap-2">
-              <p
-                className={`${FONT_MONO} text-xs font-semibold uppercase tracking-[0.2em] text-[#E38595]`}
-              >
-                // Data langsung dari database
-              </p>
-              <h2
-                className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-none tracking-wide md:text-5xl`}
-              >
-                USRC dalam Angka
-              </h2>
-            </div>
+            <h2 className={`${FONT_DISPLAY} text-3xl font-black uppercase leading-[.95] tracking-wide md:text-5xl`}>
+              USRC dalam <span className="text-pink">angka</span>
+            </h2>
+            <p className="mt-3 max-w-sm text-sm leading-relaxed text-paper/60 md:text-base">
+              Terus bertambah setiap sesi dan setiap karya yang dirilis anggota.
+            </p>
           </Reveal>
-          <div className="grid grid-cols-3 gap-4 text-dark md:gap-8">
-            <Reveal delay={0}>
-              <StatCard
-                icon={UserCheck}
-                label="Anggota"
-                value={stats.members}
-                loading={loading}
-                rotate="-rotate-2"
-              />
-            </Reveal>
-            <Reveal delay={0.08}>
-              <StatCard
-                icon={Calendar}
-                label="Sesi"
-                value={stats.sessions}
-                loading={loading}
-                rotate="rotate-1"
-              />
-            </Reveal>
-            <Reveal delay={0.16}>
-              <StatCard
-                icon={FolderKanban}
-                label="Karya"
-                value={stats.projects}
-                loading={loading}
-                rotate="rotate-2"
-              />
-            </Reveal>
-          </div>
+
+          <Reveal delay={0.08}>
+            <dl className="grid grid-cols-3 border-2 border-paper/80 shadow-[5px_5px_0_var(--color-maroon)]">
+              {[
+                { icon: UserCheck, label: "Anggota", value: stats.members },
+                { icon: Calendar, label: "Sesi", value: stats.sessions },
+                { icon: FolderKanban, label: "Karya", value: stats.projects },
+              ].map(({ icon: Icon, label, value }, i) => (
+                <div
+                  key={label}
+                  className={`flex flex-col items-center justify-center gap-1.5 px-2 py-5 text-center md:items-start md:px-7 md:py-8 md:text-left ${
+                    i > 0 ? "border-l-2 border-dashed border-paper/40" : ""
+                  }`}
+                >
+                  <dd className={`${FONT_DISPLAY} text-4xl font-black leading-none text-[#FFF3C4] md:text-6xl`}>
+                    {loading ? <span className="inline-block h-9 w-12 animate-pulse bg-paper/15 md:h-14 md:w-20" /> : <CountUp value={value} />}
+                  </dd>
+                  <dt className={`${FONT_MONO} mt-1 inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[.16em] text-paper/65 md:text-xs`}>
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-pink" strokeWidth={2.25} />
+                    {label}
+                  </dt>
+                </div>
+              ))}
+            </dl>
+          </Reveal>
         </div>
       </section>
 
@@ -879,7 +855,7 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-6 md:gap-10">
           <div className="flex items-end justify-between gap-4">
             <Reveal>
-              <SectionHead tag="// Hasil karya anggota">
+              <SectionHead>
                 Karya <span className="text-maroon">Terbaik</span>
               </SectionHead>
             </Reveal>
@@ -929,7 +905,7 @@ export default function LandingPage() {
           <span
             className={`${FONT_MONO} -rotate-2 border-2 border-dark bg-[#FFF3C4] px-3 py-1 text-xs font-semibold`}
           >
-            // PENDAFTARAN DIBUKA
+            Pendaftaran dibuka
           </span>
           <h2
             className={`${FONT_DISPLAY} text-4xl font-black uppercase leading-none tracking-tight text-dark md:text-6xl`}
@@ -956,102 +932,24 @@ export default function LandingPage() {
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           aria-label="Kembali ke atas"
-          className={`fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center border-2 border-dark bg-maroon text-white shadow-[3px_3px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-hot active:translate-y-0 active:shadow-none`}
+          className={`fixed bottom-24 right-4 z-50 md:bottom-6 md:right-6 flex h-12 w-12 items-center justify-center border-2 border-dark bg-maroon text-white shadow-[3px_3px_0px_var(--color-dark)] transition-all hover:-translate-y-0.5 hover:bg-hot active:translate-y-0 active:shadow-none`}
         >
           <ArrowUp className="h-5 w-5" strokeWidth={2.5} />
         </button>
       )}
 
-      {/* ── PROJECT DETAIL — panel kiri ala native ── */}
-      <SideSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        label="// detail karya"
-        footer={
-          selectedProject && (
-            <Link
-              href={`/karya#${selectedProject.id}`}
-              className={`${FONT_DISPLAY} flex w-full items-center justify-center gap-2 border-2 border-dark bg-maroon px-5 py-3 text-sm font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_var(--color-dark)] transition-all hover:bg-hot active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
-            >
-              Buka di Etalase Karya
-              <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
-            </Link>
-          )
-        }
-      >
+      {/* ── Detail karya: panel kiri, isi lengkap (sama dengan halaman karya) ── */}
+      <SideSheet open={sheetOpen} onClose={() => setSheetOpen(false)} label="Detail karya">
         {selectedProject && (
-          <div className="flex flex-col gap-5 p-4 sm:p-6">
-            {selectedProject.image_url ? (
-              <KaryaCover
-                src={selectedProject.image_url}
-                alt={selectedProject.title}
-                className="aspect-[4/5] max-h-[62vh] border-[3px] border-dark shadow-[5px_5px_0_#1A1A1A] sm:aspect-[4/3]"
-              />
-            ) : (
-              <div className="flex aspect-video w-full items-center justify-center border-[3px] border-dark bg-paper">
-                <span className={`${FONT_MONO} text-sm text-dark/30`}>no image</span>
-              </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              {selectedProject.category && (
-                <span className={`${FONT_MONO} w-fit -rotate-2 border-2 border-dark bg-[#FFF3C4] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-dark`}>
-                  {selectedProject.category}
-                </span>
-              )}
-              <h2 className={`${FONT_DISPLAY} text-[clamp(26px,6vw,40px)] font-black uppercase leading-[.95] text-maroon`}>
-                {selectedProject.title}
-              </h2>
-              <div className="flex items-center gap-1.5">
-                <Star className="h-5 w-5 fill-[#E8A100] text-[#E8A100]" strokeWidth={1.5} />
-                <span className={`${FONT_MONO} text-sm font-bold text-dark`}>
-                  {selectedProject.star_count || 0} bintang
-                </span>
-              </div>
-            </div>
-
-            {selectedProject.description && (
-              <div>
-                <p className="kg-lbl">{"// deskripsi"}</p>
-                <p className="whitespace-pre-line text-[15px] leading-relaxed text-dark/85">
-                  {selectedProject.description}
-                </p>
-              </div>
-            )}
-
-            {selectedProject.pdf_url && (
-              <div>
-                <a
-                  href={getPdfViewUrl(selectedProject.pdf_url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={`${FONT_DISPLAY} inline-flex items-center gap-1.5 border-2 border-dark bg-[#FFF3C4] px-3.5 py-2 text-xs font-black uppercase text-dark shadow-[2px_2px_0_#1A1A1A] hover:bg-white active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
-                >
-                  // LIHAT MAKALAH / RISET (PDF)
-                </a>
-              </div>
-            )}
-
-            {selectedProject.links && selectedProject.links.length > 0 && (
-              <div>
-                <p className="kg-lbl">{"// tautan"}</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedProject.links.map((l, i) => (
-                    <a
-                      key={i}
-                      href={withHttps(l.url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-dark shadow-[2px_2px_0_#1A1A1A] transition-all hover:bg-maroon hover:text-white`}
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      {l.label || LINK_LABELS[l.link_type] || "Link"}
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <KaryaDetail
+            karya={selectedProject}
+            actions={
+              <span className={`${FONT_MONO} inline-flex items-center gap-1.5 border-2 border-dark bg-white px-3 py-2 text-xs font-bold text-dark`}>
+                <Star className="h-4 w-4 fill-[#E8A100] text-[#E8A100]" strokeWidth={1.5} />
+                {selectedProject.star_count || 0} bintang
+              </span>
+            }
+          />
         )}
       </SideSheet>
     </div>

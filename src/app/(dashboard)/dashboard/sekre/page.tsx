@@ -4,7 +4,10 @@
 import { useEffect, useState, useTransition, Suspense } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
-import { Users, ClipboardList, Check, X, Trash2, Calendar, Loader2, AlertCircle, Plus, CheckCheck } from 'lucide-react'
+import { Users, ClipboardList, Check, X, Trash2, Loader2, AlertCircle, Plus, CheckCheck, Search, UserPlus } from 'lucide-react'
+import { SideSheet } from '@/components/SideSheet'
+import { GlidePill, GLIDE } from '@/components/motion/Glide'
+import { Select } from '@/components/Select'
 
 type Meeting = {
   id: string
@@ -47,6 +50,8 @@ type Member = {
   reason: string | null
 }
 
+type Tab = 'absen' | 'registrations' | 'members'
+
 function SekretarisDashboardContent() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [selectedMeetingId, setSelectedMeetingId] = useState<string>('')
@@ -56,24 +61,8 @@ function SekretarisDashboardContent() {
   const [loadingAttendances, setLoadingAttendances] = useState(false)
   const [loadingRegs, setLoadingRegs] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'absen' | 'registrations' | 'members'>('absen')
-  const [animatingTab, setAnimatingTab] = useState<'absen' | 'registrations' | 'members' | null>(null)
+  const [activeTab, setActiveTab] = useState<Tab>('absen')
   const reduceMotion = useReducedMotion()
-  const [isMobile, setIsMobile] = useState(false)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
-    const update = () => setIsMobile(mq.matches)
-    update()
-    mq.addEventListener('change', update)
-    return () => mq.removeEventListener('change', update)
-  }, [])
-
-  const handleTabChange = (newTab: 'absen' | 'registrations' | 'members') => {
-    if (newTab === activeTab) return
-    if (!reduceMotion) setAnimatingTab(activeTab)
-    setActiveTab(newTab)
-  }
   const [members, setMembers] = useState<Member[]>([])
   const [loadingMembers, setLoadingMembers] = useState(true)
   const [memberSearch, setMemberSearch] = useState('')
@@ -222,7 +211,7 @@ function SekretarisDashboardContent() {
           fetchRegistrations()
           fetchMembers()
           if (payload.eventType === 'INSERT' && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-            new Notification('USRC // Pendaftar Baru', {
+            new Notification('USRC — Pendaftar baru', {
               body: 'Ada anggota baru yang mendaftar dan menunggu persetujuan sekre!',
               icon: '/favicon.ico',
             })
@@ -376,621 +365,382 @@ function SekretarisDashboardContent() {
     })
   }
 
-  // Tab Colors for Physical Paper Stack
-  const TAB_COLORS: Record<'absen' | 'registrations' | 'members', string> = {
-    absen: '#FFFFFF',
-    registrations: '#FFF9DC',
-    members: '#FCE9ED',
-  }
-
-  // Synchronized Deck Order:
-  // - members (pink): middle = registrations (kuning), back = absen (putih)
-  // - absen (putih): middle = registrations (kuning), back = members (pink)
-  // - registrations (kuning): middle = members (pink), back = absen (putih)
-  const stackDeckByTab: Record<
-    'absen' | 'registrations' | 'members',
-    {
-      front: 'absen' | 'registrations' | 'members'
-      middle: 'absen' | 'registrations' | 'members'
-      back: 'absen' | 'registrations' | 'members'
-    }
-  > = {
-    absen: {
-      front: 'absen',
-      middle: 'registrations',
-      back: 'members',
-    },
-    registrations: {
-      front: 'registrations',
-      middle: 'members',
-      back: 'absen',
-    },
-    members: {
-      front: 'members',
-      middle: 'registrations',
-      back: 'absen',
-    },
-  }
-
-  const currentDeck = stackDeckByTab[activeTab]
-  const frontSheetColor = TAB_COLORS[currentDeck.front]
-  const middleSheetColor = TAB_COLORS[currentDeck.middle]
-  const backSheetColor = TAB_COLORS[currentDeck.back]
-
   const selectedMeeting = meetings.find((m) => m.id === selectedMeetingId)
   const approvedCount = attendances.filter((a) => a.status === 'approved').length
+  const pendingCount = attendances.length - approvedCount
+  const progress = attendances.length ? Math.round((approvedCount / attendances.length) * 100) : 0
 
   const filteredMembers = members.filter((member) => {
     const q = memberSearch.trim().toLowerCase()
     if (!q) return true
-
-    return [
-      member.full_name,
-      member.nim,
-      member.prodi,
-      member.role,
-      member.reason || '',
-    ]
+    return [member.full_name, member.nim, member.prodi, member.role, member.reason || '']
       .join(' ')
       .toLowerCase()
       .includes(q)
   })
 
+  const TABS: { key: Tab; label: string; icon: typeof ClipboardList; count?: number }[] = [
+    { key: 'absen', label: 'Absensi', icon: ClipboardList, count: pendingCount || undefined },
+    { key: 'registrations', label: 'Pendaftar', icon: UserPlus, count: registrations.length || undefined },
+    { key: 'members', label: 'Anggota', icon: Users, count: members.length },
+  ]
+
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
-      {/* ── 1. Hero Card (Neobrutalist) ── */}
-      <section className="relative border-2 border-[#1A1A1A] bg-white p-6 md:p-8 shadow-[6px_6px_0_#1A1A1A]">
-        <span className="absolute -top-[2px] -right-[2px] border-2 border-[#1A1A1A] bg-[#FFF3C4] px-3 py-1 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-[#1A1A1A] shadow-[2px_2px_0_#1A1A1A]">
-          // SEKRETARIAT &amp; ADMIN
-        </span>
-        <h1 className="font-[family-name:var(--font-outfit)] text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight text-[#7A1B2E]">
-          Dashboard Sekretaris
-        </h1>
-        <p className="mt-2 max-w-2xl font-[family-name:var(--font-work-sans)] text-sm md:text-base leading-relaxed text-[#1A1A1A]/80">
-          Validasi kehadiran anggota secara <span className="font-bold underline text-[#1A1A1A]">realtime</span> per sesi pertemuan, serta kelola antrian pendaftaran anggota baru USRC.
-        </p>
-      </section>
+    <div className="space-y-6 pb-12 md:space-y-8">
+      {/* ── Kepala halaman ── */}
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className={`${FONT_D} text-3xl font-black uppercase leading-none tracking-tight text-dark md:text-4xl`}>Sekretariat</h1>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-dark/70">Validasi absen, terima pendaftar, dan pantau anggota.</p>
+        </div>
+
+        {/* Tab */}
+        <div role="tablist" aria-label="Menu sekretariat" className="flex w-full border-2 border-dark bg-white p-1 shadow-[3px_3px_0_#1A1A1A] md:w-auto">
+          {TABS.map(({ key, label, icon: Icon, count }) => {
+            const active = activeTab === key
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(key)}
+                className={`relative flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold uppercase tracking-wide transition-colors duration-200 md:flex-none md:px-4 ${FONT_D} ${
+                  active ? 'text-white' : 'text-dark/70 hover:text-dark'
+                }`}
+              >
+                {active && <GlidePill id="sekre-tab" className="bg-maroon" />}
+                <Icon className="relative z-10 hidden h-4 w-4 shrink-0 sm:block" />
+                <span className="relative z-10">{label}</span>
+                {count !== undefined && (
+                  <span className={`relative z-10 min-w-5 border px-1 font-mono text-[10px] ${active ? 'border-white/60 text-white' : 'border-dark bg-[#FFF3C4] text-dark'}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </header>
 
       {error && (
-        <div className="border-2 border-[#1A1A1A] bg-[#F8D7DA] p-4 shadow-[4px_4px_0_#1A1A1A] flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-[#7A1B2E] shrink-0" />
-          <p className="text-sm font-bold font-mono text-[#7A1B2E]">{error}</p>
+        <div className="flex items-center gap-3 border-2 border-dark bg-[#F8D7DA] p-4 shadow-[4px_4px_0_#1A1A1A]">
+          <AlertCircle className="h-5 w-5 shrink-0 text-maroon" />
+          <p className="text-sm font-semibold text-maroon">{error}</p>
         </div>
       )}
 
-      {/* ── 2. Tab Numpuk & Tumpukan Kertas ── */}
-      <div className="relative">
-        {/* Tab Buttons (Overlapping Stack) */}
-        <div
-          role="tablist"
-          aria-label="Menu dashboard sekretaris"
-          className="relative z-20 flex items-end overflow-x-auto pb-0 -mb-[2px] px-1 scrollbar-none"
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={activeTab}
+          role="tabpanel"
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
+          transition={GLIDE}
+          className="space-y-5"
         >
-          {/* Tab 0: Absen */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'absen'}
-            onClick={() => handleTabChange('absen')}
-            className={`group relative inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'absen'
-                ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
-                : 'z-10 bg-white text-[#1A1A1A] hover:-translate-y-1 shadow-[2px_0_0_#1A1A1A]'
-            }`}
-          >
-            <ClipboardList className="h-4 w-4 shrink-0" />
-            <span>Absensi realtime</span>
-          </button>
+          {/* ── ABSENSI ── */}
+          {activeTab === 'absen' && (
+            <>
+              {/* Pilih sesi + sesi baru */}
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="min-w-0 flex-1">
+                  {loadingMeetings ? (
+                    <div className="skeleton h-11 w-full" />
+                  ) : meetings.length === 0 ? (
+                    <p className="border-2 border-dashed border-dark/40 bg-white px-3 py-2.5 text-sm text-dark/60">Belum ada sesi. Buat sesi pertama.</p>
+                  ) : (
+                    <Select
+                      id="meeting-select"
+                      aria-label="Pilih sesi"
+                      value={selectedMeetingId}
+                      onChange={setSelectedMeetingId}
+                      searchable={meetings.length > 8}
+                      options={meetings.map((m) => ({ value: m.id, label: m.title, hint: fmtDate(m.starts_at) }))}
+                    />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateForm(true)}
+                  className={`${FONT_D} inline-flex min-h-11 shrink-0 items-center justify-center gap-1.5 border-2 border-dark bg-[#FFF3C4] px-4 text-xs font-bold uppercase tracking-wider text-dark shadow-[3px_3px_0_#1A1A1A] transition-[transform,box-shadow] hover:-translate-y-0.5 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none`}
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} />
+                  Sesi baru
+                </button>
+              </div>
 
-          {/* Tab 1: Antrian */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'registrations'}
-            onClick={() => handleTabChange('registrations')}
-            className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'registrations'
-                ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
-                : 'z-[9] bg-[#FFF9DC] text-[#1A1A1A] hover:-translate-y-1 shadow-[2px_0_0_#1A1A1A]'
-            }`}
-          >
-            <Users className="h-4 w-4 shrink-0" />
-            <span>Antrian pendaftar</span>
-            {registrations.length > 0 && (
-              <span className="border border-[#1A1A1A] bg-[#FFF3C4] px-1.5 py-0.2 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold text-[#1A1A1A]">
-                {registrations.length}
-              </span>
-            )}
-          </button>
-
-          {/* Tab 2: Anggota */}
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === 'members'}
-            onClick={() => handleTabChange('members')}
-            className={`group relative -ml-3.5 inline-flex items-center gap-2 border-2 border-[#1A1A1A] border-b-0 px-4 md:px-6 py-2.5 md:py-3 font-[family-name:var(--font-outfit)] text-xs md:text-sm font-black uppercase tracking-wider transition-all cursor-pointer ${
-              activeTab === 'members'
-                ? 'z-30 bg-[#7A1B2E] text-white pt-3.5 md:pt-4 pb-3 shadow-[3px_0_0_#1A1A1A]'
-                : 'z-[8] bg-[#FCE9ED] text-[#1A1A1A] hover:-translate-y-1 shadow-[2px_0_0_#1A1A1A]'
-            }`}
-          >
-            <Users className="h-4 w-4 shrink-0" />
-            <span>Anggota</span>
-            <span className="border border-[#1A1A1A] bg-[#FFF3C4] px-1.5 py-0.2 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-bold text-[#1A1A1A]">
-              {members.length}
-            </span>
-          </button>
-        </div>
-
-        {/* Tumpukan Kertas (Physical Paper Stack Deck) */}
-        <div className="relative mr-3 md:mr-6">
-          {/* Layer 2 (Paling belakang — offset 16px tilt -0.9deg) */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[3px_3px_0_#1A1A1A] transition-colors duration-500 ease-out"
-            style={{
-              backgroundColor: backSheetColor,
-              transform: 'translate(16px, 16px) rotate(-0.9deg)',
-              zIndex: 1,
-              backgroundImage: 'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
-            }}
-          />
-
-          {/* Layer 1 (Tengah / Di bawahnya — offset 8px tilt 0.9deg) */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A] transition-colors duration-500 ease-out"
-            style={{
-              backgroundColor: middleSheetColor,
-              transform: 'translate(8px, 8px) rotate(0.9deg)',
-              zIndex: 2,
-              backgroundImage: 'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
-            }}
-          />
-
-          {/* Animasi Kertas Dicabut & Meluncur ke Belakang Tumpukan */}
-          <AnimatePresence>
-            {!reduceMotion && animatingTab && (
-              <motion.div
-                key={`shuffle-${animatingTab}`}
-                initial={{ x: 0, y: 0, rotate: 0, zIndex: 40, opacity: 1 }}
-                animate={isMobile ? {
-                  x: [0, 24, 8],
-                  y: [0, -12, 8],
-                  rotate: [0, 4, -0.9],
-                  zIndex: [40, 40, 1],
-                  opacity: [1, 1, 0],
-                } : {
-                  x: [0, 75, 16],
-                  y: [0, -32, 16],
-                  rotate: [0, 5, -0.9],
-                  zIndex: [40, 40, 1],
-                  opacity: [1, 1, 0],
-                }}
-                transition={{
-                  duration: 0.52,
-                  times: [0, 0.42, 1],
-                  ease: [0.25, 0.9, 0.3, 1.15],
-                }}
-                onAnimationComplete={() => setAnimatingTab(null)}
-                className="absolute inset-0 pointer-events-none border-2 border-[#1A1A1A] shadow-[5px_5px_0_#1A1A1A]"
-                style={{
-                  backgroundColor: TAB_COLORS[animatingTab],
-                  backgroundImage:
-                    'repeating-linear-gradient(0deg, transparent 0 27px, rgba(26,26,26,0.06) 27px 28px)',
-                }}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* Layer 0 (Kertas Depan / Konten Aktif) */}
-          <motion.section
-            key={activeTab}
-            initial={reduceMotion ? false : { opacity: 0.85, scale: 0.995 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            role="tabpanel"
-            className="relative z-10 border-2 border-[#1A1A1A] p-5 md:p-8 shadow-[6px_6px_0_#7A1B2E] transition-colors duration-300"
-            style={{ backgroundColor: frontSheetColor }}
-          >
-            {/* Tab Content: Absen */}
-            {activeTab === 'absen' && (
-              <div className="space-y-6">
-                {/* Header Sheet Absen */}
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b-2 border-dashed border-[#1A1A1A]/30 pb-5">
-                  <div>
-                    <h2 className="font-[family-name:var(--font-outfit)] text-xl md:text-2xl font-black uppercase text-[#1A1A1A]">
-                      Absensi — <span className="text-[#7A1B2E]">{approvedCount}/{attendances.length}</span> tervalidasi
-                    </h2>
-                    <p className="mt-1 font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase text-[#1A1A1A]/70">
-                      // Sesi aktif: {selectedMeeting ? selectedMeeting.title : 'Belum pilih sesi'} · validasi kehadiran
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    {attendances.some((a) => a.status === 'pending') && (
+              {/* Ringkasan validasi */}
+              {selectedMeeting && (
+                <div className="border-2 border-dark bg-white p-4 shadow-[4px_4px_0_#1A1A1A] md:p-5">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-dark/70">{selectedMeeting.title} · {fmtDate(selectedMeeting.starts_at)}</p>
+                      <p className={`${FONT_D} mt-1 text-2xl font-black text-dark`}>
+                        <span className="text-maroon">{approvedCount}</span>
+                        <span className="text-dark/40">/{attendances.length}</span>
+                        <span className="ml-2 text-sm font-bold uppercase tracking-wide text-dark/60">tervalidasi</span>
+                      </p>
+                    </div>
+                    {pendingCount > 0 && (
                       <button
                         type="button"
                         onClick={handleApproveAllAttendance}
                         disabled={isPending}
-                        className="inline-flex items-center gap-1.5 border-2 border-[#1A1A1A] bg-[#7A1B2E] px-4 py-2 font-[family-name:var(--font-outfit)] text-xs font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_#1A1A1A] hover:bg-[#A62639] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
+                        className={`${FONT_D} inline-flex items-center gap-1.5 border-2 border-dark bg-maroon px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-[3px_3px_0_#1A1A1A] transition-all hover:bg-hot active:translate-x-[2px] active:translate-y-[2px] active:shadow-none disabled:opacity-60`}
                       >
-                        <CheckCheck className="w-4 h-4" />
-                        <span>Setujui Semua</span>
+                        <CheckCheck className="h-4 w-4" />
+                        Setujui semua ({pendingCount})
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateForm((v) => !v)}
-                      className="inline-flex items-center gap-1.5 border-2 border-[#1A1A1A] bg-[#FFF3C4] px-4 py-2 font-[family-name:var(--font-outfit)] text-xs font-bold uppercase tracking-wider text-[#1A1A1A] shadow-[3px_3px_0_#1A1A1A] hover:bg-[#7A1B2E] hover:text-white transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>{showCreateForm ? 'Tutup Form' : 'Buat Sesi'}</span>
-                    </button>
+                  </div>
+                  <div className="mt-3 h-2.5 overflow-hidden border-2 border-dark bg-paper">
+                    <motion.div className="h-full bg-maroon" initial={false} animate={{ width: `${progress}%` }} transition={GLIDE} />
                   </div>
                 </div>
+              )}
 
-                {/* Buat Sesi */}
-          <div className="border-2 border-[#1A1A1A] bg-white p-4 shadow-[3px_3px_0_#1A1A1A]">
-            <div className="flex items-center justify-between gap-4">
-              <p className="font-mono text-xs uppercase font-bold text-[#1A1A1A]">
-                Sesi belum ada? Bikin dulu.
-              </p>
-              <button
-                onClick={() => setShowCreateForm((v) => !v)}
-                className="flex items-center gap-1.5 px-3 py-1.5 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#FFF3C4] hover:bg-[#7A1B2E] hover:text-white transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Buat Sesi
-              </button>
-            </div>
+              {/* Daftar hadir */}
+              {loadingAttendances ? (
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => <div key={i} className="skeleton h-16 w-full" />)}
+                </div>
+              ) : selectedMeeting && attendances.length === 0 ? (
+                <EmptyState icon={ClipboardList} text="Belum ada yang absen di sesi ini." />
+              ) : (
+                <ul className="grid gap-3 lg:grid-cols-2">
+                  {attendances.map((att) => (
+                    <li key={att.id} className="flex min-w-0 items-center gap-3 border-2 border-dark bg-white p-3 shadow-[3px_3px_0_#1A1A1A]">
+                      <Initials name={att.profiles?.full_name || '?'} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-dark">{att.profiles?.full_name || 'Tanpa profil'}</p>
+                        <p className="truncate font-mono text-[11px] text-dark/60">
+                          {att.profiles?.nim || '-'} · {att.profiles?.prodi || '-'} · {fmtTime(att.checked_at)}
+                        </p>
+                      </div>
+                      <StatusPill approved={att.status === 'approved'} />
+                      <div className="flex shrink-0 gap-1.5">
+                        {att.status === 'pending' && (
+                          <IconBtn label="Setujui" tone="ok" onClick={() => handleApproveAttendance(att.id)} disabled={isPending}>
+                            <Check className="h-4 w-4" strokeWidth={3} />
+                          </IconBtn>
+                        )}
+                        <IconBtn label="Hapus absen" tone="danger" onClick={() => handleRevokeAttendance(att.id)} disabled={isPending}>
+                          <Trash2 className="h-4 w-4" />
+                        </IconBtn>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
 
-            {showCreateForm && (
-              <form
-                onSubmit={(e) => { e.preventDefault(); handleCreateMeeting() }}
-                className="mt-4 grid grid-cols-1 md:grid-cols-6 gap-3 items-end border-t-2 border-dashed border-[#1A1A1A]/30 pt-4"
-              >
-                <div className="md:col-span-2">
-                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Judul Sesi</label>
-                  <input
-                    type="text"
-                    value={newMeeting.title}
-                    onChange={(e) => setNewMeeting((s) => ({ ...s, title: e.target.value }))}
-                    placeholder="Kumpul Study #5"
-                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Tanggal (WIB)</label>
-                  <input
-                    type="date"
-                    value={newMeeting.date}
-                    onChange={(e) => setNewMeeting((s) => ({ ...s, date: e.target.value }))}
-                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Mulai</label>
-                  <input
-                    type="time"
-                    value={newMeeting.start}
-                    onChange={(e) => setNewMeeting((s) => ({ ...s, start: e.target.value }))}
-                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
-                  />
-                </div>
-                <div>
-                  <label className="block font-mono text-[10px] uppercase font-bold mb-1">Selesai</label>
-                  <input
-                    type="time"
-                    value={newMeeting.end}
-                    onChange={(e) => setNewMeeting((s) => ({ ...s, end: e.target.value }))}
-                    className="w-full border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={creatingMeeting}
-                  className="w-full px-3 py-2 border-2 border-[#1A1A1A] text-xs font-bold uppercase shadow-[2px_2px_0_#1A1A1A] bg-[#7A1B2E] text-white hover:bg-[#5d1524] transition-colors disabled:opacity-50"
-                >
-                  {creatingMeeting ? 'Menyimpan...' : 'Simpan Sesi'}
-                </button>
-                <p className="md:col-span-6 font-mono text-[10px] text-gray-500">
-                  // Jam pakai WIB. Absen terbuka otomatis 30 menit sebelum sesi mulai sampai sesi selesai.
-                </p>
-              </form>
-            )}
-          </div>
-
-          {/* Meeting Selector */}
-          <div className="border-2 border-[#1A1A1A] bg-white p-4 shadow-[3px_3px_0_#1A1A1A] flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <Calendar className="w-5 h-5 text-[#7A1B2E] shrink-0" />
-              <label htmlFor="meeting-select" className="font-bold text-xs uppercase font-mono">Pilih Sesi:</label>
-            </div>
-            
-            {loadingMeetings ? (
-              <Loader2 className="w-5 h-5 animate-spin text-[#7A1B2E]" />
-            ) : meetings.length === 0 ? (
-              <p className="text-xs font-mono text-gray-500">Belum ada sesi tersedia.</p>
+          {/* ── PENDAFTAR ── */}
+          {activeTab === 'registrations' && (
+            loadingRegs ? (
+              <div className="space-y-3">{[0, 1].map((i) => <div key={i} className="skeleton h-28 w-full" />)}</div>
+            ) : registrations.length === 0 ? (
+              <EmptyState icon={UserPlus} text="Tidak ada pendaftar yang menunggu." />
             ) : (
-              <select
-                id="meeting-select"
-                value={selectedMeetingId}
-                onChange={(e) => setSelectedMeetingId(e.target.value)}
-                className="w-full md:w-96 border-2 border-[#1A1A1A] p-2 bg-[#F5F3EF] font-mono text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[#7A1B2E]"
-              >
-                {meetings.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.title} ({new Date(m.starts_at).toLocaleDateString('id-ID')})
-                  </option>
+              <ul className="grid gap-4 lg:grid-cols-2">
+                {registrations.map((reg) => (
+                  <li key={reg.id} className="flex min-w-0 flex-col border-2 border-dark bg-white shadow-[4px_4px_0_#1A1A1A]">
+                    <div className="flex items-start gap-3 p-4">
+                      <Initials name={reg.full_name} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold leading-tight text-dark">{reg.full_name}</p>
+                        <p className="mt-0.5 font-mono text-[11px] text-dark/60">{reg.nim} · {reg.prodi}</p>
+                        <p className="truncate font-mono text-[11px] text-dark/50">{reg.email}</p>
+                      </div>
+                      <span className="shrink-0 font-mono text-[10px] text-dark/45">{fmtDate(reg.created_at)}</span>
+                    </div>
+                    {reg.reason && (
+                      <p className="mx-4 mb-4 border-l-4 border-maroon bg-[#FFF9DC] px-3 py-2 text-sm text-dark/85">{reg.reason}</p>
+                    )}
+                    <div className="mt-auto grid grid-cols-2 border-t-2 border-dark">
+                      <button
+                        type="button"
+                        onClick={() => handleRejectRegistration(reg.id)}
+                        disabled={isPending}
+                        className={`${FONT_D} inline-flex items-center justify-center gap-1.5 border-r-2 border-dark py-2.5 text-xs font-black uppercase tracking-wider text-dark transition-colors hover:bg-[#F8D7DA] disabled:opacity-60`}
+                      >
+                        <X className="h-4 w-4" strokeWidth={3} />
+                        Tolak
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleApproveRegistration(reg.id)}
+                        disabled={isPending}
+                        className={`${FONT_D} inline-flex items-center justify-center gap-1.5 bg-maroon py-2.5 text-xs font-black uppercase tracking-wider text-white transition-colors hover:bg-hot disabled:opacity-60`}
+                      >
+                        <Check className="h-4 w-4" strokeWidth={3} />
+                        Terima
+                      </button>
+                    </div>
+                  </li>
                 ))}
-              </select>
-            )}
-          </div>
+              </ul>
+            )
+          )}
 
-          {/* Attendances Table */}
-          <div className="border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-hidden">
-            <div className="p-4 bg-[#F5F3EF] border-b-2 border-[#1A1A1A] flex justify-between items-center">
-              <h3 className="font-black uppercase font-[family-name:var(--font-outfit)] text-sm">
-                Daftar Hadir Sesi ({attendances.length} Anggota)
-              </h3>
-              <span className="font-mono text-[10px] bg-[#D1E7DD] border border-[#1A1A1A] px-2 py-0.5 font-bold">
-                LIVE SYNC (SUPABASE REALTIME)
-              </span>
-            </div>
-
-            {loadingAttendances ? (
-              <div className="flex justify-center items-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
+          {/* ── ANGGOTA ── */}
+          {activeTab === 'members' && (
+            <>
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-dark/40" />
+                <input
+                  type="search"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  placeholder="Cari nama, NIM, atau prodi"
+                  className="w-full border-2 border-dark bg-white py-2.5 pl-9 pr-3 text-sm text-dark placeholder-dark/40 transition-shadow focus:shadow-[4px_4px_0_#7A1B2E] focus:outline-none md:max-w-md"
+                />
               </div>
-            ) : attendances.length === 0 ? (
-              <div className="p-8 text-center font-mono text-xs text-gray-500">
-                Belum ada anggota yang melakukan absen pada sesi ini.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
-                      <th className="p-3 border-r-2 border-[#1A1A1A]">Nama Lengkap</th>
-                      <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
-                      <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi</th>
-                      <th className="p-3 border-r-2 border-[#1A1A1A]">Waktu Absen</th>
-                      <th className="p-3 border-r-2 border-[#1A1A1A]">Status</th>
-                      <th className="p-3 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
-                    {attendances.map((att) => (
-                      <tr key={att.id} className="border-b border-[#1A1A1A] hover:bg-gray-50">
-                        <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
-                          {att.profiles?.full_name || 'Tanpa Profil'}
-                        </td>
-                        <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
-                          {att.profiles?.nim || '-'}
-                        </td>
-                        <td className="p-3 border-r-2 border-[#1A1A1A] text-xs">
-                          {att.profiles?.prodi || '-'}
-                        </td>
-                        <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
-                          {new Date(att.checked_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} WIB
-                        </td>
-                        <td className="p-3 border-r-2 border-[#1A1A1A]">
-                          <span className={`inline-block font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] font-bold uppercase ${
-                            att.status === 'approved' ? 'bg-[#D1E7DD] text-green-900' : 'bg-[#FFF3C4] text-yellow-900'
-                          }`}>
-                            {att.status}
+              {loadingMembers ? (
+                <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="skeleton h-16 w-full" />)}</div>
+              ) : filteredMembers.length === 0 ? (
+                <EmptyState icon={Users} text={memberSearch ? 'Tidak ada anggota yang cocok.' : 'Belum ada anggota.'} />
+              ) : (
+                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {filteredMembers.map((member) => (
+                    <li key={member.id} className="flex min-w-0 gap-3 border-2 border-dark bg-white p-3 shadow-[3px_3px_0_#1A1A1A]">
+                      <Initials name={member.full_name} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="truncate font-bold leading-tight text-dark">{member.full_name}</p>
+                          <span className={`shrink-0 border border-dark px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase ${member.role === 'anggota' ? 'bg-white' : 'bg-[#FFF3C4]'}`}>
+                            {member.role}
                           </span>
-                        </td>
-                        <td className="p-3 text-center flex items-center justify-center gap-2">
-                          {att.status === 'pending' && (
-                            <button
-                              onClick={() => handleApproveAttendance(att.id)}
-                              disabled={isPending}
-                              title="Setujui Absen"
-                              className="px-2 py-1 bg-[#D1E7DD] border border-[#1A1A1A] font-mono text-xs font-bold hover:bg-green-300 transition-colors shadow-[1px_1px_0_#1A1A1A]"
-                            >
-                              Approve
-                            </button>
-                          )}
-                          <button
-                            onClick={() => handleRevokeAttendance(att.id)}
-                            disabled={isPending}
-                            title="Hapus Absen"
-                            className="p-1 bg-[#F8D7DA] border border-[#1A1A1A] text-[#7A1B2E] hover:bg-red-300 transition-colors shadow-[1px_1px_0_#1A1A1A]"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                        </div>
+                        <p className="truncate font-mono text-[11px] text-dark/60">{member.nim} · {member.prodi}</p>
+                        {member.reason && <p className="mt-1.5 line-clamp-2 text-xs text-dark/65">{member.reason}</p>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* ── Panel buat sesi ── */}
+      <SideSheet
+        open={showCreateForm}
+        onClose={() => setShowCreateForm(false)}
+        label="Sesi baru"
+        width="sm:w-[min(460px,92vw)]"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowCreateForm(false)}
+              className={`${FONT_D} border-2 border-dark bg-white px-5 py-2.5 text-sm font-black uppercase tracking-wide text-dark shadow-[3px_3px_0_#1A1A1A] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none`}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="create-meeting"
+              disabled={creatingMeeting}
+              className={`${FONT_D} inline-flex items-center gap-2 border-2 border-dark bg-maroon px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white shadow-[3px_3px_0_#1A1A1A] transition-colors hover:bg-hot active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-60`}
+            >
+              {creatingMeeting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Simpan sesi
+            </button>
           </div>
-        </div>
-      )}
-
-            {/* Tab Content: Registrations */}
-            {activeTab === 'registrations' && (
-              <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b-2 border-dashed border-[#1A1A1A]/30 pb-4">
-                  <div>
-                    <h2 className="font-[family-name:var(--font-outfit)] text-xl md:text-2xl font-black uppercase text-[#1A1A1A]">
-                      Antrian Pendaftar ({registrations.length})
-                    </h2>
-                    <p className="mt-1 font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase text-[#1A1A1A]/70">
-                      // Terima atau tolak calon anggota baru
-                    </p>
-                  </div>
-                  <span className="border-2 border-[#1A1A1A] bg-[#FFF3C4] px-2.5 py-1 font-[family-name:var(--font-ibm-plex-mono)] text-[10px] font-black uppercase tracking-wider text-[#1A1A1A] self-start md:self-auto shadow-[2px_2px_0_#1A1A1A]">
-                    PENDING APPROVAL
-                  </span>
-                </div>
-
-                {loadingRegs ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
-                  </div>
-                ) : registrations.length === 0 ? (
-                  <div className="p-8 text-center border-2 border-dashed border-[#1A1A1A] font-mono text-xs text-gray-500 bg-white">
-                    // Antrian kosong. Semua pendaftar sudah diproses.
-                  </div>
-                ) : (
-                  <ul className="border-2 border-[#1A1A1A] bg-white divide-y-2 divide-[#1A1A1A] shadow-[4px_4px_0_#1A1A1A]">
-                    {registrations.map((reg) => (
-                      <li key={reg.id} className="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50/80 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                            <span className="font-bold text-base text-[#1A1A1A]">{reg.full_name}</span>
-                            <span className="font-mono text-xs font-bold bg-[#F5F3EF] border border-[#1A1A1A] px-2 py-0.5">
-                              {reg.nim}
-                            </span>
-                            <span className="text-xs font-bold text-[#7A1B2E]">
-                              {reg.prodi}
-                            </span>
-                            <span className="font-mono text-xs text-gray-500">
-                              · {reg.email}
-                            </span>
-                          </div>
-                          {reg.reason && (
-                            <p className="font-[family-name:var(--font-work-sans)] text-sm italic text-[#1A1A1A]/85 mt-2 bg-[#FFF9DC] p-2.5 border border-dashed border-[#1A1A1A]/40">
-                              “{reg.reason}”
-                            </p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => handleRejectRegistration(reg.id)}
-                            disabled={isPending}
-                            className="px-4 py-2 border-2 border-[#1A1A1A] bg-white text-[#1A1A1A] font-[family-name:var(--font-outfit)] text-xs font-black uppercase tracking-wider shadow-[2px_2px_0_#7A1B2E] hover:bg-[#F8D7DA] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
-                          >
-                            Tolak
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleApproveRegistration(reg.id)}
-                            disabled={isPending}
-                            className="px-4 py-2 border-2 border-[#1A1A1A] bg-[#7A1B2E] text-white font-[family-name:var(--font-outfit)] text-xs font-black uppercase tracking-wider shadow-[2px_2px_0_#1A1A1A] hover:bg-[#A62639] transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-none cursor-pointer"
-                          >
-                            Terima
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-
-            {/* Tab Content: Members */}
-            {activeTab === 'members' && (
-              <div className="space-y-6">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b-2 border-dashed border-[#1A1A1A]/30 pb-4">
-                  <div>
-                    <h2 className="font-[family-name:var(--font-outfit)] text-xl md:text-2xl font-black uppercase text-[#1A1A1A]">
-                      Semua Anggota ({filteredMembers.length})
-                    </h2>
-                    <p className="mt-1 font-[family-name:var(--font-ibm-plex-mono)] text-xs uppercase text-[#1A1A1A]/70">
-                      // Urut nama A–Z · data alasan diambil dari pendaftaran approved
-                    </p>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="search"
-                      value={memberSearch}
-                      onChange={(e) => setMemberSearch(e.target.value)}
-                      placeholder="Cari nama, NIM, prodi, alasan..."
-                      className="w-full md:w-80 border-2 border-[#1A1A1A] bg-white px-3.5 py-2 font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold focus:outline-none focus:shadow-[4px_4px_0_#7A1B2E] transition-shadow"
-                    />
-                  </div>
-                </div>
-
-                {loadingMembers ? (
-                  <div className="flex justify-center items-center py-12">
-                    <Loader2 className="w-6 h-6 animate-spin text-[#7A1B2E]" />
-                  </div>
-                ) : filteredMembers.length === 0 ? (
-                  <div className="p-8 text-center border-2 border-dashed border-[#1A1A1A] font-mono text-xs text-gray-500 bg-white">
-                    {memberSearch ? '// Tidak ada anggota yang cocok dengan pencarian.' : '// Belum ada anggota terdaftar.'}
-                  </div>
-                ) : (
-                  <>
-                    {/* Mobile: Card list */}
-                    <div className="flex flex-col gap-3 md:hidden">
-                      {filteredMembers.map((member) => (
-                        <div key={member.id} className="border-2 border-[#1A1A1A] bg-white shadow-[3px_3px_0_#1A1A1A] p-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-bold font-[family-name:var(--font-work-sans)] text-[#1A1A1A] leading-tight">
-                              {member.full_name}
-                            </p>
-                            <span className="flex-none font-mono text-[10px] px-2 py-0.5 border-2 border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
-                              {member.role}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-mono text-[11px] text-[#1A1A1A]/70">
-                            <span>NIM: {member.nim}</span>
-                            <span>{member.prodi}</span>
-                          </div>
-                          <p className="mt-2 border-t border-dashed border-[#1A1A1A]/30 pt-2 font-[family-name:var(--font-work-sans)] text-xs italic text-gray-700">
-                            {member.reason || 'Belum ada alasan tersimpan.'}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Desktop: Table */}
-                    <div className="hidden border-2 border-[#1A1A1A] bg-white shadow-[4px_4px_0_#1A1A1A] overflow-x-auto md:block">
-                      <table className="w-full text-left border-collapse min-w-[640px]">
-                        <thead>
-                          <tr className="border-b-2 border-[#1A1A1A] font-mono text-xs bg-[#F5F3EF]">
-                            <th className="p-3 border-r-2 border-[#1A1A1A]">Nama</th>
-                            <th className="p-3 border-r-2 border-[#1A1A1A]">NIM</th>
-                            <th className="p-3 border-r-2 border-[#1A1A1A]">Prodi/Kelas</th>
-                            <th className="p-3 border-r-2 border-[#1A1A1A]">Role</th>
-                            <th className="p-3">Alasan Masuk USRC</th>
-                          </tr>
-                        </thead>
-                        <tbody className="font-[family-name:var(--font-work-sans)] text-sm">
-                          {filteredMembers.map((member) => (
-                            <tr key={member.id} className="border-b border-[#1A1A1A] hover:bg-gray-50 transition-colors">
-                              <td className="p-3 border-r-2 border-[#1A1A1A] font-bold">
-                                {member.full_name}
-                              </td>
-                              <td className="p-3 border-r-2 border-[#1A1A1A] font-mono text-xs">
-                                {member.nim}
-                              </td>
-                              <td className="p-3 border-r-2 border-[#1A1A1A] text-xs font-bold">
-                                {member.prodi}
-                              </td>
-                              <td className="p-3 border-r-2 border-[#1A1A1A]">
-                                <span className="inline-block font-mono text-[10px] px-2 py-0.5 border border-[#1A1A1A] bg-[#FFF3C4] font-bold uppercase">
-                                  {member.role}
-                                </span>
-                              </td>
-                              <td className="p-3 text-xs italic text-gray-700 max-w-md">
-                                {member.reason || 'Belum ada alasan tersimpan.'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </motion.section>
-        </div>
-      </div>
-
-      {/* Subtle Footer */}
-      <footer className="text-center font-[family-name:var(--font-ibm-plex-mono)] text-xs text-dark/50 pt-4">
-        [USRC UBSI PONTIANAK] — Area Anggota &amp; Sekretariat
-      </footer>
+        }
+      >
+        <form id="create-meeting" onSubmit={(e) => { e.preventDefault(); handleCreateMeeting() }} className="space-y-4 p-4 sm:p-6">
+          <SheetField label="Judul sesi">
+            <input
+              type="text"
+              value={newMeeting.title}
+              onChange={(e) => setNewMeeting((s) => ({ ...s, title: e.target.value }))}
+              placeholder="Kumpul Study #5"
+              className={FIELD}
+            />
+          </SheetField>
+          <SheetField label="Tanggal">
+            <input type="date" value={newMeeting.date} onChange={(e) => setNewMeeting((s) => ({ ...s, date: e.target.value }))} className={FIELD} />
+          </SheetField>
+          <div className="grid grid-cols-2 gap-3">
+            <SheetField label="Mulai">
+              <input type="time" value={newMeeting.start} onChange={(e) => setNewMeeting((s) => ({ ...s, start: e.target.value }))} className={FIELD} />
+            </SheetField>
+            <SheetField label="Selesai">
+              <input type="time" value={newMeeting.end} onChange={(e) => setNewMeeting((s) => ({ ...s, end: e.target.value }))} className={FIELD} />
+            </SheetField>
+          </div>
+          <p className="border-l-4 border-maroon bg-paper px-3 py-2 text-xs leading-relaxed text-dark/70">
+            Jam dalam WIB. Absen otomatis dibuka 30 menit sebelum sesi mulai sampai sesi selesai.
+          </p>
+        </form>
+      </SideSheet>
     </div>
+  )
+}
+
+// ── Komponen kecil ──
+const FONT_D = 'font-[family-name:var(--font-outfit)]'
+const FIELD =
+  'w-full border-2 border-dark bg-white px-3 py-2.5 text-sm text-dark placeholder-dark/40 transition-shadow focus:shadow-[4px_4px_0_#7A1B2E] focus:outline-none'
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Pontianak' })
+const fmtTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Pontianak' })
+
+function Initials({ name }: { name: string }) {
+  const ini = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?'
+  return (
+    <span className={`${FONT_D} grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-dark bg-[#FCE9ED] text-sm font-black text-maroon`}>
+      {ini}
+    </span>
+  )
+}
+
+function StatusPill({ approved }: { approved: boolean }) {
+  return (
+    <span className={`hidden shrink-0 border border-dark px-2 py-0.5 font-mono text-[10px] font-bold uppercase sm:inline-block ${approved ? 'bg-[#D1E7DD] text-green-900' : 'bg-[#FFF3C4] text-amber-900'}`}>
+      {approved ? 'Hadir' : 'Pending'}
+    </span>
+  )
+}
+
+function IconBtn({ label, tone, onClick, disabled, children }: { label: string; tone: 'ok' | 'danger'; onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+      disabled={disabled}
+      className={`grid h-9 w-9 place-items-center border-2 border-dark shadow-[2px_2px_0_#1A1A1A] transition-[transform,box-shadow,background-color] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 ${
+        tone === 'ok' ? 'bg-[#D1E7DD] text-green-900 hover:bg-[#b9dcc8]' : 'bg-[#F8D7DA] text-maroon hover:bg-[#f1bfc4]'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function EmptyState({ icon: Icon, text }: { icon: typeof Users; text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2 border-2 border-dashed border-dark/40 bg-white px-6 py-12 text-center">
+      <Icon className="h-8 w-8 text-dark/25" />
+      <p className="text-sm text-dark/60">{text}</p>
+    </div>
+  )
+}
+
+function SheetField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block font-mono text-[11px] font-semibold uppercase tracking-[.12em] text-dark/70">{label}</span>
+      {children}
+    </label>
   )
 }
 

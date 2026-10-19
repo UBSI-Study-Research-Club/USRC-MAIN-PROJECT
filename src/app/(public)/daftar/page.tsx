@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { HOBI_OPTIONS } from "@/lib/hobi";
+import { Select } from "@/components/Select";
 
 const PRODI_OPTIONS = [
   "Informatika",
@@ -49,6 +50,12 @@ export default function DaftarPage() {
     if (form.website.trim() !== "") {
       setStatus("error");
       setErrorMsg("Aktivitas tidak valid terdeteksi.");
+      return;
+    }
+
+    if (!form.prodi) {
+      setStatus("error");
+      setErrorMsg("Pilih program studi dulu ya.");
       return;
     }
 
@@ -233,20 +240,13 @@ export default function DaftarPage() {
             <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
               Program Studi *
             </label>
-            <select
-              name="prodi"
-              required
+            <Select
+              id="prodi"
               value={form.prodi}
-              onChange={handleChange}
-              className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"
-            >
-              <option value="">— Pilih prodi —</option>
-              {PRODI_OPTIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((prev) => ({ ...prev, prodi: v }))}
+              placeholder="Pilih prodi"
+              options={PRODI_OPTIONS}
+            />
           </div>
 
           {/* Hobi/Minat */}
