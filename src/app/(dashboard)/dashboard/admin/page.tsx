@@ -5,7 +5,7 @@ import { Select } from '@/components/Select'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 import { withHttps, getPdfViewUrl } from '@/lib/url'
-import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock, Trash2, CalendarDays, Ban, RotateCcw, BarChart3, FileText, ExternalLink } from 'lucide-react'
+import { Users, Images, Search, Check, X, Loader2, AlertCircle, Lock, Trash2, CalendarDays, Ban, RotateCcw, BarChart3, FileText, ExternalLink, ImagePlus } from 'lucide-react'
 import { GlidePill, GLIDE } from '@/components/motion/Glide'
 import { KaryaCover } from '@/components/KaryaCover'
 
@@ -263,10 +263,35 @@ function AdminDashboardContent() {
         if (error) throw error
 
         setProjects((prev) => prev.filter((p) => p.id !== projectId))
+
+        // Cover otomatis: ambil og:image dari link karya (fire-and-forget —
+        // gagal tidak mempengaruhi approval, karya tetap tayang dengan placeholder).
+        fetch(`/api/karya/${projectId}/cover`, { method: 'POST' }).catch(() => {})
       } catch (err: any) {
         alert('Gagal menyetujui karya: ' + err.message)
       }
     })
+  }
+
+  // Ambil cover otomatis (backfill karya lama: ada link, belum punya gambar)
+  const [coverBusyId, setCoverBusyId] = useState<string | null>(null)
+  const handleGenerateCover = async (project: Project) => {
+    setCoverBusyId(project.id)
+    try {
+      const res = await fetch(`/api/karya/${project.id}/cover`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json.ok) {
+        setProjects((prev) =>
+          prev.map((p) => (p.id === project.id ? { ...p, image_url: json.image_url || p.image_url } : p))
+        )
+      } else {
+        alert('Cover gagal diambil: ' + (json.reason || `HTTP ${res.status}`))
+      }
+    } catch (err: any) {
+      alert('Gagal mengambil cover: ' + err.message)
+    } finally {
+      setCoverBusyId(null)
+    }
   }
 
   // Reject project
@@ -630,6 +655,14 @@ function AdminDashboardContent() {
               <ul className="grid gap-4 lg:grid-cols-2">
                 {sortedProjects.map((project) => {
                   const pending = project.status === 'pending'
+                  // Tombol ambil cover: karya tayang yang punya link web (bukan sosmed)
+                  // tapi belum punya gambar.
+                  const needsCover =
+                    !pending &&
+                    !project.image_url &&
+                    (project.project_links || []).some(
+                      (l) => !/(instagram|facebook|tiktok)\.com|(x|twitter)\.com/i.test(l.url || '')
+                    )
                   return (
                     <li key={project.id} className="flex min-w-0 flex-col border-2 border-dark bg-white" style={{ boxShadow: `4px 4px 0 ${pending ? '#7A1B2E' : '#1A1A1A'}` }}>
                       <div className="flex gap-3 p-3">
@@ -667,7 +700,7 @@ function AdminDashboardContent() {
                           )}
                         </div>
                       </div>
-                      <div className={`mt-auto grid border-t-2 border-dark ${pending ? 'grid-cols-[1fr_1fr_auto]' : 'grid-cols-1'}`}>
+                      <div className={`mt-auto grid border-t-2 border-dark ${pending ? 'grid-cols-[1fr_1fr_auto]' : needsCover ? 'grid-cols-[1fr_auto]' : 'grid-cols-1'}`}>
                         {pending && (
                           <>
                             <button type="button" onClick={() => handleRejectProject(project.id)} disabled={isPending} className={`${FONT_D} inline-flex items-center justify-center gap-1.5 border-r-2 border-dark py-2.5 text-xs font-black uppercase tracking-wider text-dark transition-colors hover:bg-[#F8D7DA] disabled:opacity-60`}>
@@ -677,6 +710,17 @@ function AdminDashboardContent() {
                               <Check className="h-4 w-4" strokeWidth={3} /> Setujui
                             </button>
                           </>
+                        )}
+                        {!pending && needsCover && (
+                          <button
+                            type="button"
+                            onClick={() => handleGenerateCover(project)}
+                            disabled={isPending || coverBusyId === project.id}
+                            title="Ambil gambar cover otomatis dari link karya"
+                            className={`${FONT_D} inline-flex items-center justify-center gap-1.5 border-r-2 border-dark py-2.5 text-xs font-black uppercase tracking-wider text-dark transition-colors hover:bg-[#FFF3C4] disabled:opacity-60`}
+                          >
+                            {coverBusyId === project.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />} Ambil Cover
+                          </button>
                         )}
                         <button
                           type="button"
