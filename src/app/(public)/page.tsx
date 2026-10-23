@@ -504,32 +504,14 @@ export default function LandingPage() {
           })
         }
 
-        // Fetch past meetings with attendee count
-        const { data: pastMeetings } = await supabase
-          .from("meetings")
-          .select("id, title, description, starts_at, ends_at")
-          .lt("ends_at", new Date().toISOString())
-          .order("ends_at", { ascending: false })
-          .limit(6);
-
-        if (pastMeetings && pastMeetings.length > 0) {
-          // Get attendee counts
-          const meetingIds = pastMeetings.map((m) => m.id);
-          const { data: attendances } = await supabase
-            .from("attendances")
-            .select("meeting_id")
-            .in("meeting_id", meetingIds)
-            .eq("status", "approved");
-
-          const countMap: Record<string, number> = {};
-          attendances?.forEach((a) => {
-            countMap[a.meeting_id] = (countMap[a.meeting_id] || 0) + 1;
-          });
-
+        // Fetch past meetings with attendee count via RLS-safe public RPC
+        const { data: pastMeetings, error: meetingsErr } = await supabase.rpc("get_public_past_meetings");
+        if (meetingsErr) console.error("past meetings RPC error:", meetingsErr);
+        if (pastMeetings) {
           setMeetings(
-            pastMeetings.map((m) => ({
+            (pastMeetings as any[]).map((m) => ({
               ...m,
-              attendee_count: countMap[m.id] || 0,
+              attendee_count: Number(m.attendee_count ?? 0),
             }))
           );
         }
