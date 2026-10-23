@@ -164,6 +164,26 @@ async function fetchCoverImage(candidates: string[]) {
   return null
 }
 
+async function fetchFallbackScreenshot(targetUrl: string) {
+  try {
+    const api = `https://api.microlink.io?url=${encodeURIComponent(targetUrl)}&screenshot=true`
+    const res = await fetch(api, {
+      headers: { 'User-Agent': UA, Accept: 'application/json' },
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!res.ok) return null
+    const json = await res.json().catch(() => null)
+    const shotUrl = json?.data?.screenshot?.url
+    if (!shotUrl || typeof shotUrl !== 'string') return null
+
+    const { buf } = await fetchCapped(shotUrl, IMAGE_MAX_BYTES, false)
+    if (buf.byteLength < 1000) return null
+    return { bytes: buf, mime: 'image/png' }
+  } catch {
+    return null
+  }
+}
+
 // ── 5. ORKESTRASI ──────────────────────────────────────────────
 function slug(s: string) {
   return (
@@ -212,10 +232,13 @@ export async function generateOgCover(
 
     const page = await fetchCapped(source, PAGE_MAX_BYTES, true)
     const candidates = extractImageCandidates(page.text, source)
-    if (candidates.length === 0) return { ok: false, reason: 'web tidak punya og:image/favicon' }
 
-    const img = await fetchCoverImage(candidates)
-    if (!img) return { ok: false, reason: 'gambar preview gagal diambil' }
+    let img = candidates.length > 0 ? await fetchCoverImage(candidates) : null
+    if (!img) {
+      // Fallback Opsi 1: ambil live snapshot screenshot jika web tidak memiliki og:image/favicon valid
+      img = await fetchFallbackScreenshot(source)
+    }
+    if (!img) return { ok: false, reason: 'gambar preview & screenshot gagal diambil' }
 
     const doc = await uploadDocumentToTelegram(
       new Blob([img.bytes], { type: img.mime }),
