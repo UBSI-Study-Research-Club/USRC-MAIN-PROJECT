@@ -8,24 +8,30 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return NextResponse.json({ ok: false, error: 'unauthorized', reason: 'unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-  if (profile?.role !== 'admin') {
-    return NextResponse.json({ error: 'forbidden' }, { status: 403 })
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    if (profile?.role !== 'admin') {
+      return NextResponse.json({ ok: false, error: 'forbidden', reason: 'forbidden' }, { status: 403 })
+    }
+
+    const { id } = await params
+    if (!/^[0-9a-f-]{36}$/i.test(id)) {
+      return NextResponse.json({ ok: false, error: 'id tidak valid', reason: 'id tidak valid' }, { status: 400 })
+    }
+
+    const result = await generateOgCover(id, supabase, user.id)
+    return NextResponse.json(result, { status: result.ok ? 200 : 422 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'terjadi kesalahan server'
+    console.error('cover endpoint error:', err)
+    return NextResponse.json({ ok: false, error: message, reason: message }, { status: 500 })
   }
-
-  const { id } = await params
-  if (!/^[0-9a-f-]{36}$/i.test(id)) {
-    return NextResponse.json({ error: 'id tidak valid' }, { status: 400 })
-  }
-
-  const result = await generateOgCover(id)
-  return NextResponse.json(result, { status: result.ok ? 200 : 422 })
 }
