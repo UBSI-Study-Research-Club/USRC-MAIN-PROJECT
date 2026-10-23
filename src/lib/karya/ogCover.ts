@@ -165,13 +165,6 @@ async function fetchCoverImage(candidates: string[]) {
 }
 
 // ── 5. ORKESTRASI ──────────────────────────────────────────────
-function serviceClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) throw new Error('env service role tidak lengkap')
-  return createClient(url, key, { auth: { persistSession: false } })
-}
-
 function slug(s: string) {
   return (
     s
@@ -187,17 +180,28 @@ function slug(s: string) {
  * karya yang sudah punya image_url akan di-skip.
  * Tidak pernah melempar — selalu return hasil.
  */
-export async function generateOgCover(projectId: string): Promise<CoverResult> {
-  // Import malas: modul ini juga dimuat oleh test Node murni (tanpa path alias).
-  const { uploadDocumentToTelegram, saveFileRow, fileUrl } = await import('@/lib/files/upload')
-  const supabase = serviceClient()
+export async function generateOgCover(
+  projectId: string,
+  callerClient?: any,
+  callerUserId?: string
+): Promise<CoverResult> {
   try {
-    const { data: project } = await supabase
+    const { uploadDocumentToTelegram, saveFileRow, fileUrl } = await import('@/lib/files/upload')
+
+    let supabase = callerClient
+    if (!supabase) {
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (!url || !key) return { ok: false, reason: 'env Supabase tidak lengkap' }
+      supabase = createClient(url, key, { auth: { persistSession: false } })
+    }
+
+    const { data: project, error: projErr } = await supabase
       .from('projects')
       .select('id, user_id, title, image_url, status, project_links(link_type, url, label)')
       .eq('id', projectId)
       .single()
-    if (!project) return { ok: false, reason: 'karya tidak ditemukan' }
+    if (projErr || !project) return { ok: false, reason: projErr?.message || 'karya tidak ditemukan' }
     if (project.image_url) return { ok: true, reason: 'sudah punya cover', image_url: project.image_url }
 
     const links: KaryaLink[] = project.project_links || []
@@ -220,7 +224,8 @@ export async function generateOgCover(projectId: string): Promise<CoverResult> {
     )
     if (!doc) return { ok: false, reason: 'upload ke datacenter gagal' }
 
-    const row = await saveFileRow(supabase, project.user_id, doc, `${slug(project.title)}-cover`, img.mime, img.bytes.byteLength)
+    const targetOwnerId = callerUserId || project.user_id
+    const row = await saveFileRow(supabase, targetOwnerId, doc, `${slug(project.title)}-cover`, img.mime, img.bytes.byteLength)
     if (!row) return { ok: false, reason: 'gagal menyimpan metadata file' }
 
     const { error: updErr } = await supabase
