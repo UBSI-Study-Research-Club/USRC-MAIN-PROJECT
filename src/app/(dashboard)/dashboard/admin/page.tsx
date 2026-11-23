@@ -449,30 +449,37 @@ function AdminDashboardContent() {
 
         if (attendancesError) throw attendancesError
 
-        // Build attendance map: { user_id -> { attended, pending, total } }
-        const attendanceMap: Record<string, { attended: number; pending: number; total: number }> = {}
+        // Fetch total sesi yang ada (sebagai denominator persentase kehadiran)
+        const { count: totalMeetingsCount, error: meetingsCountError } = await supabase
+          .from('meetings')
+          .select('id', { count: 'exact', head: true })
+
+        if (meetingsCountError) throw meetingsCountError
+        const totalMeetings = totalMeetingsCount ?? 0
+
+        // Build attendance map: { user_id -> { attended, pending } }
+        const attendanceMap: Record<string, { attended: number; pending: number }> = {}
 
         ;(attendances || []).forEach(att => {
           if (!attendanceMap[att.user_id]) {
-            attendanceMap[att.user_id] = { attended: 0, pending: 0, total: 0 }
+            attendanceMap[att.user_id] = { attended: 0, pending: 0 }
           }
-          attendanceMap[att.user_id].total++
           // DB cuma kenal 'approved' (hadir, disetujui sekre) dan 'pending' (menunggu)
           if (att.status === 'approved') attendanceMap[att.user_id].attended++
           else if (att.status === 'pending') attendanceMap[att.user_id].pending++
         })
 
-        // Build activity data
+        // Build activity data — persentase dihitung dari total sesi global, bukan cuma yang disubmit
         const data: ActivityData[] = (profiles || []).map(p => {
-          const stats = attendanceMap[p.id] || { attended: 0, pending: 0, total: 0 }
-          const rate = stats.total > 0 ? (stats.attended / stats.total) * 100 : 0
+          const stats = attendanceMap[p.id] || { attended: 0, pending: 0 }
+          const rate = totalMeetings > 0 ? (stats.attended / totalMeetings) * 100 : 0
           return {
             id: p.id,
             full_name: p.full_name,
             nim: p.nim,
             whatsapp: p.whatsapp || null,
             hobbies: p.hobbies || null,
-            total_sessions: stats.total,
+            total_sessions: totalMeetings,
             attended: stats.attended,
             pending: stats.pending,
             attendance_rate: Math.round(rate * 100) / 100
