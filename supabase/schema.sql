@@ -186,7 +186,8 @@ create policy "Insert attendance only within window"
   with check (
     auth.uid() = user_id and
     is_within_window(meeting_id) and
-    status = 'pending'
+    status = 'pending' and
+    exists (select 1 from profiles where id = auth.uid() and status = 'aktif')
   );
 
 create policy "Sekre and Admin update/delete attendance"
@@ -200,11 +201,18 @@ create policy "Public read approved projects, owner/admin read all"
 
 create policy "Member insert own project"
   on projects for insert
-  with check (auth.uid() = user_id and status = 'pending');
+  with check (
+    auth.uid() = user_id and status = 'pending' and
+    exists (select 1 from profiles where id = auth.uid() and status = 'aktif')
+  );
 
 create policy "Owner or Admin update/delete project"
   on projects for all
-  using (auth.uid() = user_id or get_my_role() = 'admin');
+  using (
+    (auth.uid() = user_id and
+     exists (select 1 from profiles where id = auth.uid() and status = 'aktif'))
+    or get_my_role() = 'admin'
+  );
 
 -- PROJECT_LINKS POLICIES (Gelombang B)
 create policy "Read links of visible projects"
@@ -221,12 +229,20 @@ create policy "Read links of visible projects"
 create policy "Owner manages links, admin all"
   on project_links for all
   using (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
+    (exists (
+       select 1 from projects p
+       where p.id = project_id and p.user_id = auth.uid()
+         and exists (select 1 from profiles pr where pr.id = auth.uid() and pr.status = 'aktif')
+     ))
+    or get_my_role() = 'admin' 
   )
   with check (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
+    (exists (
+       select 1 from projects p
+       where p.id = project_id and p.user_id = auth.uid()
+         and exists (select 1 from profiles pr where pr.id = auth.uid() and pr.status = 'aktif')
+     ))
+    or get_my_role() = 'admin' 
   );
 
 -- PROJECT_DETAIL_POINTS POLICIES (Gelombang C)
@@ -244,12 +260,20 @@ create policy "Read detail points of visible projects"
 create policy "Owner manages detail points, admin all"
   on project_detail_points for all
   using (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
+    (exists (
+       select 1 from projects p
+       where p.id = project_id and p.user_id = auth.uid()
+         and exists (select 1 from profiles pr where pr.id = auth.uid() and pr.status = 'aktif')
+     ))
+    or get_my_role() = 'admin' 
   )
   with check (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
+    (exists (
+       select 1 from projects p
+       where p.id = project_id and p.user_id = auth.uid()
+         and exists (select 1 from profiles pr where pr.id = auth.uid() and pr.status = 'aktif')
+     ))
+    or get_my_role() = 'admin' 
   );
 
 -- PROJECT MEMBERS (Fase 2 revamp: karya kelompok) — pembuat tambahan selain owner
@@ -281,8 +305,12 @@ create policy "Owner manages members, member can leave, admin all"
     or get_my_role() = 'admin'
   )
   with check (
-    exists (select 1 from projects p where p.id = project_id and p.user_id = auth.uid())
-    or get_my_role() = 'admin'
+    (exists (
+       select 1 from projects p
+       where p.id = project_id and p.user_id = auth.uid()
+         and exists (select 1 from profiles pr where pr.id = auth.uid() and pr.status = 'aktif')
+     ))
+    or get_my_role() = 'admin' 
   );
 
 -- PROJECT STARS (Fase 2 revamp: 1 anggota = 1 bintang per karya, toggle)
@@ -308,6 +336,7 @@ create policy "Member stars others' approved project"
   on project_stars for insert
   with check (
     user_id = auth.uid()
+    and exists (select 1 from profiles where id = auth.uid() and status = 'aktif')
     and exists (
       select 1 from projects p
       where p.id = project_id
@@ -534,3 +563,123 @@ alter table public.registrations drop constraint if exists registrations_email_n
 create unique index if not exists registrations_email_active_key
   on public.registrations (lower(email))
   where status in ('pending', 'approved');
+
+-- ============================================================
+-- 9. SECURITY HARDENING (2026-10-19 — insiden eskalasi role)
+-- Latar: policy RLS cuma cek BARIS bukan KOLOM, sehingga anggota bisa
+-- PATCH role/status/NIM sendiri via REST, dan bisa insert registrations
+-- status='approved' (daftar mandiri tanpa sekre). Penjaga = trigger.
+-- ============================================================
+
+-- 9a. Paksa pendaftaran baru selalu pending (approval hanya lewat UPDATE
+--     oleh sekre/admin via approve_registration / tombol Telegram).
+create or replace function public.force_registration_pending()
+returns trigger as $$
+begin
+  if new.status is distinct from 'pending' then
+    raise exception 'Status pendaftaran tidak boleh diisi manual. Tunggu approval sekre.';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_registration_insert_guard on public.registrations;
+create trigger trg_registration_insert_guard
+  before insert on public.registrations
+  for each row execute function public.force_registration_pending();
+
+-- 9b. Meja laporan: setiap perubahan role/status/NIM tercatat,
+--     termasuk percobaan yang DITOLAK (action BLOCKED_*).
+create table if not exists public.security_audit_log (
+  id bigint generated always as identity primary key,
+  at timestamptz not null default now(),
+  actor uuid,
+  actor_role text,
+  action text not null,
+  target_table text not null,
+  target_id uuid,
+  detail jsonb
+);
+
+alter table public.security_audit_log enable row level security;
+
+drop policy if exists "Admin reads audit log" on public.security_audit_log;
+create policy "Admin reads audit log"
+  on public.security_audit_log for select
+  using (public.get_my_role() = 'admin');
+
+-- 9c. Penjaga profiles: tolak perubahan role/status/NIM oleh non-admin
+--     (service_role / Telegram worker di-exempt) + catat ke meja laporan.
+create or replace function public.guard_profiles_sensitive()
+returns trigger as $$
+declare
+  v_actor_role text;
+begin
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+  v_actor_role := public.get_my_role();
+
+  if (new.role   is distinct from old.role
+   or new.status is distinct from old.status
+   or new.nim    is distinct from old.nim) then
+    insert into public.security_audit_log
+      (actor, actor_role, action, target_table, target_id, detail)
+    values
+      (auth.uid(), v_actor_role,
+       case when v_actor_role = 'admin'
+            then 'profile_sensitive_change'
+            else 'BLOCKED_profile_sensitive_change' end,
+       'profiles', new.id,
+       jsonb_build_object(
+         'role_old', old.role,   'role_new', new.role,
+         'status_old', old.status, 'status_new', new.status,
+         'nim_old', old.nim,     'nim_new', new.nim));
+
+    if v_actor_role is distinct from 'admin' then
+      raise exception 'role/status/NIM hanya bisa diubah oleh admin.';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists trg_profiles_update_guard on public.profiles;
+create trigger trg_profiles_update_guard
+  before update on public.profiles
+  for each row execute function public.guard_profiles_sensitive();
+
+-- 9d. Penjaga projects: status karya hanya lewat admin + catat juga.
+create or replace function public.guard_projects_status()
+returns trigger as $$
+declare
+  v_actor_role text;
+begin
+  if auth.role() = 'service_role' then
+    return new;
+  end if;
+  v_actor_role := public.get_my_role();
+
+  if new.status is distinct from old.status then
+    insert into public.security_audit_log
+      (actor, actor_role, action, target_table, target_id, detail)
+    values
+      (auth.uid(), v_actor_role,
+       case when v_actor_role = 'admin'
+            then 'project_status_change'
+            else 'BLOCKED_project_status_change' end,
+       'projects', new.id,
+       jsonb_build_object('status_old', old.status, 'status_new', new.status));
+
+    if v_actor_role is distinct from 'admin' then
+      raise exception 'Status karya hanya diubah oleh admin.';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql security definer set search_path = public;
+
+drop trigger if exists trg_projects_update_guard on public.projects;
+create trigger trg_projects_update_guard
+  before update on public.projects
+  for each row execute function public.guard_projects_status();

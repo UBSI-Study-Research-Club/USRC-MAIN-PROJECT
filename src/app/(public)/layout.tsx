@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/server";
 import PublicHeader from "@/components/PublicHeader";
+import { AppHeader } from "@/components/AppHeader";
 import { PixelWordmark } from "@/components/PixelWordmark";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 
@@ -13,9 +14,18 @@ export default async function PublicLayout({
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Anggota yang sudah login memakai navbar yang sama dengan area dashboard.
+  const { data: profile } = user
+    ? await supabase.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle()
+    : { data: null };
+
   return (
     <>
-      <PublicHeader loggedIn={!!user} />
+      {profile ? (
+        <AppHeader name={profile.full_name || user?.email || "Anggota"} role={profile.role || "anggota"} />
+      ) : (
+        <PublicHeader loggedIn={!!user} />
+      )}
 
       {/* ── Content ─────────────────────────────────── */}
       <main className="flex-1 overflow-x-hidden">{children}</main>
@@ -57,10 +67,10 @@ export default async function PublicLayout({
             </Link>
           </div>
 
-          <FooterCol title="Jelajahi" links={[["Tentang", "/#tentang"], ["Sesi", "/#sesi"], ["Karya Terbaik", "/#karya"], ["Etalase Karya", "/karya"]]} />
+          <FooterCol title="Jelajahi" links={[["Tentang", "/#tentang"], ["Sesi", "/#sesi"], ["Karya Terbaik", "/#karya"], ["Semua Karya", "/karya"]]} />
           <FooterCol title="Anggota" links={user ? [["Dashboard", "/dashboard"], ["Absensi", "/dashboard/absen"], ["Profil", "/profil"]] : [["Login", "/login"], ["Daftar", "/daftar"]]} />
           <div className="col-span-2 md:col-span-3">
-            <p className="mb-4 font-[family-name:var(--font-ibm-plex-mono)] text-[11px] font-semibold uppercase tracking-[.2em] text-pink">{"//"} Kampus</p>
+            <p className="mb-4 font-[family-name:var(--font-ibm-plex-mono)] text-[11px] font-semibold uppercase tracking-[.2em] text-pink">Kampus</p>
             <p className="text-sm leading-relaxed text-white/80">Universitas Bina Sarana Informatika<br />Kampus Pontianak</p>
             <p className="mt-3 font-[family-name:var(--font-ibm-plex-mono)] text-xs leading-relaxed text-white/50">Informatika · Sistem Informasi · SI Akuntansi</p>
           </div>
@@ -78,6 +88,7 @@ export default async function PublicLayout({
           </div>
         </div>
       </footer>
+      {(profile || !user) && <div aria-hidden="true" className="h-16 md:hidden" />}
     </>
   );
 }
@@ -85,7 +96,7 @@ export default async function PublicLayout({
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div className="md:col-span-2">
-      <p className="mb-4 font-[family-name:var(--font-ibm-plex-mono)] text-[11px] font-semibold uppercase tracking-[.2em] text-pink">{"//"} {title}</p>
+      <p className="mb-4 font-[family-name:var(--font-ibm-plex-mono)] text-[11px] font-semibold uppercase tracking-[.2em] text-pink">{title}</p>
       <ul className="space-y-2.5">
         {links.map(([label, href]) => (
           <li key={href}>

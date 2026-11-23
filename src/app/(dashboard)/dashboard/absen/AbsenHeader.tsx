@@ -24,9 +24,6 @@ export function AbsenHeader() {
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
-        <p className="mb-1.5 font-mono text-[11px] font-semibold uppercase tracking-[.2em] text-[#7A1B2E]">
-          {'//'} Area anggota
-        </p>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
             key={key}

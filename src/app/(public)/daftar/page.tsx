@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Send, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { HOBI_OPTIONS } from "@/lib/hobi";
+import { Select } from "@/components/Select";
 
 const PRODI_OPTIONS = [
   "Informatika",
@@ -17,7 +18,7 @@ export default function DaftarPage() {
     full_name: "",
     nim: "",
     email: "",
-    phone: "",
+    whatsapp: "",
     prodi: "",
     reason: "",
     website: "", // Honeypot anti-bot
@@ -52,9 +53,23 @@ export default function DaftarPage() {
       return;
     }
 
+    if (!form.prodi) {
+      setStatus("error");
+      setErrorMsg("Pilih program studi dulu ya.");
+      return;
+    }
+
     if (hobi.length === 0) {
       setStatus("error");
       setErrorMsg("Pilih minimal satu hobi/minat dulu ya.");
+      return;
+    }
+
+    const cleanWa = form.whatsapp.replace(/\D/g, "");
+    const normWa = cleanWa.startsWith("0") ? "62" + cleanWa.slice(1) : (!cleanWa.startsWith("62") && cleanWa.length > 0 ? "62" + cleanWa : cleanWa);
+    if (normWa.length < 9 || normWa.length > 16) {
+      setStatus("error");
+      setErrorMsg("Nomor WhatsApp/Telepon tidak valid (harus 9–16 digit).");
       return;
     }
 
@@ -66,7 +81,7 @@ export default function DaftarPage() {
         full_name: form.full_name.trim(),
         nim: form.nim.trim(),
         email: form.email.trim().toLowerCase(),
-        phone: form.phone.trim() || null,
+        whatsapp: normWa,
         prodi: form.prodi,
         reason: form.reason.trim() || null,
         hobbies: hobi.length > 0 ? hobi : null,
@@ -219,9 +234,9 @@ export default function DaftarPage() {
             </label>
             <input
               type="tel"
-              name="phone"
+              name="whatsapp"
               required
-              value={form.phone}
+              value={form.whatsapp}
               onChange={handleChange}
               placeholder="08xxxxxxxxxx"
               className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"
@@ -233,20 +248,13 @@ export default function DaftarPage() {
             <label className="mb-1.5 block font-[family-name:var(--font-ibm-plex-mono)] text-xs font-bold uppercase tracking-wider text-dark/80">
               Program Studi *
             </label>
-            <select
-              name="prodi"
-              required
+            <Select
+              id="prodi"
               value={form.prodi}
-              onChange={handleChange}
-              className="w-full border-2 border-dark bg-white px-3.5 py-2.5 text-sm text-dark transition-all focus:border-maroon focus:outline-none focus:ring-1 focus:ring-maroon"
-            >
-              <option value="">— Pilih prodi —</option>
-              {PRODI_OPTIONS.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setForm((prev) => ({ ...prev, prodi: v }))}
+              placeholder="Pilih prodi"
+              options={PRODI_OPTIONS}
+            />
           </div>
 
           {/* Hobi/Minat */}

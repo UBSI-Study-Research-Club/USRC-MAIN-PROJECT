@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { uploadDocumentToTelegram, saveFileRow } from '@/lib/files/upload'
 
 // ponytail: 4MB ceiling — Vercel serverless caps request body at ~4.5MB.
 // Upgrade path: self-host Local Bot API (upload 2GB) + raise this constant.
@@ -15,34 +16,11 @@ export async function POST(request: NextRequest) {
   if (!(file instanceof File)) return NextResponse.json({ error: 'file wajib ada' }, { status: 400 })
   if (file.size > MAX_SIZE) return NextResponse.json({ error: 'ukuran maksimal 4MB' }, { status: 413 })
 
-  const tg = new FormData()
-  tg.append('chat_id', process.env.TELEGRAM_STORAGE_CHAT_ID!)
-  tg.append('document', file, file.name)
+  const doc = await uploadDocumentToTelegram(file, file.name, file.type || 'application/octet-stream')
+  if (!doc) return NextResponse.json({ error: 'gagal mengunggah ke penyimpanan telegram' }, { status: 502 })
 
-  const res = await fetch(
-    `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`,
-    { method: 'POST', body: tg }
-  )
-  const json = await res.json()
-  if (!json.ok) {
-    console.error('telegram sendDocument failed:', json.description)
-    return NextResponse.json({ error: 'gagal mengunggah ke penyimpanan telegram' }, { status: 502 })
-  }
+  const data = await saveFileRow(supabase, user.id, doc, file.name, doc.mime_type ?? file.type ?? 'application/octet-stream', doc.file_size ?? file.size)
+  if (!data) return NextResponse.json({ error: 'gagal menyimpan file' }, { status: 500 })
 
-  const doc = json.result.document
-  const { data, error } = await supabase
-    .from('files')
-    .insert({
-      owner_id: user.id,
-      telegram_file_id: doc.file_id,
-      telegram_unique_id: doc.file_unique_id,
-      name: file.name,
-      mime: doc.mime_type ?? file.type ?? 'application/octet-stream',
-      size: doc.file_size ?? file.size,
-    })
-    .select('id, name, size')
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data, { status: 201 })
 }

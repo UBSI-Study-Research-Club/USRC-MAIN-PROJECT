@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/#tentang", no: "01", label: "Tentang" },
   { href: "/#sesi", no: "02", label: "Sesi" },
   { href: "/#karya", no: "03", label: "Karya" },
-  { href: "/karya", no: "04", label: "Etalase Karya" },
+  { href: "/karya", no: "04", label: "Semua Karya" },
 ];
 
 export default function MobileNav() {

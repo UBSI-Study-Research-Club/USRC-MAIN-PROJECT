@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
+import { nickname } from '@/lib/name';
+import { toDisplay, toProfileUrl } from '@/lib/social';
 import { PixelCharacter, type PixelCharacterConfig } from './PixelCharacter';
 import { PixelAvatar } from './PixelAvatar';
-import { Sparkles, Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Loader2, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { SideSheet, SheetButton } from '@/components/SideSheet';
 import { GLIDE } from '@/components/motion/Glide';
@@ -298,7 +300,7 @@ function seeded(seed: number) {
 /* Banner: mosaik pixel yang di-generate dari nama (makin rapat ke kanan),
    sebagian pixel berkedip pelan, dan nama depan besar bergaris di kanan bawah. */
 function NameBanner({ member, idx }: { member: Member; idx: number }) {
-  const first = member.full_name.split(' ')[0].toUpperCase();
+  const first = nickname(member.full_name).toUpperCase();
   const seed = hashName(member.full_name);
   const rand = seeded(seed);
   const base = member.avatar_bg || `hsl(${seed % 360} 55% 82%)`;
@@ -318,7 +320,7 @@ function NameBanner({ member, idx }: { member: Member; idx: number }) {
   const nameSize = Math.min(104, Math.round(560 / Math.max(first.length, 3)));
 
   return (
-    <div className="relative h-[150px] overflow-hidden border-b-[3px] border-dark" style={{ backgroundColor: base }}>
+    <div className="relative h-[150px] overflow-hidden border-b-[3px] border-dark [container-type:inline-size]" style={{ backgroundColor: base }}>
       {/* mosaik */}
       <svg aria-hidden="true" className="absolute inset-0 h-full w-full" viewBox={`0 0 ${COLS * 10} ${ROWS * 10}`} preserveAspectRatio="xMaxYMid slice">
         {cells.map((c, i) => (
@@ -344,7 +346,7 @@ function NameBanner({ member, idx }: { member: Member; idx: number }) {
         aria-hidden="true"
         className="absolute -bottom-3 right-3 select-none font-display font-black uppercase leading-none text-white"
         style={{
-          fontSize: nameSize,
+          fontSize: `min(${nameSize}px, ${Math.round(100 / Math.max(first.length, 3))}cqw)`,
           textShadow:
             '-2px -2px 0 #1A1A1A, 2px -2px 0 #1A1A1A, -2px 2px 0 #1A1A1A, 2px 2px 0 #1A1A1A, 0 -2px 0 #1A1A1A, 0 2px 0 #1A1A1A, -2px 0 0 #1A1A1A, 2px 0 0 #1A1A1A, 5px 5px 0 #1A1A1A',
         }}
@@ -421,7 +423,7 @@ function StoryItem({
             ${isSelected ? 'text-maroon underline decoration-2 underline-offset-4' : 'text-dark'}
           `}
         >
-          {member.full_name.split(' ')[0]}
+          {nickname(member.full_name)}
         </span>
       </button>
     </li>
@@ -513,14 +515,14 @@ function MemberCard({
         {/* Link */}
         {links.length > 0 && (
           <section className="flex flex-col gap-3">
-            <h3 className="kg-lbl m-0">{'//'} Link</h3>
+            <h3 className="kg-lbl m-0">Link</h3>
             <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-2">
               {links.map(({ kind, url }) => {
                 const [ib, ic] = LINK_COLOR[kind];
                 return (
                   <li key={kind}>
                     <a
-                      href={url.startsWith('http') ? url : `https://${url}`}
+                      href={toProfileUrl(kind, url) ?? '#'}
                       target="_blank"
                       rel="noopener noreferrer nofollow ugc"
                       className="group flex min-h-[54px] items-stretch border-2 border-dark bg-white text-inherit no-underline shadow-[3px_3px_0_#1A1A1A] transition-[transform,box-shadow] duration-150 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-[5px_5px_0_#7A1B2E] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none"
@@ -530,7 +532,7 @@ function MemberCard({
                       </span>
                       <span className="flex min-w-0 flex-1 flex-col justify-center px-3 py-2">
                         <small className="font-mono text-[10px] uppercase tracking-[.1em] text-dark/55">{LINK_LABEL[kind]}</small>
-                        <b className="truncate text-[14px] font-semibold">{url.replace(/^https?:\/\//, '')}</b>
+                        <b className="truncate text-[14px] font-semibold">{toDisplay(kind, url)}</b>
                       </span>
                       {ARROW_ICON}
                     </a>
@@ -544,7 +546,7 @@ function MemberCard({
         {/* Hobi */}
         {member.hobbies.length > 0 && (
           <section className="flex flex-col gap-3">
-            <h3 className="kg-lbl m-0">{'//'} Hobi</h3>
+            <h3 className="kg-lbl m-0">Hobi</h3>
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {member.hobbies.slice(0, 8).map((t, i) => (
                 <li
@@ -604,7 +606,7 @@ function ComposerModal({
     <>
       {/* header */}
       <div className="flex-none flex items-center justify-between px-5 py-2.5 bg-paper border-b-2 border-dark">
-        <span className="font-mono text-xs font-bold uppercase tracking-[.08em]">// Catatan kamu</span>
+        <span className="font-mono text-xs font-bold uppercase tracking-[.08em]">Catatan kamu</span>
         <button
           type="button" onClick={onClose}
           className="w-11 h-11 flex items-center justify-center border-2 border-dark bg-white shadow-[3px_3px_0_#1A1A1A] hover:bg-[#F8D7DA] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all"
@@ -855,7 +857,7 @@ export function PixelStoryContainer() {
     return (
       <div className="flex items-center justify-center py-6 border-2 border-dark bg-white shadow-[4px_4px_0_#1A1A1A]">
         <Loader2 className="w-5 h-5 animate-spin text-maroon mr-2" />
-        <span className="font-mono text-xs uppercase">// Memuat Pixel Story...</span>
+        <span className="font-mono text-xs uppercase">Memuat story anggota...</span>
       </div>
     );
   }
@@ -877,15 +879,12 @@ export function PixelStoryContainer() {
         {/* header */}
         <div className="flex items-center justify-between border-b-[3px] border-dark bg-[#FFF3C4] px-4 py-2 font-mono text-xs font-medium uppercase tracking-[.08em]">
           <div className="flex items-center gap-2.5">
-            <Sparkles className="w-4 h-4 text-maroon" />
+            <span aria-hidden="true" className="h-3 w-3 border-2 border-dark bg-maroon" />
             <h2 id="ps-title" className="m-0 font-display text-sm font-black text-dark">
-              Pixel Story <span className="text-maroon">&amp;</span> Status Anggota
+              Story <span className="text-maroon">Anggota</span>
             </h2>
           </div>
           <div className="flex items-center gap-3">
-            <span className="font-mono text-[11px] text-dark/65 hidden sm:block">
-              // ketuk avatar buat lihat kartu member
-            </span>
             {/* nav panah — desktop only */}
             <div className="hidden gap-1.5 sm:flex" aria-hidden="true">
               <button
@@ -937,7 +936,7 @@ export function PixelStoryContainer() {
         open={!!openMember}
         onClose={closeCard}
         width="sm:w-[min(540px,92vw)]"
-        label={<>{'//'} Member card <span className="ml-1 text-dark/50">{pad(openIdx + 1)}/{pad(orderedList.length)}</span></>}
+        label={<span className="text-dark/60">{pad(openIdx + 1)} / {pad(orderedList.length)}</span>}
         actions={
           <>
             <SheetButton onClick={() => stepCard(-1)} label="Profil sebelumnya">

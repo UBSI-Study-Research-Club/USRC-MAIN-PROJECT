@@ -20,7 +20,7 @@ export default function AbsenTemplate({ children }: { children: React.ReactNode 
 
   return (
     <motion.div
-      initial={reduced ? false : { opacity: 0, x: 28 * dir }}
+      initial={reduced ? false : { opacity: 0, x: 16 * dir }}
       animate={{ opacity: 1, x: 0 }}
       transition={GLIDE}
     >

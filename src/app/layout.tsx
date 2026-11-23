@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import RouteProgress from "@/components/RouteProgress";
 
 // Self-hosted (Gelombang C hotfix) — build Vercel gak lagi tergantung
 // jaringan ke fonts.googleapis.com yang suka gagal di build machine.
@@ -63,7 +64,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="id"
       className={`${outfit.variable} ${workSans.variable} ${ibmPlexMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <RouteProgress />
+        {children}
+      </body>
     </html>
   );
 }
